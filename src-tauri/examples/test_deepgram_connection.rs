@@ -2,7 +2,11 @@ use tokio_tungstenite::{connect_async, tungstenite::Message};
 use futures_util::{SinkExt, StreamExt};
 use http::Request;
 
-const API_KEY: &str = "***REMOVED***";
+/// Получаем API ключ из переменной окружения
+fn get_api_key() -> String {
+    std::env::var("DEEPGRAM_TEST_KEY")
+        .expect("Set DEEPGRAM_TEST_KEY environment variable: export DEEPGRAM_TEST_KEY='your_key'")
+}
 
 #[tokio::main]
 async fn main() {
@@ -15,6 +19,8 @@ async fn main() {
         ("С ru", "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&language=ru"),
         ("Полный с nova-2", "wss://api.deepgram.com/v1/listen?encoding=linear16&sample_rate=16000&channels=1&model=nova-2&language=ru&punctuate=true&interim_results=true"),
     ];
+
+    let api_key = get_api_key();
 
     for (name, url) in test_urls {
         println!("\n{}", "=".repeat(60));
@@ -29,7 +35,7 @@ async fn main() {
         .header("Upgrade", "websocket")
         .header("Sec-WebSocket-Version", "13")
         .header("Sec-WebSocket-Key", tokio_tungstenite::tungstenite::handshake::client::generate_key())
-        .header("Authorization", format!("Token {}", API_KEY))
+        .header("Authorization", format!("Token {}", api_key))
         .body(())
         .unwrap();
 

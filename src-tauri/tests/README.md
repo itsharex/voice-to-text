@@ -150,14 +150,53 @@ open target/criterion/report/index.html
 - ⚡ JSON сериализация/десериализация
 - ⚡ Обработка множественных чанков
 
-## API ключ для тестов
+## API ключи для тестов
 
-В тестах используется реальный Deepgram API key:
-```rust
-const TEST_API_KEY: &str = "***REMOVED***";
+### Быстрая настройка
+
+Тесты используют переменные окружения для безопасного хранения API ключей. Для удобства создан шаблон `.env.test.example`:
+
+```bash
+# 1. Скопируйте шаблон
+cd src-tauri
+cp .env.test.example .env.test
+
+# 2. Откройте .env.test и замените значения на ваши реальные ключи
+# Файл .env.test уже добавлен в .gitignore и не будет закоммичен
+
+# 3. Загрузите переменные в текущую сессию
+source .env.test
+
+# 4. Или экспортируйте вручную
+export DEEPGRAM_TEST_KEY="your_deepgram_api_key_here"
+export ASSEMBLYAI_TEST_KEY="your_assemblyai_api_key_here"
 ```
 
-⚠️ **Важно:** Этот ключ используется только для тестирования. Не используйте его в production коде!
+### Как получить тестовые ключи
+
+1. **Deepgram:** Зарегистрируйтесь на [https://console.deepgram.com/signup](https://console.deepgram.com/signup) и получите API key
+2. **AssemblyAI:** Зарегистрируйтесь на [https://www.assemblyai.com/](https://www.assemblyai.com/) и получите API key
+
+### Постоянное использование
+
+**Опция 1: Через .env.test (рекомендуется для разработки)**
+```bash
+# Создайте .env.test в src-tauri/ с вашими ключами
+# Перед запуском тестов: source src-tauri/.env.test
+```
+
+**Опция 2: Через shell profile (удобно для ежедневного использования)**
+```bash
+# Добавьте в ~/.bashrc или ~/.zshrc
+export DEEPGRAM_TEST_KEY="your_key"
+export ASSEMBLYAI_TEST_KEY="your_key"
+```
+
+⚠️ **Важно:**
+- ✅ `.env.test` уже добавлен в `.gitignore` - безопасно хранить ключи локально
+- ❌ Никогда не коммитьте API ключи в git
+- ❌ Не используйте тестовые ключи в production коде
+- ✅ Для CI/CD используйте GitHub Secrets (см. раздел CI/CD Integration ниже)
 
 ## Статистика покрытия
 
@@ -187,9 +226,13 @@ const TEST_API_KEY: &str = "***REMOVED***";
 async fn test_new_feature() {
     let mut provider = DeepgramProvider::new();
 
+    // Получаем ключ из переменной окружения
+    let api_key = std::env::var("DEEPGRAM_TEST_KEY")
+        .expect("Set DEEPGRAM_TEST_KEY for tests");
+
     // Настройка
     let mut config = SttConfig::new(SttProviderType::Deepgram)
-        .with_api_key(TEST_API_KEY);
+        .with_api_key(&api_key);
 
     // Действие
     let result = provider.initialize(&config).await;

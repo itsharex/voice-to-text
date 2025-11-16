@@ -7,14 +7,21 @@ use app_lib::domain::{
 };
 use app_lib::infrastructure::stt::DeepgramProvider;
 
-/// Получаем API ключ из переменной окружения или используем дефолтный
+/// Получаем API ключ из переменной окружения
+///
+/// Установите переменную окружения DEEPGRAM_TEST_KEY перед запуском тестов:
+/// ```bash
+/// export DEEPGRAM_TEST_KEY="your_api_key_here"
+/// cargo test
+/// ```
 fn get_api_key() -> String {
     // Пробуем загрузить .env файл (если есть)
     let _ = dotenv::dotenv();
 
     // Читаем из переменной окружения
-    std::env::var("DEEPGRAM_KEY")
-        .unwrap_or_else(|_| "***REMOVED***".to_string())
+    std::env::var("DEEPGRAM_TEST_KEY")
+        .expect("DEEPGRAM_TEST_KEY environment variable must be set for tests. \
+                 Set it with: export DEEPGRAM_TEST_KEY='your_key_here'")
 }
 
 // ============================================================================

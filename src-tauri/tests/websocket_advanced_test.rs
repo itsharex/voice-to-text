@@ -10,14 +10,14 @@ use app_lib::infrastructure::stt::{DeepgramProvider, AssemblyAIProvider};
 /// Хелпер для получения API ключей
 fn get_deepgram_key() -> String {
     let _ = dotenv::dotenv();
-    std::env::var("DEEPGRAM_KEY")
-        .unwrap_or_else(|_| "***REMOVED***".to_string())
+    std::env::var("DEEPGRAM_TEST_KEY")
+        .expect("DEEPGRAM_TEST_KEY environment variable must be set for tests")
 }
 
 fn get_assemblyai_key() -> String {
     let _ = dotenv::dotenv();
-    std::env::var("ASSEMBLY_AI_KEY")
-        .unwrap_or_else(|_| "test-key".to_string())
+    std::env::var("ASSEMBLYAI_TEST_KEY")
+        .expect("ASSEMBLYAI_TEST_KEY environment variable must be set for tests")
 }
 
 // ============================================================================

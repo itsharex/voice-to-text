@@ -5,7 +5,11 @@ use tokio::runtime::Runtime;
 use app_lib::domain::{AudioChunk, SttConfig, SttProvider, SttProviderType, Transcription};
 use app_lib::infrastructure::stt::DeepgramProvider;
 
-const TEST_API_KEY: &str = "***REMOVED***";
+/// Получаем API ключ из переменной окружения для бенчмарков
+fn get_test_api_key() -> String {
+    std::env::var("DEEPGRAM_TEST_KEY")
+        .expect("Set DEEPGRAM_TEST_KEY environment variable for benchmarks")
+}
 
 /// Бенчмарк инициализации провайдера
 fn bench_initialization(c: &mut Criterion) {
@@ -15,7 +19,7 @@ fn bench_initialization(c: &mut Criterion) {
         b.iter(|| {
             let mut provider = DeepgramProvider::new();
             let mut config = SttConfig::new(SttProviderType::Deepgram)
-                .with_api_key(TEST_API_KEY)
+                .with_api_key(&get_test_api_key())
                 .with_language("ru");
 
             rt.block_on(async {
@@ -184,7 +188,7 @@ fn bench_config_creation(c: &mut Criterion) {
     c.bench_function("stt_config_creation", |b| {
         b.iter(|| {
             let config = SttConfig::new(SttProviderType::Deepgram)
-                .with_api_key(TEST_API_KEY)
+                .with_api_key(&get_test_api_key())
                 .with_language("ru")
                 .with_model("nova-3");
             black_box(config);
@@ -195,7 +199,7 @@ fn bench_config_creation(c: &mut Criterion) {
 /// Бенчмарк клонирования конфигурации
 fn bench_config_cloning(c: &mut Criterion) {
     let config = SttConfig::new(SttProviderType::Deepgram)
-        .with_api_key(TEST_API_KEY)
+        .with_api_key(&get_test_api_key())
         .with_language("ru");
 
     c.bench_function("stt_config_clone", |b| {
@@ -213,7 +217,7 @@ fn bench_factory_provider_creation(c: &mut Criterion) {
 
     let factory = DefaultSttProviderFactory::new();
     let config = SttConfig::new(SttProviderType::Deepgram)
-        .with_api_key(TEST_API_KEY);
+        .with_api_key(&get_test_api_key());
 
     c.bench_function("factory_create_provider", |b| {
         b.iter(|| {
