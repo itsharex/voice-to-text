@@ -31,6 +31,24 @@ src-tauri/WixTools
 .env
 .env.local
 .env.*.local
+.env.test
+.env.production
+
+# Secrets and credentials
+**/secrets*.txt
+**/credentials*.json
+**/*secret*
+**/*password*
+**/*token*.txt
+
+# BFG Repo-Cleaner reports
+.bfg-report/
+..bfg-report/
 
 # Generated files (auto-generated during build)
 src-tauri/src/infrastructure/embedded_keys.rs
+
+# Test executables and binaries
+src-tauri/target/
+src-tauri/tests/fixtures/*.bin
+src-tauri/examples/target/
