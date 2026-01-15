@@ -21,6 +21,7 @@ let isHotkeyProcessing = false;
 let unlistenAudioLevel: UnlistenFn | null = null;
 let unlistenHotkey: UnlistenFn | null = null;
 let unlistenAutoHide: UnlistenFn | null = null;
+let unlistenWindowFocus: UnlistenFn | null = null;
 
 // Ref для элемента транскрипции (для автоскролла)
 const transcriptionTextRef = ref<HTMLElement | null>(null);
@@ -43,6 +44,14 @@ watch(() => store.displayText, () => {
 
 onMounted(async () => {
   await store.initialize();
+
+  // Очищаем текст при показе окна (когда получает фокус)
+  const window = getCurrentWebviewWindow();
+  unlistenWindowFocus = await window.onFocusChanged(({ payload: focused }) => {
+    if (focused) {
+      store.clearText();
+    }
+  });
 
   // Загружаем горячую клавишу из конфигурации
   try {
@@ -96,6 +105,9 @@ onUnmounted(() => {
   }
   if (unlistenAutoHide) {
     unlistenAutoHide();
+  }
+  if (unlistenWindowFocus) {
+    unlistenWindowFocus();
   }
 });
 
