@@ -363,7 +363,7 @@ const minimizeWindow = async () => {
 
 .title {
   flex: 1;
-  font-size: 16px;
+  font-size: 19px;
   font-weight: 600;
   color: var(--color-text);
   min-width: 0;
@@ -383,7 +383,7 @@ const minimizeWindow = async () => {
 .settings-button {
   background: none;
   border: none;
-  font-size: 18px;
+  font-size: 22px;
   cursor: pointer;
   padding: 2px 6px;
   border-radius: var(--radius-sm);
@@ -393,7 +393,7 @@ const minimizeWindow = async () => {
 }
 
 .minimize-button {
-  font-size: 22px;
+  font-size: 26px;
   line-height: 1;
   font-weight: 400;
   color: var(--color-text);
@@ -440,11 +440,11 @@ const minimizeWindow = async () => {
 }
 
 :global(.os-windows) .minimize-button {
-  font-size: 20px;
+  font-size: 24px;
 }
 
 :global(.os-windows) .settings-button {
-  font-size: 16px;
+  font-size: 19px;
 }
 
 :global(.os-windows) .status-indicator {
@@ -514,7 +514,7 @@ const minimizeWindow = async () => {
 }
 
 .starting-message {
-  font-size: 13px;
+  font-size: 16px;
   color: var(--color-accent);
   text-align: center;
   font-style: italic;
@@ -540,7 +540,7 @@ const minimizeWindow = async () => {
 }
 
 .audio-level-label {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--color-text-secondary);
   text-align: center;
 }
@@ -564,7 +564,7 @@ const minimizeWindow = async () => {
 }
 
 .transcription-text {
-  font-size: 14px;
+  font-size: 17px;
   color: var(--color-text);
   text-align: left;
   line-height: 1.5;
@@ -594,12 +594,12 @@ const minimizeWindow = async () => {
 }
 
 .error-icon {
-  font-size: 18px;
+  font-size: 22px;
   flex-shrink: 0;
 }
 
 .error-message {
-  font-size: 12px;
+  font-size: 14px;
   color: var(--color-error);
   line-height: 1.4;
   flex: 1;
@@ -631,7 +631,7 @@ const minimizeWindow = async () => {
   color: var(--color-text);
   border: none;
   border-radius: var(--radius-md);
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -692,7 +692,7 @@ const minimizeWindow = async () => {
 }
 
 .hint {
-  font-size: 11px;
+  font-size: 13px;
   color: var(--color-text-secondary);
   word-wrap: break-word;
   overflow-wrap: break-word;
@@ -713,12 +713,12 @@ const minimizeWindow = async () => {
 }
 
 .connection-warning .warning-icon {
-  font-size: 16px;
+  font-size: 19px;
   flex-shrink: 0;
 }
 
 .connection-warning .warning-text {
-  font-size: 12px;
+  font-size: 14px;
   color: #ffc107;
   line-height: 1.4;
   flex: 1;
