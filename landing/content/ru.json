@@ -1,0 +1,95 @@
+{
+  "hero": {
+    "title": "Voice to Text",
+    "subtitle": "Приватное приложение для голосового ввода с офлайн-режимом."
+  },
+  "features": [
+    {
+      "id": "realtime",
+      "title": "Транскрипция в реальном времени",
+      "description": "Частичные и финальные результаты во время речи."
+    },
+    {
+      "id": "privacy",
+      "title": "Приватность",
+      "description": "Ключи хранятся локально. Нет облачного хранения текста."
+    },
+    {
+      "id": "providers",
+      "title": "Несколько провайдеров",
+      "description": "Deepgram, AssemblyAI и Whisper (офлайн)."
+    },
+    {
+      "id": "crossPlatform",
+      "title": "Кроссплатформенность",
+      "description": "Поддержка macOS, Windows и Linux."
+    },
+    {
+      "id": "hotkeys",
+      "title": "Глобальные хоткеи",
+      "description": "Запуск и остановка записи из любой программы."
+    },
+    {
+      "id": "autoCopy",
+      "title": "Автокопирование",
+      "description": "Финальный текст сразу в буфере обмена."
+    }
+  ],
+  "providers": [
+    {
+      "id": "deepgram",
+      "name": "Deepgram",
+      "description": "Низкая задержка и высокое качество (Nova-2/3)."
+    },
+    {
+      "id": "assemblyai",
+      "name": "AssemblyAI",
+      "description": "Streaming v3 с высоким качеством."
+    },
+    {
+      "id": "whisper",
+      "name": "Whisper Local",
+      "description": "Офлайн-режим с локальными моделями."
+    }
+  ],
+  "privacy": {
+    "title": "Приватность по умолчанию",
+    "bullets": [
+      "API ключи хранятся локально",
+      "Можно использовать свои ключи",
+      "Нет облачного хранения транскрипций"
+    ],
+    "openSourceNote": "Часть компонентов — open-source."
+  },
+  "faq": [
+    {
+      "id": "platforms",
+      "question": "Какие платформы поддерживаются?",
+      "answer": "macOS, Windows и Linux."
+    },
+    {
+      "id": "offline",
+      "question": "Можно ли использовать офлайн?",
+      "answer": "Да, с Whisper Local."
+    },
+    {
+      "id": "keys",
+      "question": "Как использовать свои API ключи?",
+      "answer": "Добавьте ключи в настройках приложения."
+    },
+    {
+      "id": "hotkey",
+      "question": "Как изменить хоткей?",
+      "answer": "Настройте комбинацию в приложении."
+    },
+    {
+      "id": "privacy",
+      "question": "Безопасны ли мои данные?",
+      "answer": "Мы не храним ваши тексты в облаке."
+    }
+  ],
+  "download": {
+    "title": "Скачать",
+    "note": "Выберите платформу и установите за пару минут."
+  }
+}

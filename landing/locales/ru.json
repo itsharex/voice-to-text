@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "features": "Возможности",
+    "providers": "Провайдеры",
+    "screenshots": "Скриншоты",
+    "download": "Скачать",
+    "privacy": "Приватность",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "ctaPrimary": "Скачать для {platform}",
+    "ctaSecondary": "Посмотреть возможности",
+    "preview": "Превью продукта"
+  },
+  "download": {
+    "title": "Скачать",
+    "systemRequirements": "Системные требования",
+    "version": "Версия {version}"
+  },
+  "theme": {
+    "dark": "Тёмная",
+    "light": "Светлая"
+  },
+  "language": {
+    "label": "Язык"
+  },
+  "common": {
+    "learnMore": "Подробнее"
+  },
+  "screenshots": {
+    "dark": "Тёмная тема",
+    "light": "Светлая тема",
+    "settings": "Настройки",
+    "recording": "Запись"
+  },
+  "footer": {
+    "copyright": "© {year} Voice to Text",
+    "tagline": "Голос в текст с фокусом на приватность"
+  },
+  "meta": {
+    "homeTitle": "Voice to Text — приватная транскрипция",
+    "homeDescription": "Приложение голос‑в‑текст с офлайн‑режимом и хоткеями.",
+    "downloadTitle": "Скачать Voice to Text",
+    "downloadDescription": "Сборки для macOS, Windows и Linux.",
+    "privacyTitle": "Приватность Voice to Text",
+    "privacyDescription": "Как мы защищаем ваши данные и храним их локально."
+  }
+}

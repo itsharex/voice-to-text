@@ -1,0 +1,95 @@
+{
+  "hero": {
+    "title": "Voice to Text",
+    "subtitle": "Приватний голосовий ввід із підтримкою офлайн."
+  },
+  "features": [
+    {
+      "id": "realtime",
+      "title": "Транскрипція в реальному часі",
+      "description": "Часткові та фінальні результати під час мовлення."
+    },
+    {
+      "id": "privacy",
+      "title": "Приватність",
+      "description": "Ключі зберігаються локально. Немає хмарного зберігання тексту."
+    },
+    {
+      "id": "providers",
+      "title": "Кілька провайдерів",
+      "description": "Deepgram, AssemblyAI та Whisper (офлайн)."
+    },
+    {
+      "id": "crossPlatform",
+      "title": "Кросплатформність",
+      "description": "Підтримка macOS, Windows та Linux."
+    },
+    {
+      "id": "hotkeys",
+      "title": "Глобальні хоткеї",
+      "description": "Запуск і зупинка запису з будь-якої програми."
+    },
+    {
+      "id": "autoCopy",
+      "title": "Автокопіювання",
+      "description": "Фінальний текст одразу в буфері обміну."
+    }
+  ],
+  "providers": [
+    {
+      "id": "deepgram",
+      "name": "Deepgram",
+      "description": "Низька затримка та висока якість (Nova-2/3)."
+    },
+    {
+      "id": "assemblyai",
+      "name": "AssemblyAI",
+      "description": "Streaming v3 з високою якістю."
+    },
+    {
+      "id": "whisper",
+      "name": "Whisper Local",
+      "description": "Офлайн-режим з локальними моделями."
+    }
+  ],
+  "privacy": {
+    "title": "Приватність за замовчуванням",
+    "bullets": [
+      "API ключі зберігаються локально",
+      "Можна використовувати власні ключі",
+      "Немає хмарного зберігання транскрипцій"
+    ],
+    "openSourceNote": "Частина компонентів — open-source."
+  },
+  "faq": [
+    {
+      "id": "platforms",
+      "question": "Які платформи підтримуються?",
+      "answer": "macOS, Windows та Linux."
+    },
+    {
+      "id": "offline",
+      "question": "Чи можна працювати офлайн?",
+      "answer": "Так, з Whisper Local."
+    },
+    {
+      "id": "keys",
+      "question": "Як використовувати власні API ключі?",
+      "answer": "Додайте ключі в налаштуваннях застосунку."
+    },
+    {
+      "id": "hotkey",
+      "question": "Як змінити хоткей?",
+      "answer": "Налаштуйте комбінацію в застосунку."
+    },
+    {
+      "id": "privacy",
+      "question": "Чи безпечні мої дані?",
+      "answer": "Ми не зберігаємо ваші тексти в хмарі."
+    }
+  ],
+  "download": {
+    "title": "Завантажити",
+    "note": "Оберіть платформу та встановіть за кілька хвилин."
+  }
+}

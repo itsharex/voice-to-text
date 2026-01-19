@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "features": "Features",
+    "providers": "Providers",
+    "screenshots": "Screenshots",
+    "download": "Download",
+    "privacy": "Privacy",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "ctaPrimary": "Download for {platform}",
+    "ctaSecondary": "View Features",
+    "preview": "Product preview"
+  },
+  "download": {
+    "title": "Download",
+    "systemRequirements": "System requirements",
+    "version": "Version {version}"
+  },
+  "theme": {
+    "dark": "Dark",
+    "light": "Light"
+  },
+  "language": {
+    "label": "Language"
+  },
+  "common": {
+    "learnMore": "Learn more"
+  },
+  "screenshots": {
+    "dark": "Dark theme",
+    "light": "Light theme",
+    "settings": "Settings",
+    "recording": "Recording"
+  },
+  "footer": {
+    "copyright": "© {year} Voice to Text",
+    "tagline": "Privacy-first voice-to-text"
+  },
+  "meta": {
+    "homeTitle": "Voice to Text — Privacy-focused transcription",
+    "homeDescription": "Real-time voice-to-text app with offline support and global hotkeys.",
+    "downloadTitle": "Download Voice to Text",
+    "downloadDescription": "Get the latest builds for macOS, Windows, and Linux.",
+    "privacyTitle": "Privacy at Voice to Text",
+    "privacyDescription": "Learn how we keep your data private and local."
+  }
+}
