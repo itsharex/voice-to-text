@@ -1,5 +1,5 @@
 use std::sync::Arc;
-use tauri::{AppHandle, Emitter, Manager, PhysicalPosition, Position, State, WebviewWindow, Window};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow, Window};
 
 use crate::domain::{RecordingStatus, AudioCapture};
 use crate::infrastructure::ConfigStore;
@@ -201,6 +201,8 @@ pub async fn get_recording_status(state: State<'_, AppState>) -> Result<Recordin
     Ok(state.transcription_service.get_status().await)
 }
 
+use tauri::{PhysicalPosition, Position};
+
 /// Показывает окно на активном мониторе (где находится курсор мыши) - для Window
 pub fn show_window_on_active_monitor(window: &Window) -> Result<(), String> {
     show_window_on_active_monitor_impl(
@@ -223,7 +225,7 @@ pub fn show_webview_window_on_active_monitor<R: tauri::Runtime>(window: &Webview
     )
 }
 
-/// Общая реализация для позиционирования окна
+/// Общая реализация для позиционирования окна по центру текущего монитора
 fn show_window_on_active_monitor_impl<F1, F2, F3, F4, F5>(
     get_current_monitor: F1,
     get_primary_monitor: F2,
@@ -238,14 +240,13 @@ where
     F4: FnOnce(Position) -> tauri::Result<()>,
     F5: FnOnce() -> tauri::Result<()>,
 {
-    log::info!("🖥️  Определяем активный монитор для позиционирования окна...");
+    log::debug!("Определяем активный монитор для позиционирования окна...");
 
-    // Определяем текущий монитор (где курсор мыши)
+    // Определяем текущий монитор (где находится окно)
     let current_monitor = get_current_monitor()
         .map_err(|e| format!("Failed to get current monitor: {}", e))?
         .or_else(|| {
             log::warn!("current_monitor() вернул None, использую primary монитор");
-            // Фоллбэк на primary монитор если current_monitor не сработал
             get_primary_monitor().ok().flatten()
         })
         .ok_or("No monitor found")?;
@@ -253,27 +254,21 @@ where
     // Получаем размеры и позицию монитора
     let monitor_size = current_monitor.size();
     let monitor_position = current_monitor.position();
-    let monitor_name = current_monitor.name().map(|s| s.as_str()).unwrap_or("Unknown");
 
-    log::info!("📺 Найден монитор: '{}', позиция: ({}, {}), размер: {}x{}",
-        monitor_name,
-        monitor_position.x,
-        monitor_position.y,
-        monitor_size.width,
-        monitor_size.height
+    log::debug!("Монитор: позиция ({}, {}), размер {}x{}",
+        monitor_position.x, monitor_position.y,
+        monitor_size.width, monitor_size.height
     );
 
     // Получаем размеры окна
     let window_size = get_outer_size()
         .map_err(|e| format!("Failed to get window size: {}", e))?;
 
-    log::debug!("🪟 Размер окна: {}x{}", window_size.width, window_size.height);
-
     // Вычисляем центральную позицию на мониторе
     let x = monitor_position.x + (monitor_size.width as i32 - window_size.width as i32) / 2;
     let y = monitor_position.y + (monitor_size.height as i32 - window_size.height as i32) / 2;
 
-    log::info!("📍 Устанавливаю позицию окна: ({}, {})", x, y);
+    log::debug!("Устанавливаю позицию окна: ({}, {})", x, y);
 
     // Устанавливаем позицию окна
     set_position(Position::Physical(PhysicalPosition { x, y }))
@@ -282,11 +277,10 @@ where
     // Показываем окно
     show().map_err(|e| e.to_string())?;
 
-    log::info!("✅ Окно успешно позиционировано и показано на активном мониторе");
+    log::info!("✅ Окно показано по центру монитора");
 
     Ok(())
 }
-
 /// Toggle window visibility
 #[tauri::command]
 pub async fn toggle_window(
@@ -377,6 +371,76 @@ pub async fn toggle_recording_with_window(
         }
         RecordingStatus::Error => {
             log::warn!("Cannot toggle recording - system is in error state");
+        }
+    }
+
+    Ok(())
+}
+
+/// Internal version for calling from hotkey handler (without State wrapper)
+pub async fn toggle_recording_with_window_internal(
+    state: &AppState,
+    window: tauri::WebviewWindow,
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    log::info!("toggle_recording_with_window_internal (from hotkey)");
+
+    // Проверяем авторизацию - если не авторизован, показываем auth окно
+    let is_authenticated = *state.is_authenticated.read().await;
+    if !is_authenticated {
+        log::info!("User not authenticated - showing auth window");
+        if let Some(auth) = app_handle.get_webview_window("auth") {
+            auth.show().map_err(|e| e.to_string())?;
+            auth.set_focus().map_err(|e| e.to_string())?;
+        }
+        return Ok(());
+    }
+
+    let current_status = state.transcription_service.get_status().await;
+
+    match current_status {
+        RecordingStatus::Idle => {
+            // Показываем окно если оно скрыто
+            if !window.is_visible().map_err(|e| e.to_string())? {
+                #[cfg(target_os = "macos")]
+                {
+                    if let Some(bundle_id) = crate::infrastructure::auto_paste::get_active_app_bundle_id() {
+                        *state.last_focused_app_bundle_id.write().await = Some(bundle_id.clone());
+                        log::info!("Saved last focused app bundle ID: {}", bundle_id);
+                    }
+                }
+                show_webview_window_on_active_monitor(&window)?;
+            }
+
+            // Запускаем запись через emit - frontend должен вызвать start_recording
+            use tauri::Emitter;
+            let _ = app_handle.emit("recording:start-requested", ());
+            log::info!("Recording start requested via hotkey");
+        }
+        RecordingStatus::Starting => {
+            log::debug!("Ignoring toggle - recording is starting");
+        }
+        RecordingStatus::Recording => {
+            let _result = state
+                .transcription_service
+                .stop_recording()
+                .await
+                .map_err(|e| e.to_string())?;
+
+            log::info!("Recording stopped via hotkey");
+            let _ = app_handle.emit(
+                EVENT_RECORDING_STATUS,
+                RecordingStatusPayload {
+                    status: RecordingStatus::Idle,
+                    stopped_via_hotkey: true,
+                },
+            );
+        }
+        RecordingStatus::Processing => {
+            log::debug!("Ignoring toggle - recording is processing");
+        }
+        RecordingStatus::Error => {
+            log::warn!("Cannot toggle recording - error state");
         }
     }
 
@@ -785,18 +849,31 @@ pub async fn register_recording_hotkey(
     let shortcut = hotkey.parse::<Shortcut>()
         .map_err(|e| format!("Failed to parse hotkey '{}': {}", hotkey, e))?;
 
-    // Создаем обработчик
-    app_handle.global_shortcut().on_shortcut(shortcut, move |app, _event, _shortcut| {
+    // Создаем обработчик - вызываем toggle напрямую вместо события
+    // Важно: фильтруем только Pressed события, иначе срабатывает и на key down, и на key up
+    app_handle.global_shortcut().on_shortcut(shortcut, move |app, _shortcut, event| {
+        use tauri_plugin_global_shortcut::ShortcutState;
+        if event.state != ShortcutState::Pressed {
+            return;
+        }
         log::debug!("Recording hotkey pressed");
-        let _ = tauri::async_runtime::block_on(async {
-            use tauri::Emitter;
-            let _ = app.emit("hotkey:toggle-recording", ());
-        });
-    }).map_err(|e| format!("Failed to set hotkey handler: {}", e))?;
+        let app_clone = app.clone();
+        let _ = tauri::async_runtime::spawn(async move {
+            let state_opt = app_clone.try_state::<crate::presentation::state::AppState>();
+            let window_opt = app_clone.get_webview_window("main");
 
-    // Регистрируем
-    app_handle.global_shortcut().register(shortcut)
-        .map_err(|e| format!("Failed to register hotkey '{}': {}", hotkey, e))?;
+            if let (Some(state), Some(window)) = (state_opt, window_opt) {
+                let app_for_call = app_clone.clone();
+                if let Err(e) = crate::presentation::commands::toggle_recording_with_window_internal(
+                    state.inner(),
+                    window,
+                    app_for_call,
+                ).await {
+                    log::error!("Failed to toggle recording: {}", e);
+                }
+            }
+        });
+    }).map_err(|e| format!("Failed to register hotkey '{}': {}", hotkey, e))?;
 
     log::info!("Successfully registered hotkey: {}", hotkey);
     Ok(())
@@ -1071,5 +1148,65 @@ pub async fn copy_to_clipboard_native(text: String) -> Result<(), String> {
     .map_err(|e| format!("Failed to copy to clipboard: {}", e))?;
 
     log::info!("Text copied to clipboard successfully");
+    Ok(())
+}
+
+/// Показывает auth окно и скрывает recording (main)
+#[tauri::command]
+pub async fn show_auth_window(app_handle: AppHandle) -> Result<(), String> {
+    log::info!("Command: show_auth_window");
+
+    // Скрываем recording окно (main)
+    if let Some(main) = app_handle.get_webview_window("main") {
+        // На macOS main может быть NSPanel с высоким уровнем; перед hide сбрасываем always-on-top
+        if let Err(e) = main.set_always_on_top(false) {
+            log::warn!("Failed to disable always-on-top for main window: {}", e);
+        }
+        if let Err(e) = main.hide() {
+            log::warn!("Failed to hide main window: {}", e);
+        }
+    }
+
+    // Показываем auth окно
+    if let Some(auth) = app_handle.get_webview_window("auth") {
+        // Центрируем и показываем на активном мониторе, чтобы окно точно было видно
+        show_webview_window_on_active_monitor(&auth)?;
+        auth.set_focus().map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+/// Показывает recording окно (main) и скрывает auth
+#[tauri::command]
+pub async fn show_recording_window(app_handle: AppHandle) -> Result<(), String> {
+    log::info!("Command: show_recording_window");
+
+    // Скрываем auth окно
+    if let Some(auth) = app_handle.get_webview_window("auth") {
+        if let Err(e) = auth.hide() {
+            log::warn!("Failed to hide auth window: {}", e);
+        }
+    }
+
+    // Показываем recording окно (NSPanel - появляется поверх fullscreen, без фокуса)
+    if let Some(window) = app_handle.get_webview_window("main") {
+        show_webview_window_on_active_monitor(&window)?;
+        if let Err(e) = window.set_always_on_top(true) {
+            log::warn!("Failed to enable always-on-top for main window: {}", e);
+        }
+    }
+
+    Ok(())
+}
+
+/// Обновляет флаг авторизации в backend (синхронизация из frontend)
+#[tauri::command]
+pub async fn set_authenticated(
+    state: State<'_, AppState>,
+    authenticated: bool,
+) -> Result<(), String> {
+    log::info!("Command: set_authenticated - authenticated: {}", authenticated);
+    *state.is_authenticated.write().await = authenticated;
     Ok(())
 }

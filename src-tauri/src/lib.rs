@@ -6,7 +6,7 @@ mod presentation;
 
 use presentation::commands;
 use presentation::state::AppState;
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use infrastructure::ConfigStore;
 
 // Определяем базовый NSPanel класс для macOS (появление поверх fullscreen приложений)
@@ -17,7 +17,7 @@ use tauri_nspanel::tauri_panel;
 tauri_panel! {
     panel!(FloatingPanel {
         config: {
-            can_become_key_window: false,
+            can_become_key_window: false,  // Критично для fullscreen! Активация через программный метод в auth режиме
             can_become_main_window: false
         }
     })
@@ -37,7 +37,10 @@ pub fn run() {
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_clipboard_manager::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
-        .plugin(tauri_plugin_dialog::init());
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_deep_link::init())
+        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_store::Builder::default().build());
 
     // Добавляем NSPanel плагин на macOS для появления поверх fullscreen приложений
     #[cfg(target_os = "macos")]
@@ -52,6 +55,38 @@ pub fn run() {
                     log::LevelFilter::Debug
                 } else {
                     log::LevelFilter::Info
+                })
+                // Глушим слишком многословные модули (огромные JSON в DEBUG)
+                .level_for("tauri_plugin_updater", log::LevelFilter::Info)
+                .level_for("reqwest", log::LevelFilter::Warn)
+                .level_for("hyper", log::LevelFilter::Warn)
+                .format(|out, message, record| {
+                    use tauri_plugin_log::fern::colors::{Color, ColoredLevelConfig};
+
+                    // Цвета для уровней логирования
+                    let colors = ColoredLevelConfig::new()
+                        .error(Color::Red)
+                        .warn(Color::Yellow)
+                        .info(Color::Green)
+                        .debug(Color::Cyan)
+                        .trace(Color::Magenta);
+
+                    // Укорачиваем путь модуля - берём только последнюю часть
+                    let target = record.target();
+                    let short_target = target.rsplit("::").next().unwrap_or(target);
+
+                    // Время в локальном формате
+                    let now = chrono::Local::now();
+                    let time_str = now.format("%H:%M:%S");
+
+                    // Форматируем лог: время серым, уровень цветной, модуль серым, сообщение белым
+                    out.finish(format_args!(
+                        "\x1b[90m{}\x1b[0m {} \x1b[90m{}\x1b[0m  {}",
+                        time_str,
+                        colors.color(record.level()),
+                        short_target,
+                        message
+                    ))
                 })
                 .build(),
         )
@@ -81,6 +116,9 @@ pub fn run() {
             commands::request_accessibility_permission,
             commands::auto_paste_text,
             commands::copy_to_clipboard_native,
+            commands::show_auth_window,
+            commands::show_recording_window,
+            commands::set_authenticated,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]
@@ -105,7 +143,7 @@ pub fn run() {
                 // На macOS конвертируем окно в NSPanel для появления поверх fullscreen приложений
                 #[cfg(target_os = "macos")]
                 {
-                    use tauri_nspanel::{WebviewWindowExt as _, CollectionBehavior, PanelLevel, StyleMask};
+                    use tauri_nspanel::{WebviewWindowExt as _, CollectionBehavior, PanelLevel};
 
                     let app_handle = app.handle().clone();
                     let window_clone = window.clone();
@@ -114,10 +152,11 @@ pub fn run() {
                     if let Err(e) = app_handle.run_on_main_thread(move || {
                         match window_clone.to_panel::<FloatingPanel>() {
                             Ok(panel) => {
-                                log::info!("✅ Окно успешно конвертировано в NSPanel (macOS)");
+                                log::info!("Окно успешно конвертировано в NSPanel (macOS)");
 
-                                // КРИТИЧНО: Устанавливаем nonactivatingPanel style mask
-                                // Без этого NSPanel НЕ МОЖЕТ появляться поверх fullscreen (требование macOS)
+                                // Устанавливаем nonactivatingPanel style mask - окно не забирает фокус
+                                // Это критично для появления поверх fullscreen приложений
+                                use tauri_nspanel::StyleMask;
                                 panel.set_style_mask(StyleMask::empty().nonactivating_panel().into());
                                 log::info!("🎭 Установлен style mask: nonactivating_panel");
 
@@ -133,7 +172,7 @@ pub fn run() {
                                         .into(),
                                 );
                                 log::info!("🎯 Установлен collection behavior: fullscreen_auxiliary + can_join_all_spaces");
-                                log::info!("✅ NSPanel ПОЛНОСТЬЮ настроен - будет появляться поверх fullscreen приложений!");
+                                log::info!("✅ NSPanel настроен для появления поверх fullscreen");
                             },
                             Err(e) => {
                                 log::warn!("⚠️  Не удалось конвертировать окно в NSPanel: {} (используем обычное окно)", e);
@@ -158,6 +197,25 @@ pub fn run() {
                         log::debug!("Window hidden instead of closed (app still running in tray)");
                     }
                 });
+            }
+
+            // Настраиваем auth окно (обычное NSWindow - клавиатура работает нормально)
+            if let Some(auth_window) = app.get_webview_window("auth") {
+                // Auth окно НЕ конвертируем в NSPanel - остаётся обычным NSWindow
+                // Клавиатура работает как положено, но окно не появляется поверх fullscreen
+                let _ = auth_window.hide();
+
+                // Обработчик закрытия - скрываем вместо закрытия
+                let auth_clone = auth_window.clone();
+                auth_window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = auth_clone.hide();
+                        log::debug!("Auth window hidden instead of closed");
+                    }
+                });
+
+                log::info!("Auth window configured (regular NSWindow for keyboard input)");
             }
 
             // Загружаем сохраненные конфигурации
@@ -240,8 +298,47 @@ pub fn run() {
             log::info!("Starting background update checker");
             infrastructure::updater::start_background_update_check(app.handle().clone());
 
+            // Настраиваем deep link handler для OAuth callback
+            #[cfg(desktop)]
+            {
+                use tauri_plugin_deep_link::DeepLinkExt;
+
+                // Регистрируем URL scheme
+                if let Err(e) = app.deep_link().register("voicetotext") {
+                    log::warn!("Failed to register deep link: {}", e);
+                }
+
+                // Обработчик deep link событий
+                let handle = app.handle().clone();
+                app.deep_link().on_open_url(move |event| {
+                    let urls = event.urls();
+                    for url in urls {
+                        log::info!("Received deep link: {}", url);
+                        if let Some(window) = handle.get_webview_window("main") {
+                            let _ = window.emit("deep-link", url.to_string());
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                });
+            }
+
             Ok(())
         })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while building tauri application")
+        .run(|app, event| {
+            // Обрабатываем клик по иконке в Dock (macOS)
+            if let tauri::RunEvent::Reopen { has_visible_windows, .. } = event {
+                if !has_visible_windows {
+                    if let Some(window) = app.get_webview_window("main") {
+                        if let Err(e) = crate::presentation::commands::show_webview_window_on_active_monitor(&window) {
+                            log::error!("Failed to show window on Dock click: {}", e);
+                            let _ = window.show();
+                        }
+                        let _ = window.set_focus();
+                    }
+                }
+            }
+        });
 }

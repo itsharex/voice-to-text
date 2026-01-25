@@ -61,6 +61,10 @@ pub struct AppState {
     /// Bundle ID последнего активного приложения (перед показом Voice to Text окна)
     /// Используется для автоматической вставки текста в правильное окно
     pub last_focused_app_bundle_id: Arc<RwLock<Option<String>>>,
+
+    /// Флаг авторизации пользователя (синхронизируется из frontend)
+    /// Используется для определения какое окно показывать при нажатии hotkey
+    pub is_authenticated: Arc<RwLock<bool>>,
 }
 
 impl AppState {
@@ -88,6 +92,7 @@ impl AppState {
                     vad_timeout_rx: Arc::new(tokio::sync::Mutex::new(vad_rx)),
                     vad_handler_task: Arc::new(RwLock::new(None)),
                     last_focused_app_bundle_id: Arc::new(RwLock::new(None)),
+                    is_authenticated: Arc::new(RwLock::new(false)),
                 };
             }
         };
@@ -115,6 +120,7 @@ impl AppState {
                     vad_timeout_rx: Arc::new(tokio::sync::Mutex::new(vad_rx)),
                     vad_handler_task: Arc::new(RwLock::new(None)),
                     last_focused_app_bundle_id: Arc::new(RwLock::new(None)),
+                    is_authenticated: Arc::new(RwLock::new(false)),
                 };
             }
         };
@@ -149,6 +155,7 @@ impl AppState {
             vad_timeout_rx: Arc::new(tokio::sync::Mutex::new(vad_rx)),
             vad_handler_task: Arc::new(RwLock::new(None)),
             last_focused_app_bundle_id: Arc::new(RwLock::new(None)),
+            is_authenticated: Arc::new(RwLock::new(false)),
         }
     }
 

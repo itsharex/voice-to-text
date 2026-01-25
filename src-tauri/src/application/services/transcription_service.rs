@@ -163,6 +163,9 @@ impl TranscriptionService {
 
         tokio::spawn(async move {
             let mut chunk_count = 0;
+            let mut consecutive_errors: u32 = 0;
+            const MAX_CONSECUTIVE_ERRORS: u32 = 10;
+
             while let Some(chunk) = rx.recv().await {
                 chunk_count += 1;
 
@@ -232,49 +235,62 @@ impl TranscriptionService {
                             chunk_count, amplified_chunk.data.len(), max_amplitude);
                     }
 
-                    if let Err(e) = provider.send_audio(&amplified_chunk).await {
-                        let error_msg = e.to_string();
+                    match provider.send_audio(&amplified_chunk).await {
+                        Ok(_) => {
+                            // Успешная отправка — сбрасываем счётчик ошибок
+                            consecutive_errors = 0;
+                        }
+                        Err(e) => {
+                            let error_msg = e.to_string();
 
-                        // Определяем тип ошибки и критичность
-                        let (error_type, is_critical) = if error_msg.contains("WebSocket connection closed")
-                            || error_msg.contains("connection")
-                        {
-                            // Временная ошибка сети - продолжаем обработку
-                            // Deepgram может восстановиться когда сеть вернется
-                            ("connection", false)
-                        } else if error_msg.contains("timeout") {
-                            // Timeout тоже временный - сеть может быть медленной
-                            ("timeout", false)
-                        } else if error_msg.contains("API key") || error_msg.contains("auth") || error_msg.contains("401") {
-                            // Критическая ошибка - неверные credentials
-                            ("authentication", true)
-                        } else if error_msg.contains("configuration") || error_msg.contains("invalid") {
-                            // Критическая ошибка - неверная конфигурация
-                            ("configuration", true)
-                        } else {
-                            // Неизвестная ошибка - считаем некритической
-                            ("processing", false)
-                        };
+                            // Определяем тип ошибки и критичность
+                            let (error_type, is_critical) = if error_msg.contains("WebSocket connection closed")
+                                || error_msg.contains("connection")
+                            {
+                                // Временная ошибка сети - продолжаем обработку
+                                // Deepgram может восстановиться когда сеть вернется
+                                ("connection", false)
+                            } else if error_msg.contains("timeout") {
+                                // Timeout тоже временный - сеть может быть медленной
+                                ("timeout", false)
+                            } else if error_msg.contains("API key") || error_msg.contains("auth") || error_msg.contains("401") {
+                                // Критическая ошибка - неверные credentials
+                                ("authentication", true)
+                            } else if error_msg.contains("configuration") || error_msg.contains("invalid") {
+                                // Критическая ошибка - неверная конфигурация
+                                ("configuration", true)
+                            } else {
+                                // Неизвестная ошибка - считаем некритической
+                                ("processing", false)
+                            };
 
-                        if is_critical {
-                            log::error!("STT critical error ({}): {}", error_type, error_msg);
+                            if is_critical {
+                                log::error!("STT critical error ({}): {}", error_type, error_msg);
 
-                            // Вызываем error callback для уведомления UI
-                            on_error_for_processor(error_msg.clone(), error_type.to_string());
+                                // Вызываем error callback для уведомления UI
+                                on_error_for_processor(error_msg.clone(), error_type.to_string());
 
-                            // Меняем статус на Error
-                            *status_arc.write().await = RecordingStatus::Error;
+                                // Меняем статус на Error
+                                *status_arc.write().await = RecordingStatus::Error;
 
-                            // Останавливаем обработку при критической ошибке
-                            break;
-                        } else {
-                            // Временная ошибка - логируем как warning и продолжаем
-                            log::warn!("STT temporary error ({}): {} - continuing processing",
-                                error_type, error_msg);
+                                // Останавливаем обработку при критической ошибке
+                                break;
+                            } else {
+                                consecutive_errors += 1;
 
-                            // Увеличиваем счетчик временных ошибок
-                            // Если их слишком много подряд - останавливаемся
-                            // (пока просто пропускаем чанк)
+                                // Логируем не слишком часто чтобы не спамить
+                                if consecutive_errors <= 3 {
+                                    log::warn!("STT temporary error ({}): {} - continuing ({}/{})",
+                                        error_type, error_msg, consecutive_errors, MAX_CONSECUTIVE_ERRORS);
+                                }
+
+                                // Если слишком много ошибок подряд — останавливаем обработку
+                                if consecutive_errors >= MAX_CONSECUTIVE_ERRORS {
+                                    log::error!("Too many consecutive errors ({}), stopping audio processing",
+                                        consecutive_errors);
+                                    break;
+                                }
+                            }
                         }
                     }
                 }

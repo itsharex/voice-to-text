@@ -53,3 +53,5 @@ src-tauri/src/infrastructure/embedded_keys.rs
 src-tauri/target/
 src-tauri/tests/fixtures/*.bin
 src-tauri/examples/target/
+api/.env
+api/target/

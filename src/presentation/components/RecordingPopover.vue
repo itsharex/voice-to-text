@@ -5,7 +5,11 @@ import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { useTranscriptionStore } from '../../stores/transcription';
+import { useAuthStore } from '../../features/auth/store/authStore';
 import Settings from './Settings.vue';
+import ProfilePopover from './ProfilePopover.vue';
+import UpdateIndicator from './UpdateIndicator.vue';
+import UpdateDialog from './UpdateDialog.vue';
 import { playShowSound, playDoneSound } from '../../utils/sound';
 import { isTauriAvailable } from '../../utils/tauri';
 
@@ -27,8 +31,11 @@ async function onDragMouseDown(e: MouseEvent) {
 }
 
 const store = useTranscriptionStore();
+const authStore = useAuthStore();
 const { t } = useI18n();
 const showSettings = ref(false);
+const showProfile = ref(false);
+const showUpdateDialog = ref(false);
 const audioLevel = ref(0);
 const recordingHotkey = ref('Cmd+Shift+X');
 
@@ -40,6 +47,7 @@ let unlistenAudioLevel: UnlistenFn | null = null;
 let unlistenHotkey: UnlistenFn | null = null;
 let unlistenAutoHide: UnlistenFn | null = null;
 let unlistenWindowFocus: UnlistenFn | null = null;
+let unlistenStartRequested: UnlistenFn | null = null;
 
 // Ref для элемента транскрипции (для автоскролла)
 const transcriptionTextRef = ref<HTMLElement | null>(null);
@@ -94,6 +102,20 @@ onMounted(async () => {
     await handleHotkeyToggle();
   });
 
+  // Слушаем запрос на старт записи (от hotkey через Rust)
+  unlistenStartRequested = await listen('recording:start-requested', async () => {
+    console.log('[Hotkey] Received recording:start-requested');
+    console.log('[Hotkey] store.status =', store.status);
+    console.log('[Hotkey] store.isIdle =', store.isIdle);
+    if (store.isIdle) {
+      console.log('[Hotkey] Starting recording...');
+      await store.startRecording();
+      console.log('[Hotkey] startRecording completed');
+    } else {
+      console.log('[Hotkey] Skipped - not idle');
+    }
+  });
+
   // Слушаем статус для звука и автоскрытия окна при остановке
   unlistenAutoHide = await listen<{ status: string; stopped_via_hotkey?: boolean }>('recording:status', async (event) => {
     // Проигрываем звук при ЛЮБОЙ остановке записи (через hotkey, кнопку, или автоматически)
@@ -131,6 +153,9 @@ onUnmounted(() => {
   }
   if (unlistenWindowFocus) {
     unlistenWindowFocus();
+  }
+  if (unlistenStartRequested) {
+    unlistenStartRequested();
   }
 });
 
@@ -176,6 +201,14 @@ const openSettings = () => {
   showSettings.value = true;
 };
 
+const openProfile = () => {
+  showProfile.value = true;
+};
+
+const closeProfile = () => {
+  showProfile.value = false;
+};
+
 const closeSettings = async () => {
   showSettings.value = false;
 
@@ -206,8 +239,17 @@ const minimizeWindow = async () => {
       <div class="header" data-tauri-drag-region @mousedown="onDragMouseDown">
         <div class="title">{{ t('app.title') }}</div>
         <div class="header-right">
+          <UpdateIndicator @click="showUpdateDialog = true" />
           <button class="minimize-button no-drag" @click="minimizeWindow" :title="t('main.minimize')">
             −
+          </button>
+          <button
+            v-if="authStore.isAuthenticated"
+            class="profile-button no-drag"
+            @click="openProfile"
+            :title="t('profile.title')"
+          >
+            👤
           </button>
           <button class="settings-button no-drag" @click="openSettings" :title="t('main.settings')">
             ⚙️
@@ -287,6 +329,12 @@ const minimizeWindow = async () => {
 
     <!-- Settings Modal -->
     <Settings v-if="showSettings" @close="closeSettings" />
+
+    <!-- Profile Modal -->
+    <ProfilePopover v-if="showProfile" @close="closeProfile" />
+
+    <!-- Update Dialog -->
+    <UpdateDialog v-model="showUpdateDialog" />
   </div>
 </template>
 
@@ -380,7 +428,8 @@ const minimizeWindow = async () => {
 }
 
 .minimize-button,
-.settings-button {
+.settings-button,
+.profile-button {
   background: none;
   border: none;
   font-size: 22px;
@@ -400,13 +449,15 @@ const minimizeWindow = async () => {
 }
 
 .minimize-button:hover,
-.settings-button:hover {
+.settings-button:hover,
+.profile-button:hover {
   opacity: 1;
   background: rgba(255, 255, 255, 0.1);
 }
 
 :global(.theme-light) .minimize-button:hover,
-:global(.theme-light) .settings-button:hover {
+:global(.theme-light) .settings-button:hover,
+:global(.theme-light) .profile-button:hover {
   background: rgba(0, 0, 0, 0.06);
 }
 

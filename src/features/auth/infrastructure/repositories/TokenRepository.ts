@@ -1,0 +1,139 @@
+import type { ITokenRepository, StoredSession } from '../../domain/repositories/ITokenRepository';
+import type { Session } from '../../domain/entities/Session';
+import { createSession } from '../../domain/entities/Session';
+import { createUser } from '../../domain/entities/User';
+
+const STORAGE_KEY = 'auth_session';
+const DEVICE_ID_KEY = 'device_id';
+const STORE_PATH = 'auth.json';
+
+// Флаг для определения Tauri окружения
+const isTauri = typeof window !== 'undefined' && '__TAURI__' in window;
+
+// Lazy load Tauri store
+let storePromise: Promise<any> | null = null;
+
+async function getStore() {
+  if (!isTauri) return null;
+
+  if (!storePromise) {
+    storePromise = (async () => {
+      try {
+        const { Store } = await import('@tauri-apps/plugin-store');
+        return await Store.load(STORE_PATH);
+      } catch (e) {
+        console.warn('Tauri Store not available, using localStorage fallback:', e);
+        return null;
+      }
+    })();
+  }
+
+  return storePromise;
+}
+
+/**
+ * Реализация репозитория токенов
+ * Использует tauri-plugin-store в Tauri окружении (с шифрованием на диске)
+ * Fallback на localStorage для браузера/тестов
+ */
+export class TokenRepository implements ITokenRepository {
+  async save(session: Session): Promise<void> {
+    const data: StoredSession = {
+      accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
+      accessExpiresAt: session.accessExpiresAt.toISOString(),
+      refreshExpiresAt: session.refreshExpiresAt?.toISOString(),
+      user: session.user
+        ? {
+            id: session.user.id,
+            email: session.user.email,
+            emailVerified: session.user.emailVerified,
+          }
+        : undefined,
+    };
+
+    const store = await getStore();
+    if (store) {
+      await store.set(STORAGE_KEY, data);
+      await store.save();
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+  }
+
+  async get(): Promise<Session | null> {
+    let stored: StoredSession | null = null;
+
+    const store = await getStore();
+    if (store) {
+      stored = (await store.get(STORAGE_KEY)) as StoredSession | null;
+    } else {
+      const data = localStorage.getItem(STORAGE_KEY);
+      if (data) {
+        try {
+          stored = JSON.parse(data);
+        } catch {
+          return null;
+        }
+      }
+    }
+
+    if (!stored) return null;
+
+    try {
+      return createSession({
+        accessToken: stored.accessToken,
+        refreshToken: stored.refreshToken,
+        accessExpiresAt: new Date(stored.accessExpiresAt),
+        refreshExpiresAt: stored.refreshExpiresAt
+          ? new Date(stored.refreshExpiresAt)
+          : undefined,
+        user: stored.user
+          ? createUser({
+              id: stored.user.id,
+              email: stored.user.email,
+              emailVerified: stored.user.emailVerified,
+            })
+          : undefined,
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  async clear(): Promise<void> {
+    const store = await getStore();
+    if (store) {
+      await store.delete(STORAGE_KEY);
+      await store.save();
+    } else {
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  }
+
+  getDeviceId(): string {
+    // Device ID храним в localStorage (не секретные данные)
+    let deviceId = localStorage.getItem(DEVICE_ID_KEY);
+    if (!deviceId) {
+      deviceId = `desktop-${crypto.randomUUID()}`;
+      localStorage.setItem(DEVICE_ID_KEY, deviceId);
+    }
+    return deviceId;
+  }
+}
+
+// Singleton для использования в apiClient и DI контейнере
+let tokenRepositoryInstance: TokenRepository | null = null;
+
+export function getTokenRepository(): TokenRepository {
+  if (!tokenRepositoryInstance) {
+    tokenRepositoryInstance = new TokenRepository();
+  }
+  return tokenRepositoryInstance;
+}
+
+// Для тестов
+export function resetTokenRepository(): void {
+  tokenRepositoryInstance = null;
+  storePromise = null;
+}

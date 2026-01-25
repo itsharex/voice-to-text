@@ -5,7 +5,9 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { SttProviderType, type SttConfig } from '../../types';
 import ModelManager from './ModelManager.vue';
+import UpdateDialog from './UpdateDialog.vue';
 import { useTranscriptionStore } from '../../stores/transcription';
+import { useUpdater } from '../../composables/useUpdater';
 
 const emit = defineEmits<{
   close: []
@@ -13,6 +15,10 @@ const emit = defineEmits<{
 
 // Store
 const transcriptionStore = useTranscriptionStore();
+const { store: updateStore, checkForUpdates } = useUpdater();
+
+// Диалог обновления
+const showUpdateDialog = ref(false);
 
 // Состояние
 const currentProvider = ref<SttProviderType>(SttProviderType.Deepgram);
@@ -199,11 +205,6 @@ onMounted(async () => {
     errorMessage.value = String(err);
   }
 
-  // Подписываемся на событие о доступных обновлениях из фоновой проверки
-  updateAvailableUnlisten = await listen<string>('update:available', (event) => {
-    updateAvailable.value = event.payload;
-  });
-
   document.addEventListener('mousedown', handleDocumentClick);
 
   if (theme.value === 'light') {
@@ -350,45 +351,6 @@ const stopMicrophoneTest = async () => {
   }
 };
 
-// Обновления приложения
-const isCheckingUpdates = ref(false);
-const updateAvailable = ref<string | null>(null);
-const updateError = ref('');
-
-// Проверка обновлений
-const checkForUpdates = async () => {
-  isCheckingUpdates.value = true;
-  updateError.value = '';
-  updateAvailable.value = null;
-
-  try {
-    const version = await invoke<string | null>('check_for_updates');
-    if (version) {
-      updateAvailable.value = version;
-    } else {
-      updateError.value = t('settings.updates.latest');
-    }
-  } catch (err) {
-    console.error('Failed to check for updates:', err);
-    updateError.value = String(err);
-  } finally {
-    isCheckingUpdates.value = false;
-  }
-};
-
-// Установка обновления
-const installUpdate = async () => {
-  try {
-    await invoke('install_update');
-  } catch (err) {
-    console.error('Failed to install update:', err);
-    updateError.value = String(err);
-  }
-};
-
-// Слушаем событие о доступном обновлении из фоновой проверки
-let updateAvailableUnlisten: UnlistenFn | null = null;
-
 // Воспроизведение аудио буфера
 const playAudioBuffer = (samples: number[]) => {
   const audioContext = new AudioContext({ sampleRate: 16000 });
@@ -409,9 +371,6 @@ const playAudioBuffer = (samples: number[]) => {
 onUnmounted(() => {
   if (testLevelUnlisten) {
     testLevelUnlisten();
-  }
-  if (updateAvailableUnlisten) {
-    updateAvailableUnlisten();
   }
   document.removeEventListener('mousedown', handleDocumentClick);
 });
@@ -740,29 +699,29 @@ onUnmounted(() => {
           <div class="update-controls">
             <button
               class="button-update"
-              :disabled="isCheckingUpdates"
+              :disabled="updateStore.isChecking"
               @click="checkForUpdates"
             >
-              {{ isCheckingUpdates ? t('settings.updates.checking') : t('settings.updates.check') }}
+              {{ updateStore.isChecking ? t('settings.updates.checking') : t('settings.updates.check') }}
             </button>
 
             <!-- Индикатор доступного обновления -->
-            <div v-if="updateAvailable" class="update-available">
+            <div v-if="updateStore.availableVersion" class="update-available">
               <div class="update-info">
                 <span class="update-icon">🎉</span>
                 <div>
-                  <div class="update-title">{{ t('settings.updates.availableTitle', { version: updateAvailable }) }}</div>
+                  <div class="update-title">{{ t('settings.updates.availableTitle', { version: updateStore.availableVersion }) }}</div>
                   <div class="update-subtitle">{{ t('settings.updates.availableSubtitle') }}</div>
                 </div>
               </div>
-              <button class="button-install" @click="installUpdate">
+              <button class="button-install" @click="showUpdateDialog = true">
                 {{ t('settings.updates.install') }}
               </button>
             </div>
 
             <!-- Сообщения об обновлениях -->
-            <div v-if="updateError && !updateAvailable" class="update-message">
-              {{ updateError }}
+            <div v-if="updateStore.error && !updateStore.availableVersion" class="update-message">
+              {{ updateStore.error }}
             </div>
           </div>
         </div>
@@ -783,6 +742,9 @@ onUnmounted(() => {
         </button>
       </div>
     </div>
+
+    <!-- Update Dialog -->
+    <UpdateDialog v-model="showUpdateDialog" />
   </div>
 </template>
 
