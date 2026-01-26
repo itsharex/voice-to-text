@@ -118,6 +118,7 @@ pub fn run() {
             commands::copy_to_clipboard_native,
             commands::show_auth_window,
             commands::show_recording_window,
+            commands::show_settings_window,
             commands::set_authenticated,
         ])
         .setup(|app| {
@@ -223,11 +224,18 @@ pub fn run() {
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 // Загружаем STT конфигурацию
-                if let Ok(saved_config) = ConfigStore::load_config().await {
+                if let Ok(mut saved_config) = ConfigStore::load_config().await {
                     // API ключи теперь обрабатываются напрямую в провайдерах
                     // Приоритет: пользовательские ключи (deepgram_api_key/assemblyai_api_key) → встроенные ключи
 
                     if let Some(state) = app_handle.try_state::<AppState>() {
+                        // Сохраняем токен если он уже был установлен (race condition с Vue set_authenticated)
+                        let current_config = state.transcription_service.get_config().await;
+                        if current_config.backend_auth_token.is_some() && saved_config.backend_auth_token.is_none() {
+                            log::info!("Preserving existing backend_auth_token from current config");
+                            saved_config.backend_auth_token = current_config.backend_auth_token;
+                        }
+
                         if let Err(e) = state.transcription_service.update_config(saved_config.clone()).await {
                             log::error!("Failed to load saved STT config: {}", e);
                         } else {

@@ -49,7 +49,7 @@ fn get_default_backend_url() -> String {
 
 type WsStream = WebSocketStream<MaybeTlsStream<TcpStream>>;
 
-/// Callback для обновления usage (seconds_used, seconds_remaining)
+/// Callback для обновления usage (seconds_used, seconds_remaining_total_or_plan)
 pub type UsageUpdateCallback = Arc<dyn Fn(f32, f32) + Send + Sync>;
 
 /// Backend STT provider — подключается к нашему API вместо прямого Deepgram
@@ -76,6 +76,12 @@ pub struct BackendProvider {
     // Статистика
     sent_chunks_count: usize,
     sent_bytes_total: usize,
+
+    audio_batch: Vec<u8>,
+    audio_batch_frames: usize,
+
+    next_send_at: Option<std::time::Instant>,
+    batch_started_at: Option<std::time::Instant>,
 }
 
 impl BackendProvider {
@@ -96,6 +102,10 @@ impl BackendProvider {
             on_usage_update_callback: None,
             sent_chunks_count: 0,
             sent_bytes_total: 0,
+            audio_batch: Vec::new(),
+            audio_batch_frames: 0,
+            next_send_at: None,
+            batch_started_at: None,
         }
     }
 
@@ -142,6 +152,12 @@ impl SttProvider for BackendProvider {
 
         // Получаем auth token из конфига
         // В dev режиме разрешаем работу без токена (бэкенд примет dev-local-token)
+        log::info!(
+            "BackendProvider: config.backend_auth_token present: {}, len: {}",
+            config.backend_auth_token.is_some(),
+            config.backend_auth_token.as_ref().map(|t| t.len()).unwrap_or(0)
+        );
+
         let auth_token = if cfg!(debug_assertions) {
             config.backend_auth_token.clone()
                 .unwrap_or_else(|| {
@@ -155,6 +171,8 @@ impl SttProvider for BackendProvider {
                 )
             })?
         };
+
+        log::info!("BackendProvider: auth_token len: {}", auth_token.len());
 
         // Получаем URL бэкенда (из конфига или авто-детект по окружению)
         let backend_url = config
@@ -312,15 +330,19 @@ impl SttProvider for BackendProvider {
 
                                     ServerMessage::UsageUpdate {
                                         seconds_used,
-                                        seconds_remaining,
+                                        seconds_remaining_plan,
+                                        seconds_remaining_total,
+                                        ..
                                     } => {
+                                        let remaining = seconds_remaining_total
+                                            .unwrap_or(seconds_remaining_plan);
                                         log::debug!(
                                             "Usage: used={:.1}s, remaining={:.1}s",
                                             seconds_used,
-                                            seconds_remaining
+                                            remaining
                                         );
                                         if let Some(ref cb) = on_usage_cb {
-                                            cb(seconds_used, seconds_remaining);
+                                            cb(seconds_used, remaining);
                                         }
                                     }
 
@@ -398,17 +420,56 @@ impl SttProvider for BackendProvider {
         }
 
         if let Some(ref ws_write) = self.ws_write {
-            // Конвертируем i16 samples в bytes (little-endian)
-            let bytes: Vec<u8> = chunk
-                .data
-                .iter()
-                .flat_map(|&sample| sample.to_le_bytes())
-                .collect();
+            const SAMPLE_RATE_HZ: usize = 16_000;
+            const FRAME_MS: usize = 30;
+            const SAMPLES_PER_FRAME: usize = SAMPLE_RATE_HZ * FRAME_MS / 1000; // 480
+            const BYTES_PER_SAMPLE: usize = 2;
+            const FRAME_BYTES: usize = SAMPLES_PER_FRAME * BYTES_PER_SAMPLE; // 960
+
+            const MIN_FRAMES_PER_MESSAGE: usize = 1; // ~30ms
+            const MAX_FRAMES_PER_MESSAGE: usize = 10; // ~300ms, чтобы догонять беклог без роста msg/sec
+            const MAX_BATCH_WAIT_MS: u64 = 30; // верхняя граница задержки перед отправкой
+            const MIN_SEND_INTERVAL_MS: u64 = 25; // 40 msg/s верхняя граница на клиенте
+
+            self.audio_batch.reserve(chunk.data.len() * 2);
+            let now = std::time::Instant::now();
+            if self.audio_batch_frames == 0 {
+                self.batch_started_at = Some(now);
+            }
+            for &sample in &chunk.data {
+                self.audio_batch.extend_from_slice(&sample.to_le_bytes());
+            }
+            self.audio_batch_frames += 1;
+
+            let batch_age_ms = self
+                .batch_started_at
+                .map(|t| now.saturating_duration_since(t).as_millis() as u64)
+                .unwrap_or(0);
+            let ready_to_send = self.audio_batch_frames >= MIN_FRAMES_PER_MESSAGE || batch_age_ms >= MAX_BATCH_WAIT_MS;
+            if !ready_to_send {
+                return Ok(());
+            }
+
+            let frames_to_send = self.audio_batch_frames.min(MAX_FRAMES_PER_MESSAGE);
+            let bytes_to_send = frames_to_send * FRAME_BYTES;
+            if self.audio_batch.len() < bytes_to_send {
+                return Ok(());
+            }
+
+            let remainder = self.audio_batch.split_off(bytes_to_send);
+            let bytes = std::mem::replace(&mut self.audio_batch, remainder);
+            self.audio_batch_frames -= frames_to_send;
+
+            let now2 = std::time::Instant::now();
+            let next_at = self.next_send_at.unwrap_or(now2);
+            if next_at > now2 {
+                tokio::time::sleep_until(tokio::time::Instant::from_std(next_at)).await;
+            }
+            self.next_send_at = Some(std::time::Instant::now() + std::time::Duration::from_millis(MIN_SEND_INTERVAL_MS));
 
             self.sent_chunks_count += 1;
             self.sent_bytes_total += bytes.len();
 
-            // Логируем каждый 50-й чанк
             if self.sent_chunks_count % 50 == 0 {
                 log::debug!(
                     "Backend: sent {} chunks, {} bytes total",
@@ -424,6 +485,10 @@ impl SttProvider for BackendProvider {
                 .await
                 .map_err(|e| SttError::Connection(format!("Failed to send audio: {}", e)))?;
 
+            if self.audio_batch_frames == 0 {
+                self.batch_started_at = None;
+            }
+
             Ok(())
         } else {
             Err(SttError::Processing("WebSocket not connected".to_string()))
@@ -432,6 +497,18 @@ impl SttProvider for BackendProvider {
 
     async fn stop_stream(&mut self) -> SttResult<()> {
         log::info!("BackendProvider: Stopping stream");
+
+        if !self.audio_batch.is_empty() && !self.is_closed.load(Ordering::SeqCst) {
+            if let Some(ref ws_write) = self.ws_write {
+                let bytes = std::mem::take(&mut self.audio_batch);
+                self.audio_batch_frames = 0;
+                self.next_send_at = None;
+                self.batch_started_at = None;
+                self.sent_chunks_count += 1;
+                self.sent_bytes_total += bytes.len();
+                let _ = ws_write.lock().await.send(Message::Binary(bytes)).await;
+            }
+        }
 
         // ПЕРВЫМ ДЕЛОМ ставим флаг закрытия — это предотвращает race condition
         self.is_closed.store(true, Ordering::SeqCst);
@@ -460,6 +537,8 @@ impl SttProvider for BackendProvider {
         self.ws_write = None;
         self.is_streaming = false;
         self.session_id = None;
+        self.next_send_at = None;
+        self.batch_started_at = None;
 
         log::info!(
             "BackendProvider: Stream stopped (sent {} chunks, {} bytes)",

@@ -1189,6 +1189,13 @@ pub async fn show_recording_window(app_handle: AppHandle) -> Result<(), String> 
         }
     }
 
+    // Скрываем settings окно
+    if let Some(settings) = app_handle.get_webview_window("settings") {
+        if let Err(e) = settings.hide() {
+            log::warn!("Failed to hide settings window: {}", e);
+        }
+    }
+
     // Показываем recording окно (NSPanel - появляется поверх fullscreen, без фокуса)
     if let Some(window) = app_handle.get_webview_window("main") {
         show_webview_window_on_active_monitor(&window)?;
@@ -1200,13 +1207,69 @@ pub async fn show_recording_window(app_handle: AppHandle) -> Result<(), String> 
     Ok(())
 }
 
+/// Показывает settings окно и скрывает recording (main)
+#[tauri::command]
+pub async fn show_settings_window(app_handle: AppHandle) -> Result<(), String> {
+    log::info!("Command: show_settings_window");
+
+    // Скрываем recording окно (main)
+    if let Some(main) = app_handle.get_webview_window("main") {
+        // На macOS main может быть NSPanel с высоким уровнем; перед hide сбрасываем always-on-top
+        if let Err(e) = main.set_always_on_top(false) {
+            log::warn!("Failed to disable always-on-top for main window: {}", e);
+        }
+        if let Err(e) = main.hide() {
+            log::warn!("Failed to hide main window: {}", e);
+        }
+    }
+
+    // Скрываем auth окно (на всякий случай)
+    if let Some(auth) = app_handle.get_webview_window("auth") {
+        if let Err(e) = auth.hide() {
+            log::warn!("Failed to hide auth window: {}", e);
+        }
+    }
+
+    // Показываем settings окно
+    if let Some(settings) = app_handle.get_webview_window("settings") {
+        show_webview_window_on_active_monitor(&settings)?;
+        settings.set_focus().map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
 /// Обновляет флаг авторизации в backend (синхронизация из frontend)
 #[tauri::command]
 pub async fn set_authenticated(
     state: State<'_, AppState>,
     authenticated: bool,
+    token: Option<String>,
 ) -> Result<(), String> {
     log::info!("Command: set_authenticated - authenticated: {}", authenticated);
     *state.is_authenticated.write().await = authenticated;
+
+    // Сохраняем или очищаем backend auth token в конфиге
+    let mut config = ConfigStore::load_config().await.unwrap_or_default();
+    if authenticated {
+        if let Some(ref t) = token {
+            log::info!("set_authenticated: received token with len: {}", t.len());
+            config.backend_auth_token = Some(t.clone());
+            log::info!("Backend auth token saved to config");
+        } else {
+            log::warn!("set_authenticated: authenticated=true but token is None!");
+        }
+    } else {
+        // При логауте очищаем токен
+        config.backend_auth_token = None;
+        log::info!("Backend auth token cleared from config");
+    }
+
+    // Сохраняем конфиг и обновляем сервис
+    ConfigStore::save_config(&config)
+        .await
+        .map_err(|e| format!("Failed to save config: {}", e))?;
+    let _ = state.transcription_service.update_config(config).await;
+
     Ok(())
 }
