@@ -31,6 +31,7 @@ pub enum ClientMessage {
 /// Сообщения от бэкенда к клиенту
 #[derive(Debug, Clone, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
+#[allow(dead_code)]
 pub enum ServerMessage {
     /// Сессия готова к приёму аудио
     Ready {
@@ -61,7 +62,11 @@ pub enum ServerMessage {
     /// Обновление usage (для отображения на клиенте)
     UsageUpdate {
         seconds_used: f32,
-        seconds_remaining: f32,
+        seconds_remaining_plan: f32,
+        #[serde(default)]
+        seconds_remaining_bonus: Option<f32>,
+        #[serde(default)]
+        seconds_remaining_total: Option<f32>,
     },
 
     /// Сессия успешно возобновлена
@@ -126,13 +131,13 @@ mod tests {
 
     #[test]
     fn test_deserialize_usage_update() {
-        let json = r#"{"type":"usage_update","seconds_used":10.5,"seconds_remaining":989.5}"#;
+        let json = r#"{"type":"usage_update","seconds_used":10.5,"seconds_remaining_plan":989.5}"#;
         let msg: ServerMessage = serde_json::from_str(json).unwrap();
 
         match msg {
-            ServerMessage::UsageUpdate { seconds_used, seconds_remaining } => {
+            ServerMessage::UsageUpdate { seconds_used, seconds_remaining_plan, .. } => {
                 assert!((seconds_used - 10.5).abs() < 0.01);
-                assert!((seconds_remaining - 989.5).abs() < 0.01);
+                assert!((seconds_remaining_plan - 989.5).abs() < 0.01);
             }
             _ => panic!("Expected UsageUpdate message"),
         }

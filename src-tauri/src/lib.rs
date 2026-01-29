@@ -101,6 +101,7 @@ pub fn run() {
             commands::get_stt_config,
             commands::update_stt_config,
             commands::get_app_config,
+            commands::get_app_config_snapshot,
             commands::update_app_config,
             commands::start_microphone_test,
             commands::stop_microphone_test,
@@ -242,6 +243,22 @@ pub fn run() {
                             // Синхронизируем с AppConfig
                             state.config.write().await.stt = saved_config;
                             log::info!("Loaded saved STT configuration");
+
+                            // Сигналим UI что конфиг обновился (важно для multi-window синхронизации)
+                            let revision = {
+                                let mut rev = state.config_revision.write().await;
+                                *rev = rev.saturating_add(1);
+                                *rev
+                            };
+                            let _ = app_handle.emit(
+                                crate::presentation::EVENT_CONFIG_CHANGED,
+                                crate::presentation::ConfigChangedPayload {
+                                    revision,
+                                    ts: chrono::Utc::now().timestamp_millis(),
+                                    source_window: None,
+                                    scope: Some("stt".to_string()),
+                                },
+                            );
                         }
                     }
                 }
@@ -270,6 +287,22 @@ pub fn run() {
 
                         log::info!("Loaded saved app configuration (sensitivity: {}%, device: {:?})",
                             saved_app_config.microphone_sensitivity, saved_app_config.selected_audio_device);
+
+                        // Сигналим UI что конфиг обновился (важно для multi-window синхронизации)
+                        let revision = {
+                            let mut rev = state.config_revision.write().await;
+                            *rev = rev.saturating_add(1);
+                            *rev
+                        };
+                        let _ = app_handle.emit(
+                            crate::presentation::EVENT_CONFIG_CHANGED,
+                            crate::presentation::ConfigChangedPayload {
+                                revision,
+                                ts: chrono::Utc::now().timestamp_millis(),
+                                source_window: None,
+                                scope: Some("app".to_string()),
+                            },
+                        );
                     }
                 }
             });

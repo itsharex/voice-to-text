@@ -56,6 +56,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
   let unlistenStatus: UnlistenFn | null = null;
   let unlistenError: UnlistenFn | null = null;
   let unlistenConnectionQuality: UnlistenFn | null = null;
+  let unlistenConfigChanged: UnlistenFn | null = null;
 
   // Computed
   const isStarting = computed(() => status.value === RecordingStatus.Starting);
@@ -634,6 +635,16 @@ export const useTranscriptionStore = defineStore('transcription', () => {
       );
 
       console.log('Event listeners initialized successfully');
+
+      // Синхронизация настроек между окнами: если конфиг поменяли в другом окне — перезагружаем флаги
+      unlistenConfigChanged = await listen<{ revision: number; scope?: string }>(
+        'config:changed',
+        async (event) => {
+          const scope = (event.payload as any)?.scope as string | undefined;
+          if (scope && scope !== 'app') return;
+          await reloadConfig();
+        }
+      );
     } catch (err) {
       console.error('Failed to initialize event listeners:', err);
       error.value = `Failed to initialize: ${err}`;
@@ -730,6 +741,10 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     if (unlistenConnectionQuality) {
       unlistenConnectionQuality();
       unlistenConnectionQuality = null;
+    }
+    if (unlistenConfigChanged) {
+      unlistenConfigChanged();
+      unlistenConfigChanged = null;
     }
 
     // Очищаем таймеры анимации

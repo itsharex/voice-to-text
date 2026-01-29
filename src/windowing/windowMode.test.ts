@@ -51,5 +51,23 @@ describe('getWindowMode', () => {
       })
     ).toEqual({ render: 'none', desiredWindow: 'main' });
   });
+
+  it('settings window: always render settings', () => {
+    expect(
+      getWindowMode({
+        windowLabel: 'settings',
+        isInitialized: true,
+        isAuthenticated: false,
+      })
+    ).toEqual({ render: 'settings', desiredWindow: null });
+
+    expect(
+      getWindowMode({
+        windowLabel: 'settings',
+        isInitialized: true,
+        isAuthenticated: true,
+      })
+    ).toEqual({ render: 'settings', desiredWindow: null });
+  });
 });
 

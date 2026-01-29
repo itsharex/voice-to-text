@@ -18,8 +18,9 @@ const { t } = useI18n();
 const auth = useAuth();
 const oauth = useOAuth();
 
-const email = ref('');
-const password = ref('');
+// В dev можно подставлять из env, но не хардкодим в репе (хуки правильно на это ругаются)
+const email = ref(import.meta.env.DEV ? (import.meta.env.VITE_DEV_EMAIL ?? '') : '');
+const password = ref(import.meta.env.DEV ? (import.meta.env.VITE_DEV_PASSWORD ?? '') : '');
 const confirmPassword = ref('');
 const showPassword = ref(false);
 const formValid = ref(false);

@@ -1342,9 +1342,9 @@ mod tests {
         provider.is_streaming = true;
         assert!(!provider.is_connection_alive());
 
-        // Streaming + paused - живо!
+        // Streaming + paused без реального соединения - всё ещё не живо
         provider.is_paused = true;
-        assert!(provider.is_connection_alive());
+        assert!(!provider.is_connection_alive());
 
         // Только paused - не живо
         provider.is_streaming = false;
@@ -1437,13 +1437,13 @@ mod tests {
         let result = provider.resume_stream(on_partial.clone(), on_final.clone(), on_error.clone(), on_connection_quality.clone()).await;
         assert!(result.is_err());
 
-        // Streaming + paused - успех!
+        // Streaming + paused без реального соединения - ошибка (health check)
         provider.is_paused = true;
         provider.audio_buffer = vec![1, 2, 3];
         let result = provider.resume_stream(on_partial, on_final, on_error, on_connection_quality).await;
-        assert!(result.is_ok());
+        assert!(result.is_err());
+        assert!(!provider.is_streaming);
         assert!(!provider.is_paused);
-        assert_eq!(provider.audio_buffer.len(), 0); // Буфер очищен
     }
 
     #[test]

@@ -2,9 +2,11 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 
 use crate::domain::{
-    AudioCapture, AudioConfig, AudioLevelCallback, ConnectionQualityCallback, ErrorCallback, RecordingStatus, SttConfig, SttError, SttProvider,
+    AudioCapture, AudioConfig, AudioLevelCallback, AudioSpectrumCallback, ConnectionQualityCallback,
+    ErrorCallback, RecordingStatus, SttConfig, SttError, SttProvider,
     SttProviderFactory, TranscriptionCallback,
 };
+use crate::application::AudioSpectrumAnalyzer;
 
 type Result<T> = anyhow::Result<T>;
 
@@ -49,6 +51,7 @@ impl TranscriptionService {
         on_partial: TranscriptionCallback,
         on_final: TranscriptionCallback,
         on_audio_level: AudioLevelCallback,
+        on_audio_spectrum: AudioSpectrumCallback,
         on_error: ErrorCallback,
         on_connection_quality: ConnectionQualityCallback,
     ) -> Result<()> {
@@ -165,6 +168,7 @@ impl TranscriptionService {
             let mut chunk_count = 0;
             let mut consecutive_errors: u32 = 0;
             const MAX_CONSECUTIVE_ERRORS: u32 = 10;
+            let mut spectrum = AudioSpectrumAnalyzer::new();
 
             while let Some(chunk) = rx.recv().await {
                 chunk_count += 1;
@@ -221,6 +225,12 @@ impl TranscriptionService {
                     channels: chunk.channels,
                     timestamp: chunk.timestamp,
                 };
+
+                // Отправляем спектр (48 баров) в UI.
+                // Берем именно усиленный звук, чтобы визуализация соответствовала тому, что слышит STT.
+                if let Some(bars) = spectrum.push_samples(&amplified_chunk.data) {
+                    on_audio_spectrum(bars);
+                }
 
                 // Логируем каждый 20-й чанк для отладки
                 if chunk_count % 20 == 0 {

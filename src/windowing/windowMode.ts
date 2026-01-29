@@ -1,6 +1,6 @@
-export type AppWindowLabel = 'main' | 'auth' | 'unknown';
+export type AppWindowLabel = 'main' | 'auth' | 'settings' | 'unknown';
 
-export type AppRenderMode = 'loading' | 'main' | 'auth' | 'none';
+export type AppRenderMode = 'loading' | 'main' | 'auth' | 'settings' | 'none';
 
 export type DesiredWindow = 'main' | 'auth' | null;
 
@@ -33,6 +33,9 @@ export function getWindowMode(input: WindowModeInput): WindowModeOutput {
       return input.isAuthenticated
         ? { render: 'none', desiredWindow: 'main' }
         : { render: 'auth', desiredWindow: null };
+
+    case 'settings':
+      return { render: 'settings', desiredWindow: null };
 
     default:
       // В браузере/тестах: оставляем старое поведение как fallback.

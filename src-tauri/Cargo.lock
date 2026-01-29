@@ -6697,6 +6697,7 @@ dependencies = [
  "objc",
  "reqwest",
  "rubato",
+ "rustfft",
  "serde",
  "serde_json",
  "serde_urlencoded",

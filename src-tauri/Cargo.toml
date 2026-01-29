@@ -50,6 +50,7 @@ chrono = "0.4"
 cpal = "0.15"  # Cross-platform audio I/O
 rubato = "0.15"  # Sample rate conversion
 webrtc-vad = "0.4"  # Voice Activity Detection
+rustfft = "6.2"  # FFT для аудио-визуализации (спектр)
 
 # HTTP client for cloud ASR providers
 reqwest = { version = "0.12", features = ["json", "stream", "rustls-tls-native-roots"] }

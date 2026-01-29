@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { useTranscriptionStore } from '../../stores/transcription';
+import { useAppConfigStore } from '../../stores/appConfig';
 import { useAuthStore } from '../../features/auth/store/authStore';
-import Settings from './Settings.vue';
+import { SettingsPanel } from '../../features/settings';
 import ProfilePopover from './ProfilePopover.vue';
 import UpdateIndicator from './UpdateIndicator.vue';
 import UpdateDialog from './UpdateDialog.vue';
+import AudioVisualizer from './AudioVisualizer.vue';
 import { playShowSound, playDoneSound } from '../../utils/sound';
 import { isTauriAvailable } from '../../utils/tauri';
 
@@ -31,19 +33,18 @@ async function onDragMouseDown(e: MouseEvent) {
 }
 
 const store = useTranscriptionStore();
+const appConfigStore = useAppConfigStore();
 const authStore = useAuthStore();
 const { t } = useI18n();
 const showSettings = ref(false);
 const showProfile = ref(false);
 const showUpdateDialog = ref(false);
-const audioLevel = ref(0);
-const recordingHotkey = ref('Cmd+Shift+X');
+const recordingHotkey = computed(() => appConfigStore.recordingHotkey);
 
 // Debouncing для hotkey - блокирует повторные вызовы в течение 500ms
 let hotkeyDebounceTimeout: number | null = null;
 let isHotkeyProcessing = false;
 
-let unlistenAudioLevel: UnlistenFn | null = null;
 let unlistenHotkey: UnlistenFn | null = null;
 let unlistenAutoHide: UnlistenFn | null = null;
 let unlistenWindowFocus: UnlistenFn | null = null;
@@ -75,6 +76,7 @@ onMounted(async () => {
   }
 
   await store.initialize();
+  await appConfigStore.startSync();
 
   // Очищаем текст при показе окна (когда получает фокус)
   const window = getCurrentWebviewWindow();
@@ -82,19 +84,6 @@ onMounted(async () => {
     if (focused) {
       store.clearText();
     }
-  });
-
-  // Загружаем горячую клавишу из конфигурации
-  try {
-    const appConfig = await invoke<any>('get_app_config');
-    recordingHotkey.value = appConfig.recording_hotkey ?? 'Ctrl+X';
-  } catch (err) {
-    console.log('Failed to load recording hotkey, using default');
-  }
-
-  // Слушаем события уровня громкости
-  unlistenAudioLevel = await listen<{ level: number }>('audio:level', (event) => {
-    audioLevel.value = event.payload.level;
   });
 
   // Слушаем событие нажатия горячей клавиши для записи
@@ -138,13 +127,12 @@ onMounted(async () => {
       }
     }
   });
+
 });
 
 onUnmounted(() => {
   store.cleanup();
-  if (unlistenAudioLevel) {
-    unlistenAudioLevel();
-  }
+  appConfigStore.stopSync();
   if (unlistenHotkey) {
     unlistenHotkey();
   }
@@ -198,6 +186,10 @@ const handleHotkeyToggle = async () => {
 };
 
 const openSettings = () => {
+  if (isTauriAvailable()) {
+    invoke('show_settings_window');
+    return;
+  }
   showSettings.value = true;
 };
 
@@ -212,19 +204,13 @@ const closeProfile = () => {
 const closeSettings = async () => {
   showSettings.value = false;
 
-  // Перезагружаем хоткей после закрытия настроек (мог измениться)
-  try {
-    const appConfig = await invoke<any>('get_app_config');
-    recordingHotkey.value = appConfig.recording_hotkey ?? 'Ctrl+X';
-  } catch (err) {
-    console.log('Failed to reload recording hotkey after settings close');
-  }
+  await appConfigStore.refresh();
+  await store.reloadConfig();
 };
 
 const minimizeWindow = async () => {
   try {
-    const window = getCurrentWebviewWindow();
-    await window.minimize();
+    await invoke('toggle_window');
   } catch (err) {
     console.error('Failed to minimize window:', err);
   }
@@ -234,6 +220,7 @@ const minimizeWindow = async () => {
 <template>
   <div class="popover-container">
     <div class="popover">
+      <AudioVisualizer :active="store.isStarting || store.isRecording" />
       <div class="popover-content">
       <!-- Header -->
       <div class="header" data-tauri-drag-region @mousedown="onDragMouseDown">
@@ -241,7 +228,7 @@ const minimizeWindow = async () => {
         <div class="header-right">
           <UpdateIndicator @click="showUpdateDialog = true" />
           <button class="minimize-button no-drag" @click="minimizeWindow" :title="t('main.minimize')">
-            −
+            <span class="mdi mdi-window-minimize"></span>
           </button>
           <button
             v-if="authStore.isAuthenticated"
@@ -254,7 +241,6 @@ const minimizeWindow = async () => {
           <button class="settings-button no-drag" @click="openSettings" :title="t('main.settings')">
             ⚙️
           </button>
-          <div class="status-indicator" :class="{ active: store.isRecording }"></div>
         </div>
       </div>
 
@@ -272,25 +258,9 @@ const minimizeWindow = async () => {
 
       <!-- Transcription Display -->
       <div class="transcription-area">
-        <div v-if="store.isStarting || store.isRecording" class="recording-indicator">
-          <div class="pulse-ring"></div>
-          <div class="pulse-dot"></div>
-        </div>
-
         <!-- Starting indicator -->
         <div v-if="store.isStarting" class="starting-message">
           {{ t('main.connecting') }}
-        </div>
-
-        <!-- Audio Level Visualizer -->
-        <div v-if="store.isRecording" class="audio-level-container">
-          <div class="audio-level-label">{{ t('main.audioLevel') }}</div>
-          <div class="audio-level-bar">
-            <div
-              class="audio-level-fill"
-              :style="{ width: `${audioLevel * 100}%` }"
-            ></div>
-          </div>
         </div>
 
         <p ref="transcriptionTextRef" class="transcription-text" :class="{ recording: store.isRecording }">
@@ -328,7 +298,7 @@ const minimizeWindow = async () => {
     </div>
 
     <!-- Settings Modal -->
-    <Settings v-if="showSettings" @close="closeSettings" />
+    <SettingsPanel v-if="showSettings" @close="closeSettings" />
 
     <!-- Profile Modal -->
     <ProfilePopover v-if="showProfile" @close="closeProfile" />
@@ -367,6 +337,7 @@ const minimizeWindow = async () => {
   gap: var(--spacing-sm);
   box-sizing: border-box;
   overflow: hidden;
+  position: relative;
 }
 
 :global(.theme-light) .popover {
@@ -392,6 +363,8 @@ const minimizeWindow = async () => {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  position: relative;
+  z-index: 1;
 }
 
 .header {
@@ -442,9 +415,10 @@ const minimizeWindow = async () => {
 }
 
 .minimize-button {
-  font-size: 26px;
-  line-height: 1;
-  font-weight: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
   color: var(--color-text);
 }
 
@@ -465,14 +439,6 @@ const minimizeWindow = async () => {
   color: #1f2937;
 }
 
-.status-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--color-text-secondary);
-  transition: all 0.3s ease;
-}
-
 :global(.os-windows) .popover {
   padding: var(--spacing-xs);
 }
@@ -490,22 +456,8 @@ const minimizeWindow = async () => {
   padding: 2px 4px;
 }
 
-:global(.os-windows) .minimize-button {
-  font-size: 24px;
-}
-
 :global(.os-windows) .settings-button {
   font-size: 19px;
-}
-
-:global(.os-windows) .status-indicator {
-  width: 10px;
-  height: 10px;
-}
-
-.status-indicator.active {
-  background: var(--color-success);
-  box-shadow: 0 0 8px var(--color-success);
 }
 
 .transcription-area {
@@ -533,34 +485,15 @@ const minimizeWindow = async () => {
   margin-top: 0;
 }
 
-.pulse-ring {
-  position: absolute;  
-  width: 100%;
-  height: 100%;
-  border: 2px solid var(--color-accent);
-  border-radius: 50%;
-  animation: pulse 1.5s ease-out infinite;
-}
-
-.pulse-dot {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 8px;
-  height: 8px;
-  background: var(--color-accent);
-  border-radius: 50%;
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(0.8);
-    opacity: 1;
-  }
+@keyframes recording-dot {
+  0%,
   100% {
-    transform: scale(2.5);
-    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.92);
+    opacity: 0.65;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.8;
   }
 }
 
@@ -580,38 +513,6 @@ const minimizeWindow = async () => {
   50% {
     opacity: 1;
   }
-}
-
-.audio-level-container {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-xs);
-  margin: var(--spacing-sm) 0;
-}
-
-.audio-level-label {
-  font-size: 13px;
-  color: var(--color-text-secondary);
-  text-align: center;
-}
-
-.audio-level-bar {
-  width: 100%;
-  height: 15px;
-  background: var(--field-bg);
-  border: 1px solid var(--field-border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-  position: relative;
-}
-
-.audio-level-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4caf50, #8bc34a, #ffc107, #ff9800, #f44336);
-  transition: width 0.1s ease-out;
-  border-radius: var(--radius-sm);
-  box-shadow: 0 0 8px rgba(124, 58, 237, 0.4);
 }
 
 .transcription-text {

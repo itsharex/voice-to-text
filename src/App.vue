@@ -5,18 +5,21 @@ import { useAuth, useAuthState } from './features/auth';
 import AuthScreen from './features/auth/presentation/components/AuthScreen.vue';
 import RecordingPopover from './presentation/components/RecordingPopover.vue';
 import { invoke } from '@tauri-apps/api/core';
-import { listen, emit, type UnlistenFn } from '@tauri-apps/api/event';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useUpdater } from './composables/useUpdater';
 import { getWindowMode, type AppWindowLabel } from './windowing/windowMode';
+import { SettingsWindow } from './features/settings';
+import { i18n } from './i18n';
 
 const auth = useAuth();
 const authState = useAuthState();
 const theme = useTheme();
 const { setupUpdateListener, cleanupUpdateListener } = useUpdater();
 
-// Слушатель события изменения авторизации из другого окна
-let unlistenAuthChange: UnlistenFn | null = null;
+let unlistenConfigChanged: UnlistenFn | null = null;
+let unlistenUiThemeChange: UnlistenFn | null = null;
+let unlistenUiLocaleChange: UnlistenFn | null = null;
 
 // Флаг завершения инициализации (чтобы не мелькал AuthScreen)
 const isInitialized = ref(false);
@@ -37,18 +40,49 @@ const mode = computed(() =>
 const showLoading = computed(() => mode.value.render === 'loading');
 const showAuth = computed(() => mode.value.render === 'auth');
 const showApp = computed(() => mode.value.render === 'main');
+const showSettings = computed(() => mode.value.render === 'settings');
 
 // Если окно по правилам не должно показывать UI — прячем его, чтобы не оставалось "невидимого стекла".
 watch(
   () => mode.value.render,
   async (render) => {
     if (!isInitialized.value) return;
-    if (render !== 'none') return;
     try {
-      await getCurrentWindow().hide();
+      // Важно: если окно было скрыто в промежуточном состоянии (например, auth=true → auth=false),
+      // оно должно уметь снова показаться, иначе получается "приложение запущено, но окна нет".
+      if (render === 'none') {
+        await getCurrentWindow().hide();
+      } else {
+        await getCurrentWindow().show();
+      }
     } catch {}
   }
 );
+
+function applyUiSettingsFromStorage(): void {
+  const storedTheme = localStorage.getItem('uiTheme') || 'dark';
+  applyThemeValue(storedTheme);
+
+  const storedLocale = localStorage.getItem('uiLocale');
+  if (storedLocale) {
+    applyLocaleValue(storedLocale);
+  }
+}
+
+function applyThemeValue(value: string): void {
+  theme.global.name.value = value;
+
+  if (value === 'light') {
+    document.documentElement.classList.add('theme-light');
+  } else {
+    document.documentElement.classList.remove('theme-light');
+  }
+}
+
+function applyLocaleValue(value: string): void {
+  i18n.global.locale.value = value;
+  localStorage.setItem('uiLocale', value);
+}
 
 // Синхронизация темы с localStorage
 const storedTheme = localStorage.getItem('uiTheme') || 'dark';
@@ -63,16 +97,10 @@ watch(() => authState.isAuthenticated.value, async (isAuth) => {
   if (!isInitialized.value) return;
 
   try {
-    // Синхронизируем флаг авторизации с backend (для hotkey handler)
-    await invoke('set_authenticated', { authenticated: isAuth });
-
-    // Уведомляем другие окна только если это локальное изменение (не от другого окна)
     if (!isExternalAuthChange) {
-      const currentWindow = getCurrentWindow();
-      await emit('auth-state-changed', {
-        isAuthenticated: isAuth,
-        sourceWindow: currentWindow.label
-      });
+      const token = isAuth ? authState.accessToken.value : null;
+      console.log('[Auth] set_authenticated called, isAuth:', isAuth, 'token present:', !!token);
+      await invoke('set_authenticated', { authenticated: isAuth, token });
     }
     isExternalAuthChange = false;
 
@@ -101,7 +129,10 @@ onMounted(async () => {
   try {
     try {
       const label = String(getCurrentWindow().label);
-      windowLabel.value = label === 'main' || label === 'auth' ? label : 'unknown';
+      windowLabel.value =
+        label === 'main' || label === 'auth' || label === 'settings'
+          ? label
+          : 'unknown';
     } catch {
       windowLabel.value = 'unknown';
     }
@@ -110,9 +141,10 @@ onMounted(async () => {
   } finally {
     isInitialized.value = true;
 
-    // Синхронизируем флаг авторизации с backend
+    // Синхронизируем флаг авторизации и токен с backend
     const isAuth = authState.isAuthenticated.value;
-    await invoke('set_authenticated', { authenticated: isAuth });
+    const token = isAuth ? authState.accessToken.value : null;
+    await invoke('set_authenticated', { authenticated: isAuth, token });
 
     // После инициализации показываем нужное окно
     if (windowLabel.value === 'main' && !isAuth) {
@@ -128,25 +160,51 @@ onMounted(async () => {
     }
   }
 
-  // Слушаем событие изменения авторизации из другого окна
+  // Синхронизация между окнами: изменения конфига и авторизации
   const currentWindow = getCurrentWindow();
-  unlistenAuthChange = await listen<{ isAuthenticated: boolean; sourceWindow: string }>(
-    'auth-state-changed',
-    async (event) => {
-      // Игнорируем события от своего окна
-      if (event.payload.sourceWindow === currentWindow.label) return;
+  unlistenConfigChanged = await listen<{
+    revision: number;
+    ts: number;
+    source_window?: string | null;
+    scope?: string | null;
+  }>('config:changed', async (event) => {
+    const source = event.payload?.source_window ?? null;
+    if (source && source === currentWindow.label) return;
 
-      console.log('Auth state changed from another window, reinitializing...');
-      // Помечаем что это внешнее изменение (чтобы watch не отправил событие в ответ)
+    const scope = event.payload?.scope ?? null;
+    if (scope === 'auth') {
       isExternalAuthChange = true;
       await auth.initialize();
+      return;
+    }
+
+    applyUiSettingsFromStorage();
+  });
+
+  unlistenUiThemeChange = await listen<{ theme: string; sourceWindow?: string }>(
+    'ui:theme-changed',
+    async (event) => {
+      applyThemeValue(event.payload.theme);
+    }
+  );
+
+  unlistenUiLocaleChange = await listen<{ locale: string; sourceWindow?: string }>(
+    'ui:locale-changed',
+    async (event) => {
+      applyLocaleValue(event.payload.locale);
     }
   );
 });
 
 onUnmounted(() => {
-  if (unlistenAuthChange) {
-    unlistenAuthChange();
+  if (unlistenConfigChanged) {
+    unlistenConfigChanged();
+  }
+  if (unlistenUiThemeChange) {
+    unlistenUiThemeChange();
+  }
+  if (unlistenUiLocaleChange) {
+    unlistenUiLocaleChange();
   }
   cleanupUpdateListener();
 });
@@ -166,6 +224,8 @@ onUnmounted(() => {
     </v-container>
 
     <AuthScreen v-else-if="showAuth" />
+
+    <SettingsWindow v-else-if="showSettings" />
 
     <div v-else-if="showApp" class="app">
       <RecordingPopover />

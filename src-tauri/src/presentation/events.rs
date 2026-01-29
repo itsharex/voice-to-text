@@ -7,10 +7,24 @@ pub const EVENT_TRANSCRIPTION_PARTIAL: &str = "transcription:partial";
 pub const EVENT_TRANSCRIPTION_FINAL: &str = "transcription:final";
 pub const EVENT_RECORDING_STATUS: &str = "recording:status";
 pub const EVENT_AUDIO_LEVEL: &str = "audio:level";
+pub const EVENT_AUDIO_SPECTRUM: &str = "audio:spectrum";
 pub const EVENT_MICROPHONE_TEST_LEVEL: &str = "microphone_test:level";
 
 pub const EVENT_TRANSCRIPTION_ERROR: &str = "transcription:error";
 pub const EVENT_CONNECTION_QUALITY: &str = "connection:quality";
+
+// Синхронизация состояния между окнами (конфиг/настройки)
+pub const EVENT_CONFIG_CHANGED: &str = "config:changed";
+
+#[derive(Debug, Clone, Serialize)]
+pub struct ConfigChangedPayload {
+    pub revision: u64,
+    pub ts: i64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub source_window: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub scope: Option<String>, // "app" | "stt" | "auth"
+}
 
 /// Payload for partial transcription event
 #[derive(Debug, Clone, Serialize)]
@@ -67,6 +81,13 @@ pub struct RecordingStatusPayload {
 pub struct AudioLevelPayload {
     /// Normalized audio level (0.0 - 1.0)
     pub level: f32,
+}
+
+/// Payload for audio spectrum event
+#[derive(Debug, Clone, Serialize)]
+pub struct AudioSpectrumPayload {
+    /// Normalized bars (48 values, each 0.0 - 1.0)
+    pub bars: Vec<f32>,
 }
 
 /// Payload for microphone test level event

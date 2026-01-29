@@ -26,6 +26,22 @@ const PROD_BACKEND_URL: &str = "wss://api.voicetotext.app";
 /// URL бэкенда для development (localhost)
 const DEV_BACKEND_URL: &str = "ws://localhost:8080";
 
+/// Проверяем, что URL указывает на локальный бэкенд (localhost/loopback).
+///
+/// Нужен для dev-режима: если у пользователя сохранён "боевой" токен, но он запускает
+/// локальный бэкенд, тот токен почти наверняка невалиден для local БД/pepper → получаем 401.
+fn is_local_backend_url(url: &str) -> bool {
+    // Пытаемся распарсить как URI (надёжнее, чем substring).
+    if let Ok(uri) = url.parse::<http::Uri>() {
+        if let Some(host) = uri.host() {
+            return matches!(host, "localhost" | "127.0.0.1" | "::1");
+        }
+    }
+
+    // Фоллбек на случай нестандартного формата.
+    url.contains("localhost") || url.contains("127.0.0.1") || url.contains("[::1]")
+}
+
 /// Получить URL бэкенда с учётом окружения
 /// Приоритет: env VOICE_TO_TEXT_BACKEND_URL > auto-detect (debug/release)
 fn get_default_backend_url() -> String {
@@ -150,8 +166,18 @@ impl SttProvider for BackendProvider {
     async fn initialize(&mut self, config: &SttConfig) -> SttResult<()> {
         log::info!("BackendProvider: Initializing");
 
+        // Получаем URL бэкенда (из конфига или авто-детект по окружению)
+        let backend_url = config
+            .backend_url
+            .clone()
+            .unwrap_or_else(get_default_backend_url);
+
+        log::info!("BackendProvider: Using backend URL: {}", backend_url);
+
         // Получаем auth token из конфига
-        // В dev режиме разрешаем работу без токена (бэкенд примет dev-local-token)
+        //
+        // В dev режиме для локального бэкенда (localhost) всегда используем dev-local-token.
+        // Это защищает от ситуации "я уже логинился в прод, а сейчас запускаю local" → 401.
         log::info!(
             "BackendProvider: config.backend_auth_token present: {}, len: {}",
             config.backend_auth_token.is_some(),
@@ -159,11 +185,25 @@ impl SttProvider for BackendProvider {
         );
 
         let auth_token = if cfg!(debug_assertions) {
-            config.backend_auth_token.clone()
-                .unwrap_or_else(|| {
+            if is_local_backend_url(&backend_url) {
+                if config.backend_auth_token.as_deref() != Some("dev-local-token") {
+                    log::info!(
+                        "DEV MODE: Local backend detected ({}). Using dev-local-token instead of saved token",
+                        backend_url
+                    );
+                } else {
+                    log::info!(
+                        "DEV MODE: Local backend detected ({}). Using dev-local-token",
+                        backend_url
+                    );
+                }
+                "dev-local-token".to_string()
+            } else {
+                config.backend_auth_token.clone().unwrap_or_else(|| {
                     log::info!("DEV MODE: Using dev-local-token (no real token configured)");
                     "dev-local-token".to_string()
                 })
+            }
         } else {
             config.backend_auth_token.clone().ok_or_else(|| {
                 SttError::Configuration(
@@ -173,14 +213,6 @@ impl SttProvider for BackendProvider {
         };
 
         log::info!("BackendProvider: auth_token len: {}", auth_token.len());
-
-        // Получаем URL бэкенда (из конфига или авто-детект по окружению)
-        let backend_url = config
-            .backend_url
-            .clone()
-            .unwrap_or_else(get_default_backend_url);
-
-        log::info!("BackendProvider: Using backend URL: {}", backend_url);
 
         self.auth_token = Some(auth_token);
         self.backend_url = backend_url;
@@ -235,9 +267,30 @@ impl SttProvider for BackendProvider {
             .body(())
             .map_err(|e| SttError::Connection(format!("Failed to build WS request: {}", e)))?;
 
-        let (ws_stream, _response) = connect_async(request)
-            .await
-            .map_err(|e| SttError::Connection(format!("WS connection failed: {}", e)))?;
+        let (ws_stream, _response) = connect_async(request).await.map_err(|e| match e {
+            tokio_tungstenite::tungstenite::Error::Http(resp) => {
+                let status = resp.status();
+
+                if status == http::StatusCode::UNAUTHORIZED {
+                    // В dev режиме это почти всегда означает, что local backend не принял dev токен
+                    // (например, не выставлен SECURITY_ALLOW_DEV_TOKEN=true).
+                    if cfg!(debug_assertions) && is_local_backend_url(&self.backend_url) {
+                        return SttError::Authentication(
+                            "401 Unauthorized от локального бэкенда. Проверь, что backend запущен с SECURITY_ALLOW_DEV_TOKEN=true (и APP_ENV=local). Если хочешь использовать свой сохранённый токен — укажи VOICE_TO_TEXT_BACKEND_URL=wss://api.voicetotext.app"
+                                .to_string(),
+                        );
+                    }
+
+                    return SttError::Authentication(
+                        "401 Unauthorized. Токен недействителен/истёк — попробуй перелогиниться."
+                            .to_string(),
+                    );
+                }
+
+                SttError::Connection(format!("WS connection failed: HTTP error: {}", status))
+            }
+            other => SttError::Connection(format!("WS connection failed: {}", other)),
+        })?;
 
         log::info!("Backend WebSocket connected");
 

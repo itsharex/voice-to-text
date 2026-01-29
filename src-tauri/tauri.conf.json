@@ -47,6 +47,23 @@
                 "center": true,
                 "resizable": false,
                 "url": "index.html"
+            },
+            {
+                "label": "settings",
+                "title": "Voice to Text — Settings",
+                "width": 860,
+                "height": 760,
+                "minWidth": 720,
+                "minHeight": 640,
+                "visible": false,
+                "decorations": false,
+                "transparent": true,
+                "shadow": false,
+                "alwaysOnTop": false,
+                "skipTaskbar": false,
+                "center": true,
+                "resizable": true,
+                "url": "index.html"
             }
         ],
         "security": {

@@ -85,6 +85,17 @@ pub async fn start_recording(
         let _ = app_handle.emit(EVENT_AUDIO_LEVEL, payload);
     });
 
+    let app_handle_spectrum = app_handle.clone();
+
+    // Callback for audio spectrum visualization (48 bars)
+    let on_audio_spectrum = Arc::new(move |bars: [f32; 48]| {
+        let app_handle = app_handle_spectrum.clone();
+        let payload = AudioSpectrumPayload {
+            bars: bars.to_vec(),
+        };
+        let _ = app_handle.emit(EVENT_AUDIO_SPECTRUM, payload);
+    });
+
     let app_handle_error = app_handle.clone();
 
     // Callback for error handling
@@ -150,7 +161,14 @@ pub async fn start_recording(
     // Start recording (async - WebSocket connect, audio capture start)
     state
         .transcription_service
-        .start_recording(on_partial, on_final, on_audio_level, on_error, on_connection_quality)
+        .start_recording(
+            on_partial,
+            on_final,
+            on_audio_level,
+            on_audio_spectrum,
+            on_error,
+            on_connection_quality,
+        )
         .await
         .map_err(|e| e.to_string())?;
 
@@ -473,6 +491,8 @@ pub async fn get_stt_config(state: State<'_, AppState>) -> Result<SttConfig, Str
 #[tauri::command]
 pub async fn update_stt_config(
     state: State<'_, AppState>,
+    app_handle: AppHandle,
+    window: Window,
     provider: String,
     language: String,
     deepgram_api_key: Option<String>,
@@ -488,6 +508,7 @@ pub async fn update_stt_config(
         "whisper" | "whisper-local" => SttProviderType::WhisperLocal,
         "google" | "google-cloud" => SttProviderType::GoogleCloud,
         "azure" => SttProviderType::Azure,
+        "backend" => SttProviderType::Backend,
         _ => return Err(format!("Unknown STT provider: {}", provider)),
     };
 
@@ -552,6 +573,22 @@ pub async fn update_stt_config(
         .await
         .map_err(|e| format!("Failed to save config: {}", e))?;
 
+    // Синхронизация между окнами: уведомляем что конфиг изменился
+    let revision = {
+        let mut rev = state.config_revision.write().await;
+        *rev = rev.saturating_add(1);
+        *rev
+    };
+    let _ = app_handle.emit(
+        EVENT_CONFIG_CHANGED,
+        ConfigChangedPayload {
+            revision,
+            ts: chrono::Utc::now().timestamp_millis(),
+            source_window: Some(window.label().to_string()),
+            scope: Some("stt".to_string()),
+        },
+    );
+
     log::info!("STT configuration updated and saved successfully");
     Ok(())
 }
@@ -568,11 +605,27 @@ pub async fn get_app_config(state: State<'_, AppState>) -> Result<AppConfig, Str
     Ok(config)
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AppConfigSnapshot {
+    pub revision: u64,
+    pub config: AppConfig,
+}
+
+/// Get current application configuration + revision (for cross-window sync)
+#[tauri::command]
+pub async fn get_app_config_snapshot(state: State<'_, AppState>) -> Result<AppConfigSnapshot, String> {
+    log::debug!("Command: get_app_config_snapshot");
+    let config = state.config.read().await.clone();
+    let revision = *state.config_revision.read().await;
+    Ok(AppConfigSnapshot { revision, config })
+}
+
 /// Update application configuration (e.g., microphone sensitivity, recording hotkey, auto-copy/paste)
 #[tauri::command]
 pub async fn update_app_config(
     state: State<'_, AppState>,
     app_handle: AppHandle,
+    window: Window,
     microphone_sensitivity: Option<u8>,
     recording_hotkey: Option<String>,
     auto_copy_to_clipboard: Option<bool>,
@@ -670,6 +723,22 @@ pub async fn update_app_config(
 
         log::info!("Audio device changed and applied successfully");
     }
+
+    // Синхронизация между окнами: уведомляем что конфиг изменился
+    let revision = {
+        let mut rev = state.config_revision.write().await;
+        *rev = rev.saturating_add(1);
+        *rev
+    };
+    let _ = app_handle.emit(
+        EVENT_CONFIG_CHANGED,
+        ConfigChangedPayload {
+            revision,
+            ts: chrono::Utc::now().timestamp_millis(),
+            source_window: Some(window.label().to_string()),
+            scope: Some("app".to_string()),
+        },
+    );
 
     log::info!("App configuration updated and saved successfully");
     Ok(())
@@ -1234,6 +1303,7 @@ pub async fn show_settings_window(app_handle: AppHandle) -> Result<(), String> {
     if let Some(settings) = app_handle.get_webview_window("settings") {
         show_webview_window_on_active_monitor(&settings)?;
         settings.set_focus().map_err(|e| e.to_string())?;
+        let _ = settings.emit("settings-window-opened", true);
     }
 
     Ok(())
@@ -1243,6 +1313,8 @@ pub async fn show_settings_window(app_handle: AppHandle) -> Result<(), String> {
 #[tauri::command]
 pub async fn set_authenticated(
     state: State<'_, AppState>,
+    app_handle: AppHandle,
+    window: Window,
     authenticated: bool,
     token: Option<String>,
 ) -> Result<(), String> {
@@ -1270,6 +1342,22 @@ pub async fn set_authenticated(
         .await
         .map_err(|e| format!("Failed to save config: {}", e))?;
     let _ = state.transcription_service.update_config(config).await;
+
+     // Синхронизация между окнами: уведомляем что конфиг/авторизация изменились
+     let revision = {
+         let mut rev = state.config_revision.write().await;
+         *rev = rev.saturating_add(1);
+         *rev
+     };
+     let _ = app_handle.emit(
+         EVENT_CONFIG_CHANGED,
+         ConfigChangedPayload {
+             revision,
+             ts: chrono::Utc::now().timestamp_millis(),
+             source_window: Some(window.label().to_string()),
+             scope: Some("auth".to_string()),
+         },
+     );
 
     Ok(())
 }

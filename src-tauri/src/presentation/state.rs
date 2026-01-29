@@ -39,6 +39,9 @@ pub struct AppState {
     /// Application configuration
     pub config: Arc<RwLock<AppConfig>>,
 
+    /// Ревизия конфига для синхронизации между окнами (монотонно растёт)
+    pub config_revision: Arc<RwLock<u64>>,
+
     /// Transcription history
     pub history: Arc<RwLock<Vec<Transcription>>>,
 
@@ -85,6 +88,7 @@ impl AppState {
                 return Self {
                     transcription_service: service,
                     config: Arc::new(RwLock::new(AppConfig::default())),
+                    config_revision: Arc::new(RwLock::new(0)),
                     history: Arc::new(RwLock::new(Vec::new())),
                     partial_transcription: Arc::new(RwLock::new(None)),
                     final_transcription: Arc::new(RwLock::new(None)),
@@ -113,6 +117,7 @@ impl AppState {
                 return Self {
                     transcription_service: service,
                     config: Arc::new(RwLock::new(app_config)),
+                    config_revision: Arc::new(RwLock::new(0)),
                     history: Arc::new(RwLock::new(Vec::new())),
                     partial_transcription: Arc::new(RwLock::new(None)),
                     final_transcription: Arc::new(RwLock::new(None)),
@@ -148,6 +153,7 @@ impl AppState {
         Self {
             transcription_service,
             config: Arc::new(RwLock::new(app_config)),
+            config_revision: Arc::new(RwLock::new(0)),
             history: Arc::new(RwLock::new(Vec::new())),
             partial_transcription: Arc::new(RwLock::new(None)),
             final_transcription: Arc::new(RwLock::new(None)),
