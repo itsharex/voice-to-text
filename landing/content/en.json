@@ -1,0 +1,95 @@
+{
+  "hero": {
+    "title": "Voice to Text",
+    "subtitle": "Privacy-focused voice-to-text app with offline support."
+  },
+  "features": [
+    {
+      "id": "realtime",
+      "title": "Real-time transcription",
+      "description": "Live partial and final results while you speak."
+    },
+    {
+      "id": "privacy",
+      "title": "Privacy-first",
+      "description": "Keys stay local. No cloud storage of your text."
+    },
+    {
+      "id": "providers",
+      "title": "Multiple providers",
+      "description": "Deepgram, AssemblyAI, and Whisper (offline)."
+    },
+    {
+      "id": "crossPlatform",
+      "title": "Cross-platform",
+      "description": "macOS, Windows, and Linux supported."
+    },
+    {
+      "id": "hotkeys",
+      "title": "Global hotkeys",
+      "description": "Start or stop recording from anywhere."
+    },
+    {
+      "id": "autoCopy",
+      "title": "Auto-copy",
+      "description": "Final text is copied to your clipboard."
+    }
+  ],
+  "providers": [
+    {
+      "id": "deepgram",
+      "name": "Deepgram",
+      "description": "Low latency, high accuracy (Nova-2/3)."
+    },
+    {
+      "id": "assemblyai",
+      "name": "AssemblyAI",
+      "description": "Streaming v3 with strong quality."
+    },
+    {
+      "id": "whisper",
+      "name": "Whisper Local",
+      "description": "Offline mode with local models."
+    }
+  ],
+  "privacy": {
+    "title": "Privacy by design",
+    "bullets": [
+      "API keys are stored locally",
+      "Optional use of your own keys",
+      "No cloud storage of transcriptions"
+    ],
+    "openSourceNote": "Parts of the stack are open-source."
+  },
+  "faq": [
+    {
+      "id": "platforms",
+      "question": "Which platforms are supported?",
+      "answer": "macOS, Windows, and Linux."
+    },
+    {
+      "id": "offline",
+      "question": "Can I use it offline?",
+      "answer": "Yes, with Whisper Local."
+    },
+    {
+      "id": "keys",
+      "question": "How do I use my own API keys?",
+      "answer": "Add keys in Settings and keep them local."
+    },
+    {
+      "id": "hotkey",
+      "question": "How do I change the hotkey?",
+      "answer": "Update it in Settings inside the app."
+    },
+    {
+      "id": "privacy",
+      "question": "Is my data safe?",
+      "answer": "We do not store your text in the cloud."
+    }
+  ],
+  "download": {
+    "title": "Download",
+    "note": "Choose your platform and install in minutes."
+  }
+}

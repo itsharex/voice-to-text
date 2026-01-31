@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "features": "Можливості",
+    "providers": "Провайдери",
+    "screenshots": "Скріншоти",
+    "download": "Завантажити",
+    "privacy": "Приватність",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "ctaPrimary": "Завантажити для {platform}",
+    "ctaSecondary": "Переглянути можливості",
+    "preview": "Огляд продукту"
+  },
+  "download": {
+    "title": "Завантажити",
+    "systemRequirements": "Системні вимоги",
+    "version": "Версія {version}"
+  },
+  "theme": {
+    "dark": "Темна",
+    "light": "Світла"
+  },
+  "language": {
+    "label": "Мова"
+  },
+  "common": {
+    "learnMore": "Детальніше"
+  },
+  "screenshots": {
+    "dark": "Темна тема",
+    "light": "Світла тема",
+    "settings": "Налаштування",
+    "recording": "Запис"
+  },
+  "footer": {
+    "copyright": "© {year} Voice to Text",
+    "tagline": "Голос у текст із фокусом на приватність"
+  },
+  "meta": {
+    "homeTitle": "Voice to Text — приватна транскрипція",
+    "homeDescription": "Застосунок голос‑у‑текст із офлайн‑режимом і хоткеями.",
+    "downloadTitle": "Завантажити Voice to Text",
+    "downloadDescription": "Збірки для macOS, Windows та Linux.",
+    "privacyTitle": "Приватність Voice to Text",
+    "privacyDescription": "Як ми захищаємо дані та зберігаємо їх локально."
+  }
+}

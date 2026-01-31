@@ -1,0 +1,95 @@
+{
+  "hero": {
+    "title": "Voice to Text",
+    "subtitle": "Aplicación de voz a texto centrada en la privacidad con soporte sin conexión."
+  },
+  "features": [
+    {
+      "id": "realtime",
+      "title": "Transcripción en tiempo real",
+      "description": "Resultados parciales y finales mientras hablas."
+    },
+    {
+      "id": "privacy",
+      "title": "Privacidad primero",
+      "description": "Las claves se guardan localmente. Sin almacenamiento en la nube."
+    },
+    {
+      "id": "providers",
+      "title": "Varios proveedores",
+      "description": "Deepgram, AssemblyAI y Whisper (offline)."
+    },
+    {
+      "id": "crossPlatform",
+      "title": "Multiplataforma",
+      "description": "Compatible con macOS, Windows y Linux."
+    },
+    {
+      "id": "hotkeys",
+      "title": "Atajos globales",
+      "description": "Inicia o detén la grabación desde cualquier aplicación."
+    },
+    {
+      "id": "autoCopy",
+      "title": "Copia automática",
+      "description": "El texto final se copia al portapapeles."
+    }
+  ],
+  "providers": [
+    {
+      "id": "deepgram",
+      "name": "Deepgram",
+      "description": "Baja latencia y alta precisión (Nova-2/3)."
+    },
+    {
+      "id": "assemblyai",
+      "name": "AssemblyAI",
+      "description": "Streaming v3 con gran calidad."
+    },
+    {
+      "id": "whisper",
+      "name": "Whisper Local",
+      "description": "Modo sin conexión con modelos locales."
+    }
+  ],
+  "privacy": {
+    "title": "Privacidad por diseño",
+    "bullets": [
+      "Las claves API se guardan localmente",
+      "Uso opcional de tus propias claves",
+      "Sin almacenamiento en la nube de transcripciones"
+    ],
+    "openSourceNote": "Parte del stack es de código abierto."
+  },
+  "faq": [
+    {
+      "id": "platforms",
+      "question": "¿Qué plataformas son compatibles?",
+      "answer": "macOS, Windows y Linux."
+    },
+    {
+      "id": "offline",
+      "question": "¿Puedo usarlo sin conexión?",
+      "answer": "Sí, con Whisper Local."
+    },
+    {
+      "id": "keys",
+      "question": "¿Cómo uso mis propias claves API?",
+      "answer": "Añade las claves en Configuración y se guardan localmente."
+    },
+    {
+      "id": "hotkey",
+      "question": "¿Cómo cambio el atajo?",
+      "answer": "Modifícalo en Configuración dentro de la app."
+    },
+    {
+      "id": "privacy",
+      "question": "¿Mis datos están seguros?",
+      "answer": "No almacenamos tu texto en la nube."
+    }
+  ],
+  "download": {
+    "title": "Descargar",
+    "note": "Elige tu plataforma e instálalo en minutos."
+  }
+}

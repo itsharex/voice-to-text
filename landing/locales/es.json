@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "features": "Características",
+    "providers": "Proveedores",
+    "screenshots": "Capturas",
+    "download": "Descargar",
+    "privacy": "Privacidad",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "ctaPrimary": "Descargar para {platform}",
+    "ctaSecondary": "Ver características",
+    "preview": "Vista previa del producto"
+  },
+  "download": {
+    "title": "Descargar",
+    "systemRequirements": "Requisitos del sistema",
+    "version": "Versión {version}"
+  },
+  "theme": {
+    "dark": "Oscuro",
+    "light": "Claro"
+  },
+  "language": {
+    "label": "Idioma"
+  },
+  "common": {
+    "learnMore": "Más información"
+  },
+  "screenshots": {
+    "dark": "Tema oscuro",
+    "light": "Tema claro",
+    "settings": "Ajustes",
+    "recording": "Grabación"
+  },
+  "footer": {
+    "copyright": "© {year} Voice to Text",
+    "tagline": "Voz a texto centrado en la privacidad"
+  },
+  "meta": {
+    "homeTitle": "Voice to Text — Transcripción con privacidad",
+    "homeDescription": "App de voz a texto con modo sin conexión y atajos globales.",
+    "downloadTitle": "Descargar Voice to Text",
+    "downloadDescription": "Versiones para macOS, Windows y Linux.",
+    "privacyTitle": "Privacidad en Voice to Text",
+    "privacyDescription": "Cómo protegemos tus datos y los guardamos localmente."
+  }
+}

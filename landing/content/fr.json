@@ -1,0 +1,95 @@
+{
+  "hero": {
+    "title": "Voice to Text",
+    "subtitle": "Application de dictée axée sur la confidentialité avec prise en charge hors ligne."
+  },
+  "features": [
+    {
+      "id": "realtime",
+      "title": "Transcription en temps réel",
+      "description": "Résultats partiels et finaux pendant que vous parlez."
+    },
+    {
+      "id": "privacy",
+      "title": "Confidentialité d'abord",
+      "description": "Les clés restent locales. Pas de stockage cloud du texte."
+    },
+    {
+      "id": "providers",
+      "title": "Plusieurs fournisseurs",
+      "description": "Deepgram, AssemblyAI et Whisper (hors ligne)."
+    },
+    {
+      "id": "crossPlatform",
+      "title": "Multiplateforme",
+      "description": "Compatible macOS, Windows et Linux."
+    },
+    {
+      "id": "hotkeys",
+      "title": "Raccourcis globaux",
+      "description": "Démarrez ou arrêtez l'enregistrement depuis n'importe quelle app."
+    },
+    {
+      "id": "autoCopy",
+      "title": "Copie automatique",
+      "description": "Le texte final est copié dans le presse-papiers."
+    }
+  ],
+  "providers": [
+    {
+      "id": "deepgram",
+      "name": "Deepgram",
+      "description": "Faible latence, haute précision (Nova-2/3)."
+    },
+    {
+      "id": "assemblyai",
+      "name": "AssemblyAI",
+      "description": "Streaming v3 avec excellente qualité."
+    },
+    {
+      "id": "whisper",
+      "name": "Whisper Local",
+      "description": "Mode hors ligne avec modèles locaux."
+    }
+  ],
+  "privacy": {
+    "title": "Confidentialité par défaut",
+    "bullets": [
+      "Les clés API sont stockées localement",
+      "Utilisation optionnelle de vos propres clés",
+      "Aucun stockage cloud des transcriptions"
+    ],
+    "openSourceNote": "Une partie de la pile est open source."
+  },
+  "faq": [
+    {
+      "id": "platforms",
+      "question": "Quelles plateformes sont prises en charge ?",
+      "answer": "macOS, Windows et Linux."
+    },
+    {
+      "id": "offline",
+      "question": "Puis-je l'utiliser hors ligne ?",
+      "answer": "Oui, avec Whisper Local."
+    },
+    {
+      "id": "keys",
+      "question": "Comment utiliser mes propres clés API ?",
+      "answer": "Ajoutez les clés dans les paramètres, elles restent locales."
+    },
+    {
+      "id": "hotkey",
+      "question": "Comment changer le raccourci ?",
+      "answer": "Modifiez-le dans les paramètres de l'application."
+    },
+    {
+      "id": "privacy",
+      "question": "Mes données sont-elles en sécurité ?",
+      "answer": "Nous ne stockons pas vos textes dans le cloud."
+    }
+  ],
+  "download": {
+    "title": "Télécharger",
+    "note": "Choisissez votre plateforme et installez en quelques minutes."
+  }
+}

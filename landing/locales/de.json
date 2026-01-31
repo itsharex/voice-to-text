@@ -1,0 +1,48 @@
+{
+  "nav": {
+    "features": "Funktionen",
+    "providers": "Anbieter",
+    "screenshots": "Screenshots",
+    "download": "Download",
+    "privacy": "Datenschutz",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "ctaPrimary": "Download für {platform}",
+    "ctaSecondary": "Funktionen ansehen",
+    "preview": "Produktvorschau"
+  },
+  "download": {
+    "title": "Download",
+    "systemRequirements": "Systemanforderungen",
+    "version": "Version {version}"
+  },
+  "theme": {
+    "dark": "Dunkel",
+    "light": "Hell"
+  },
+  "language": {
+    "label": "Sprache"
+  },
+  "common": {
+    "learnMore": "Mehr erfahren"
+  },
+  "screenshots": {
+    "dark": "Dunkles Design",
+    "light": "Helles Design",
+    "settings": "Einstellungen",
+    "recording": "Aufnahme"
+  },
+  "footer": {
+    "copyright": "© {year} Voice to Text",
+    "tagline": "Sprache-zu-Text mit Fokus auf Datenschutz"
+  },
+  "meta": {
+    "homeTitle": "Voice to Text — Datenschutzorientierte Transkription",
+    "homeDescription": "Sprache-zu-Text-App mit Offline-Modus und globalen Hotkeys.",
+    "downloadTitle": "Voice to Text herunterladen",
+    "downloadDescription": "Builds für macOS, Windows und Linux.",
+    "privacyTitle": "Datenschutz bei Voice to Text",
+    "privacyDescription": "Wie wir deine Daten schützen und lokal speichern."
+  }
+}

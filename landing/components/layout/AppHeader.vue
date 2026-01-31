@@ -1,0 +1,110 @@
+<script setup lang="ts">
+import { useDisplay } from "vuetify";
+
+const { t } = useI18n();
+const { smAndDown } = useDisplay();
+const menuOpen = ref(false);
+
+const navItems = computed(() => [
+  { id: "features", label: t("nav.features") },
+  { id: "providers", label: t("nav.providers") },
+  { id: "screenshots", label: t("nav.screenshots") },
+  { id: "download", label: t("nav.download") },
+  { id: "privacy", label: t("nav.privacy") },
+  { id: "faq", label: t("nav.faq") }
+]);
+</script>
+
+<template>
+  <v-app-bar flat class="app-header">
+    <v-container class="d-flex align-center gap-4 header-container">
+      <AppLogo />
+      <v-spacer />
+      <div class="nav-links" v-show="!smAndDown">
+        <v-btn
+          v-for="item in navItems"
+          :key="item.id"
+          variant="text"
+          :href="`#${item.id}`"
+        >
+          {{ item.label }}
+        </v-btn>
+      </div>
+      <div class="desktop-actions" v-show="!smAndDown">
+        <LanguageSwitcher compact />
+        <ThemeToggle />
+      </div>
+      <div class="mobile-actions" v-show="smAndDown">
+        <v-btn icon="mdi-menu" variant="text" @click="menuOpen = true" />
+        <v-dialog v-model="menuOpen" fullscreen scrim>
+          <v-card class="mobile-menu">
+            <div class="mobile-menu__header">
+              <AppLogo />
+              <v-spacer />
+              <v-btn icon="mdi-close" variant="text" @click="menuOpen = false" />
+            </div>
+            <v-divider />
+            <v-list class="mobile-menu__list">
+              <v-list-item
+                v-for="item in navItems"
+                :key="item.id"
+                :title="item.label"
+                :href="`#${item.id}`"
+                @click="menuOpen = false"
+              />
+            </v-list>
+            <v-divider />
+            <div class="mobile-menu__actions">
+              <LanguageSwitcher full-width />
+              <ThemeToggle />
+            </div>
+          </v-card>
+        </v-dialog>
+      </div>
+    </v-container>
+  </v-app-bar>
+</template>
+
+<style scoped>
+.nav-links {
+  display: flex;
+  gap: 8px;
+}
+
+.header-container {
+  flex-wrap: nowrap;
+}
+
+.desktop-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.mobile-actions :deep(.v-list-item) {
+  min-height: 40px;
+}
+
+.mobile-menu {
+  padding: 16px 16px 24px;
+}
+
+.mobile-menu__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 12px;
+}
+
+.mobile-menu__list {
+  padding: 8px 0;
+}
+
+.mobile-menu__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: stretch;
+  padding-top: 16px;
+}
+</style>
