@@ -26,7 +26,7 @@ export class AuthRepository implements IAuthRepository {
 
     return {
       needsVerification: false,
-      session: this.parseSession(response),
+      session: this.parseSession(response, deviceId),
     };
   }
 
@@ -44,7 +44,7 @@ export class AuthRepository implements IAuthRepository {
       code,
       device_id: deviceId,
     });
-    return this.parseSession(response);
+    return this.parseSession(response, deviceId);
   }
 
   async resendVerificationCode(email: string): Promise<void> {
@@ -64,7 +64,7 @@ export class AuthRepository implements IAuthRepository {
       device_id: deviceId,
       exchange_code: exchangeCode,
     });
-    return this.parseSession(response);
+    return this.parseSession(response, deviceId);
   }
 
   async refreshTokens(refreshToken: string, deviceId: string): Promise<Session> {
@@ -72,7 +72,7 @@ export class AuthRepository implements IAuthRepository {
       refresh_token: refreshToken,
       device_id: deviceId,
     });
-    return this.parseSession(response);
+    return this.parseSession(response, deviceId);
   }
 
   async logout(refreshToken: string): Promise<void> {
@@ -95,7 +95,7 @@ export class AuthRepository implements IAuthRepository {
       new_password: newPassword,
       device_id: deviceId,
     });
-    return this.parseSession(response);
+    return this.parseSession(response, deviceId);
   }
 
   async getCurrentUser(accessToken: string): Promise<User> {
@@ -107,7 +107,7 @@ export class AuthRepository implements IAuthRepository {
     });
   }
 
-  private parseSession(response: ApiLoginResponse): Session {
+  private parseSession(response: ApiLoginResponse, deviceId?: string): Session {
     if (!response.access_token || !response.access_expires_at) {
       throw new AuthError(AuthErrorCode.Unknown, 'Сервер не вернул токены');
     }
@@ -128,6 +128,7 @@ export class AuthRepository implements IAuthRepository {
       refreshExpiresAt: response.refresh_expires_at
         ? new Date(response.refresh_expires_at)
         : undefined,
+      deviceId,
       user,
     });
   }

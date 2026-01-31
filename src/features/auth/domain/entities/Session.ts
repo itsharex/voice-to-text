@@ -9,6 +9,13 @@ export interface Session {
   readonly refreshToken?: string;
   readonly accessExpiresAt: Date;
   readonly refreshExpiresAt?: Date;
+  /**
+   * ID устройства (client_id), к которому привязан refresh token на сервере.
+   *
+   * Важно для desktop multi-window: localStorage может быть изолирован между webview,
+   * поэтому держим deviceId прямо в сессии и используем его для refresh.
+   */
+  readonly deviceId?: string;
   readonly user?: User;
 }
 
@@ -17,6 +24,7 @@ export function createSession(data: {
   refreshToken?: string;
   accessExpiresAt: Date;
   refreshExpiresAt?: Date;
+  deviceId?: string;
   user?: User;
 }): Session {
   return Object.freeze({
@@ -24,6 +32,7 @@ export function createSession(data: {
     refreshToken: data.refreshToken,
     accessExpiresAt: data.accessExpiresAt,
     refreshExpiresAt: data.refreshExpiresAt,
+    deviceId: data.deviceId,
     user: data.user,
   });
 }

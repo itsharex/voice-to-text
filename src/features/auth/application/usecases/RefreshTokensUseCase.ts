@@ -30,7 +30,7 @@ export class RefreshTokensUseCase {
           return;
         }
 
-        const deviceId = this.tokenRepository.getDeviceId();
+        const deviceId = currentSession.deviceId || this.tokenRepository.getDeviceId();
         usedRefreshToken = currentSession.refreshToken;
         refreshedSession = await this.authRepository.refreshTokens(
           currentSession.refreshToken,

@@ -93,6 +93,7 @@ export class InitializeAuthUseCase {
         refreshToken: session.refreshToken,
         accessExpiresAt: session.accessExpiresAt,
         refreshExpiresAt: session.refreshExpiresAt,
+        deviceId: session.deviceId,
         user,
       });
 

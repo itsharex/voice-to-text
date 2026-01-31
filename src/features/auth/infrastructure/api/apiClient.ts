@@ -54,7 +54,7 @@ async function refreshToken(): Promise<void> {
     }
 
     const usedRefreshToken = session.refreshToken;
-    const deviceId = tokenRepo.getDeviceId();
+    const deviceId = session.deviceId || tokenRepo.getDeviceId();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
 
@@ -142,6 +142,7 @@ async function refreshToken(): Promise<void> {
       refreshExpiresAt: json.data.refresh_expires_at
         ? new Date(json.data.refresh_expires_at)
         : session.refreshExpiresAt,
+      deviceId: session.deviceId || deviceId,
       user,
     });
     await tokenRepo.save(newSession);

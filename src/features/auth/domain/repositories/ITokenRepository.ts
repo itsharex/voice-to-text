@@ -18,6 +18,7 @@ export interface StoredSession {
   refreshToken?: string;
   accessExpiresAt: string;
   refreshExpiresAt?: string;
+  deviceId?: string;
   user?: StoredUser;
 }
 
