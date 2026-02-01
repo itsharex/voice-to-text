@@ -43,6 +43,10 @@
     "downloadTitle": "Télécharger Voice to Text",
     "downloadDescription": "Versions pour macOS, Windows et Linux.",
     "privacyTitle": "Confidentialité Voice to Text",
-    "privacyDescription": "Comment nous protégeons vos données et les gardons localement."
+    "privacyDescription": "Comment nous protégeons vos données et les gardons localement.",
+    "privacyPolicyTitle": "Politique de confidentialité — Voice to Text",
+    "privacyPolicyDescription": "Comment nous collectons, utilisons et protégeons vos données.",
+    "termsTitle": "Conditions d'utilisation — Voice to Text",
+    "termsDescription": "Conditions générales d'utilisation de l'application Voice to Text."
   }
 }

@@ -2,7 +2,6 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getVersion } from '@tauri-apps/api/app';
 import { useUpdateStore } from '../stores/update';
-import { useI18n } from 'vue-i18n';
 import { isTauriAvailable } from '@/utils/tauri';
 import {
   EVENT_UPDATE_AVAILABLE,
@@ -23,7 +22,6 @@ let unlistenUpdateInstalling: UnlistenFn | null = null;
 // Единый источник логики обновлений для всех компонентов (DRY)
 export function useUpdater() {
   const store = useUpdateStore();
-  const { t } = useI18n();
 
   async function loadCurrentVersion(): Promise<string | null> {
     if (!isTauriAvailable()) {

@@ -5,8 +5,14 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
-import type { SttConfig } from '@/types';
 import type { AppConfigData, SttConfigData } from '../../domain/types';
+import {
+  CMD_GET_APP_CONFIG_SNAPSHOT,
+  CMD_GET_STT_CONFIG_SNAPSHOT,
+  CMD_UPDATE_APP_CONFIG,
+  CMD_UPDATE_STT_CONFIG,
+} from '@/windowing/stateSync';
+import type { AppConfigSnapshotData, SttConfigSnapshotData, TauriSnapshotEnvelope } from '@/windowing/stateSync';
 
 // Payload события уровня громкости
 interface MicrophoneLevelPayload {
@@ -16,33 +22,39 @@ interface MicrophoneLevelPayload {
 class TauriSettingsService {
   // STT конфигурация
 
-  async getSttConfig(): Promise<SttConfig> {
-    return invoke<SttConfig>('get_stt_config');
+  async getSttConfig(): Promise<SttConfigSnapshotData> {
+    const snap = await invoke<TauriSnapshotEnvelope<SttConfigSnapshotData>>(
+      CMD_GET_STT_CONFIG_SNAPSHOT
+    );
+    return snap.data;
   }
 
   async updateSttConfig(config: SttConfigData): Promise<void> {
-    await invoke('update_stt_config', {
+    await invoke(CMD_UPDATE_STT_CONFIG, {
       provider: config.provider,
       language: config.language,
-      deepgramApiKey: config.deepgramApiKey,
-      assemblyaiApiKey: config.assemblyaiApiKey,
+      deepgram_api_key: config.deepgramApiKey,
+      assemblyai_api_key: config.assemblyaiApiKey,
       model: config.model,
     });
   }
 
   // App конфигурация
 
-  async getAppConfig(): Promise<AppConfigData> {
-    return invoke<AppConfigData>('get_app_config');
+  async getAppConfig(): Promise<AppConfigSnapshotData> {
+    const snap = await invoke<TauriSnapshotEnvelope<AppConfigSnapshotData>>(
+      CMD_GET_APP_CONFIG_SNAPSHOT
+    );
+    return snap.data;
   }
 
   async updateAppConfig(config: Partial<AppConfigData>): Promise<void> {
-    await invoke('update_app_config', {
-      microphoneSensitivity: config.microphone_sensitivity,
-      recordingHotkey: config.recording_hotkey,
-      autoCopyToClipboard: config.auto_copy_to_clipboard,
-      autoPasteText: config.auto_paste_text,
-      selectedAudioDevice: config.selected_audio_device,
+    await invoke(CMD_UPDATE_APP_CONFIG, {
+      microphone_sensitivity: config.microphone_sensitivity,
+      recording_hotkey: config.recording_hotkey,
+      auto_copy_to_clipboard: config.auto_copy_to_clipboard,
+      auto_paste_text: config.auto_paste_text,
+      selected_audio_device: config.selected_audio_device,
     });
   }
 
@@ -60,7 +72,7 @@ class TauriSettingsService {
   ): Promise<void> {
     await invoke('start_microphone_test', {
       sensitivity,
-      deviceName,
+      device_name: deviceName,
     });
   }
 
@@ -89,7 +101,7 @@ class TauriSettingsService {
   // Whisper модели
 
   async checkWhisperModel(modelName: string): Promise<boolean> {
-    return invoke<boolean>('check_whisper_model', { modelName });
+    return invoke<boolean>('check_whisper_model', { model_name: modelName });
   }
 }
 

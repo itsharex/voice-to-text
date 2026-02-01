@@ -97,10 +97,12 @@ pub fn run() {
             commands::toggle_window,
             commands::toggle_recording_with_window,
             commands::minimize_window,
-            commands::get_stt_config,
             commands::update_stt_config,
-            commands::get_app_config,
             commands::get_app_config_snapshot,
+            commands::get_stt_config_snapshot,
+            commands::get_auth_state_snapshot,
+            commands::get_ui_preferences_snapshot,
+            commands::update_ui_preferences,
             commands::update_app_config,
             commands::start_microphone_test,
             commands::stop_microphone_test,
@@ -125,6 +127,23 @@ pub fn run() {
             #[cfg(debug_assertions)]
             {
                 log::info!("Voice to Text application started in debug mode");
+            }
+
+            // E2E режим: нужен для WebDriver тестов (Linux/Windows), чтобы:
+            // - main окно было видно сразу
+            // - не блокироваться на auth UI
+            //
+            // Важно: включаем только в debug, чтобы это не могло случайно попасть в релиз.
+            #[cfg(debug_assertions)]
+            let is_e2e = std::env::var("VOICETEXT_E2E").ok().as_deref() == Some("1");
+            #[cfg(not(debug_assertions))]
+            let is_e2e = false;
+
+            if is_e2e {
+                let state = app.state::<AppState>();
+                tauri::async_runtime::block_on(async {
+                    *state.is_authenticated.write().await = true;
+                });
             }
 
             // ЗАПАСНОЙ ВАРИАНТ: Если NSPanel с StyleMask не работает поверх fullscreen,
@@ -184,7 +203,11 @@ pub fn run() {
                     }
                 }
 
-                let _ = window.hide();
+                if is_e2e {
+                    let _ = window.show();
+                } else {
+                    let _ = window.hide();
+                }
 
                 // Настраиваем обработчик закрытия окна
                 // При попытке закрыть - скрываем вместо завершения приложения
@@ -265,19 +288,16 @@ pub fn run() {
                             state.config.write().await.stt = saved_config;
                             log::info!("Loaded saved STT configuration");
 
-                            // Сигналим UI что конфиг обновился (важно для multi-window синхронизации)
-                            let revision = {
-                                let mut rev = state.config_revision.write().await;
-                                *rev = rev.saturating_add(1);
-                                *rev
-                            };
+                            // Важно: загрузка идёт асинхронно, и окна могут успеть стартануть sync раньше.
+                            // Поэтому после успешной загрузки мы обязаны пнуть invalidation, иначе UI может остаться на дефолтах.
+                            let revision = AppState::bump_revision(&state.stt_config_revision).await;
                             let _ = app_handle.emit(
-                                crate::presentation::EVENT_CONFIG_CHANGED,
-                                crate::presentation::ConfigChangedPayload {
+                                crate::presentation::EVENT_STATE_SYNC_INVALIDATION,
+                                crate::presentation::StateSyncInvalidationPayload {
+                                    topic: "stt-config".to_string(),
                                     revision,
-                                    ts: chrono::Utc::now().timestamp_millis(),
-                                    source_window: None,
-                                    scope: Some("stt".to_string()),
+                                    source_id: None,
+                                    timestamp_ms: chrono::Utc::now().timestamp_millis(),
                                 },
                             );
                         }
@@ -287,15 +307,12 @@ pub fn run() {
                 // Загружаем конфигурацию приложения
                 if let Ok(saved_app_config) = ConfigStore::load_app_config().await {
                     if let Some(state) = app_handle.try_state::<AppState>() {
-                        // Обновляем AppConfig в state
                         *state.config.write().await = saved_app_config.clone();
 
-                        // Обновляем чувствительность микрофона в сервисе
                         state.transcription_service
                             .set_microphone_sensitivity(saved_app_config.microphone_sensitivity)
                             .await;
 
-                        // Применяем выбранное устройство записи (если указано)
                         if let Err(e) = state.recreate_audio_capture_with_device(
                             saved_app_config.selected_audio_device.clone(),
                             app_handle.clone()
@@ -309,21 +326,42 @@ pub fn run() {
                         log::info!("Loaded saved app configuration (sensitivity: {}%, device: {:?})",
                             saved_app_config.microphone_sensitivity, saved_app_config.selected_audio_device);
 
-                        // Сигналим UI что конфиг обновился (важно для multi-window синхронизации)
-                        let revision = {
-                            let mut rev = state.config_revision.write().await;
-                            *rev = rev.saturating_add(1);
-                            *rev
-                        };
+                        // Аналогично STT: после асинхронной загрузки пинаем invalidation.
+                        let revision = AppState::bump_revision(&state.app_config_revision).await;
                         let _ = app_handle.emit(
-                            crate::presentation::EVENT_CONFIG_CHANGED,
-                            crate::presentation::ConfigChangedPayload {
+                            crate::presentation::EVENT_STATE_SYNC_INVALIDATION,
+                            crate::presentation::StateSyncInvalidationPayload {
+                                topic: "app-config".to_string(),
                                 revision,
-                                ts: chrono::Utc::now().timestamp_millis(),
-                                source_window: None,
-                                scope: Some("app".to_string()),
+                                source_id: None,
+                                timestamp_ms: chrono::Utc::now().timestamp_millis(),
                             },
                         );
+                    }
+                }
+
+                // Загружаем UI-настройки
+                if let Some(state) = app_handle.try_state::<AppState>() {
+                    match ConfigStore::load_ui_preferences().await {
+                        Ok(prefs) => {
+                            log::info!("Loaded UI preferences: theme={}, locale={}", prefs.theme, prefs.locale);
+                            *state.ui_preferences.write().await = prefs;
+
+                            // Пинаем invalidation после загрузки prefs, чтобы окна, которые уже стартанули, догнали SoT.
+                            let revision = AppState::bump_revision(&state.ui_preferences_revision).await;
+                            let _ = app_handle.emit(
+                                crate::presentation::EVENT_STATE_SYNC_INVALIDATION,
+                                crate::presentation::StateSyncInvalidationPayload {
+                                    topic: "ui-preferences".to_string(),
+                                    revision,
+                                    source_id: None,
+                                    timestamp_ms: chrono::Utc::now().timestamp_millis(),
+                                },
+                            );
+                        }
+                        Err(e) => {
+                            log::warn!("Failed to load UI preferences: {}", e);
+                        }
                     }
                 }
             });

@@ -10,17 +10,22 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "typecheck": "vue-tsc --noEmit",
     "tauri": "tauri",
     "tauri:dev": "tauri dev",
     "tauri:build": "tauri build",
     "tauri:dev:whisper": "tauri dev --features whisper",
-    "tauri:build:whisper": "tauri build --features whisper"
+    "tauri:build:whisper": "tauri build --features whisper",
+    "e2e:tauri": "node e2e-tests/run-e2e.mjs"
   },
   "dependencies": {
     "@mdi/font": "^7.4.47",
     "pinia": "^2.1.0",
     "refresh-fetch": "^0.9.0",
     "vue": "^3.4.0",
+    "state-sync": "file:../state-sync/packages/core",
+    "state-sync-pinia": "file:../state-sync/packages/pinia",
+    "state-sync-tauri": "file:../state-sync/packages/tauri",
     "vue-i18n": "^11.2.8",
     "vuetify": "^3.7.0"
   },
@@ -37,10 +42,16 @@
     "@vitejs/plugin-vue": "^5.0.0",
     "@vitest/coverage-v8": "^4.0.17",
     "jsdom": "^27.4.0",
-    "typescript": "^5.3.0",
+    "typescript": "^5.9.3",
     "vite": "^5.0.0",
     "vite-plugin-vuetify": "^2.0.4",
     "vitest": "^4.0.17",
-    "vue-tsc": "^1.8.0"
+    "vue-tsc": "^3.1.0",
+    "@wdio/cli": "^9.19.0",
+    "@wdio/local-runner": "^9.19.0",
+    "@wdio/mocha-framework": "^9.19.0",
+    "@wdio/spec-reporter": "^9.19.0",
+    "webdriverio": "^9.19.0",
+    "expect-webdriverio": "^5.4.0"
   }
 }

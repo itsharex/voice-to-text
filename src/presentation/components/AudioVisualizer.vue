@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, toRefs, watch } from 'vue';
 import { useAudioVisualizer } from '../../composables/useAudioVisualizer';
-import { isTauriAvailable } from '../../utils/tauri';
 
 const props = defineProps<{
   active: boolean;

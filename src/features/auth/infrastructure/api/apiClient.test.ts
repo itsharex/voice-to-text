@@ -21,10 +21,10 @@ const newSession: Session = createSession({
 
 // Мокаем TokenRepository singleton, чтобы контролировать сценарий multi-window.
 const tokenRepoMock = {
-  get: vi.fn<[], Promise<Session | null>>(),
-  save: vi.fn<[Session], Promise<void>>(),
-  clear: vi.fn<[], Promise<void>>(),
-  getDeviceId: vi.fn<[], string>(),
+  get: vi.fn<() => Promise<Session | null>>(),
+  save: vi.fn<(session: Session) => Promise<void>>(),
+  clear: vi.fn<() => Promise<void>>(),
+  getDeviceId: vi.fn<() => string>(),
 };
 
 vi.mock('../repositories/TokenRepository', () => ({

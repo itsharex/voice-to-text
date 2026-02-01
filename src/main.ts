@@ -4,6 +4,7 @@ import { i18n } from './i18n';
 import vuetify from './plugins/vuetify';
 import App from './App.vue';
 import './assets/style.css';
+import { installE2eHooks } from './e2e/e2eHooks';
 
 const pinia = createPinia();
 const app = createApp(App);
@@ -21,4 +22,8 @@ if (isMacOS) {
 app.use(pinia);
 app.use(i18n);
 app.use(vuetify);
+
+// Для e2e: даём WebDriver тестам безопасный доступ к состоянию store'ов.
+installE2eHooks(pinia);
+
 app.mount('#app');

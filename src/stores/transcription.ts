@@ -2,10 +2,10 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import { playShowSound } from '../utils/sound';
 import { isTauriAvailable } from '../utils/tauri';
 import { i18n } from '../i18n';
 import { useAuthStore } from '../features/auth/store/authStore';
+import { useAppConfigStore } from './appConfig';
 import { getTokenRepository } from '../features/auth/infrastructure/repositories/TokenRepository';
 import { getAuthContainer } from '../features/auth/infrastructure/di/authContainer';
 import { canRefreshSession, isAccessTokenExpired } from '../features/auth/domain/entities/Session';
@@ -48,9 +48,10 @@ export const useTranscriptionStore = defineStore('transcription', () => {
   let isForcingLogout = false;
   let isRefreshingAuthForStt = false;
 
-  // Config flags
-  const autoCopyEnabled = ref<boolean>(true);
-  const autoPasteEnabled = ref<boolean>(false);
+  // Config flags — берём из appConfig store (единый источник правды)
+  const appConfig = useAppConfigStore();
+  const autoCopyEnabled = computed(() => appConfig.autoCopyToClipboard);
+  const autoPasteEnabled = computed(() => appConfig.autoPasteText);
 
   // Флаг для защиты от дублирования auto-paste
   // Хранит значение finalText на момент последней успешной вставки
@@ -64,8 +65,8 @@ export const useTranscriptionStore = defineStore('transcription', () => {
   const animatedAccumulatedText = ref<string>('');
 
   // Таймеры для анимации
-  let partialAnimationTimer: NodeJS.Timeout | null = null;
-  let accumulatedAnimationTimer: NodeJS.Timeout | null = null;
+  let partialAnimationTimer: ReturnType<typeof setInterval> | null = null;
+  let accumulatedAnimationTimer: ReturnType<typeof setInterval> | null = null;
 
   // Listeners
   type UnlistenFn = () => void;
@@ -74,7 +75,6 @@ export const useTranscriptionStore = defineStore('transcription', () => {
   let unlistenStatus: UnlistenFn | null = null;
   let unlistenError: UnlistenFn | null = null;
   let unlistenConnectionQuality: UnlistenFn | null = null;
-  let unlistenConfigChanged: UnlistenFn | null = null;
 
   // Computed
   const isStarting = computed(() => status.value === RecordingStatus.Starting);
@@ -234,16 +234,6 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     // Отписываемся от старых listeners перед регистрацией новых
     // Это предотвращает дублирование событий при повторной инициализации
     cleanup();
-
-    // Загружаем настройки auto-copy/paste из конфига
-    try {
-      const appConfig = await invoke<any>('get_app_config');
-      autoCopyEnabled.value = appConfig.auto_copy_to_clipboard ?? true;
-      autoPasteEnabled.value = appConfig.auto_paste_text ?? false;
-      console.log('Config loaded: autoCopy=', autoCopyEnabled.value, 'autoPaste=', autoPasteEnabled.value);
-    } catch (err) {
-      console.error('Failed to load auto-paste config:', err);
-    }
 
     try {
       // Listen to partial transcription events
@@ -732,16 +722,6 @@ export const useTranscriptionStore = defineStore('transcription', () => {
       );
 
       console.log('Event listeners initialized successfully');
-
-      // Синхронизация настроек между окнами: если конфиг поменяли в другом окне — перезагружаем флаги
-      unlistenConfigChanged = await listen<{ revision: number; scope?: string }>(
-        'config:changed',
-        async (event) => {
-          const scope = (event.payload as any)?.scope as string | undefined;
-          if (scope && scope !== 'app') return;
-          await reloadConfig();
-        }
-      );
     } catch (err) {
       console.error('Failed to initialize event listeners:', err);
       error.value = `Failed to initialize: ${err}`;
@@ -1125,10 +1105,6 @@ export const useTranscriptionStore = defineStore('transcription', () => {
       unlistenConnectionQuality();
       unlistenConnectionQuality = null;
     }
-    if (unlistenConfigChanged) {
-      unlistenConfigChanged();
-      unlistenConfigChanged = null;
-    }
 
     // Очищаем таймеры анимации
     if (partialAnimationTimer) {
@@ -1138,19 +1114,6 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     if (accumulatedAnimationTimer) {
       clearInterval(accumulatedAnimationTimer);
       accumulatedAnimationTimer = null;
-    }
-  }
-
-  // Перезагрузка настроек auto-copy/paste из конфига
-  // Вызывается после сохранения настроек в Settings
-  async function reloadConfig() {
-    try {
-      const appConfig = await invoke<any>('get_app_config');
-      autoCopyEnabled.value = appConfig.auto_copy_to_clipboard ?? true;
-      autoPasteEnabled.value = appConfig.auto_paste_text ?? false;
-      console.log('Config reloaded: autoCopy=', autoCopyEnabled.value, 'autoPaste=', autoPasteEnabled.value);
-    } catch (err) {
-      console.error('Failed to reload config:', err);
     }
   }
 
@@ -1185,6 +1148,5 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     clearText,
     toggleRecording,
     cleanup,
-    reloadConfig,
   };
 });

@@ -17,6 +17,13 @@ interface LicenseInfo {
   claimed_at: string;
 }
 
+interface LinkedProvider {
+  provider: string;
+  provider_email: string | null;
+  provider_name: string | null;
+  linked_at: string;
+}
+
 const emit = defineEmits<{
   close: []
 }>();
@@ -28,6 +35,7 @@ const authStore = useAuthStore();
 const isLoggingOut = ref(false);
 const license = ref<LicenseInfo | null>(null);
 const licenseLoading = ref(false);
+const linkedProviders = ref<LinkedProvider[]>([]);
 
 // Пробуем получить email из разных источников
 const userEmail = computed(() => {
@@ -71,6 +79,21 @@ const usageInfo = computed(() => {
   return { used: usedMin, total: totalMin, remaining: remainMin };
 });
 
+// Иконка провайдера
+function providerIcon(provider: string): string {
+  const icons: Record<string, string> = {
+    google: 'mdi-google',
+  };
+  return icons[provider] ?? 'mdi-link-variant';
+}
+
+// Название провайдера через i18n
+function providerLabel(provider: string): string {
+  const key = `profile.providers.${provider}`;
+  const translated = t(key);
+  return translated === key ? provider : translated;
+}
+
 async function fetchLicense() {
   licenseLoading.value = true;
   try {
@@ -81,6 +104,15 @@ async function fetchLicense() {
     console.error('Не удалось загрузить лицензию:', err);
   } finally {
     licenseLoading.value = false;
+  }
+}
+
+async function fetchLinkedProviders() {
+  try {
+    const data = await api.get<{ linked_providers: LinkedProvider[] }>('/api/v1/auth/me');
+    linkedProviders.value = data.linked_providers ?? [];
+  } catch (err) {
+    console.error('Не удалось загрузить привязанные аккаунты:', err);
   }
 }
 
@@ -96,6 +128,7 @@ async function handleLogout() {
 
 onMounted(() => {
   fetchLicense();
+  fetchLinkedProviders();
 });
 </script>
 
@@ -167,6 +200,28 @@ onMounted(() => {
               {{ t('profile.usageDetail', { used: usageInfo.used, total: usageInfo.total }) }}
             </v-list-item-subtitle>
           </v-list-item>
+
+          <template v-if="linkedProviders.length > 0">
+            <v-divider class="my-1" />
+            <v-list-subheader>{{ t('profile.linkedAccounts') }}</v-list-subheader>
+            <v-list-item
+              v-for="lp in linkedProviders"
+              :key="lp.provider"
+            >
+              <template #prepend>
+                <v-icon>{{ providerIcon(lp.provider) }}</v-icon>
+              </template>
+              <v-list-item-title class="text-body-2 d-flex align-center ga-2">
+                {{ providerLabel(lp.provider) }}
+                <v-chip color="success" size="x-small" variant="tonal">
+                  {{ t('profile.linked') }}
+                </v-chip>
+              </v-list-item-title>
+              <v-list-item-subtitle v-if="lp.provider_email || lp.provider_name" class="text-body-2">
+                {{ lp.provider_email ?? lp.provider_name }}
+              </v-list-item-subtitle>
+            </v-list-item>
+          </template>
         </v-list>
       </v-card-text>
 

@@ -273,9 +273,7 @@ const closeProfile = () => {
 
 const closeSettings = async () => {
   showSettings.value = false;
-
   await appConfigStore.refresh();
-  await store.reloadConfig();
 };
 
 const minimizeWindow = async () => {
@@ -320,7 +318,12 @@ const minimizeWindow = async () => {
           >
             <span class="mdi mdi-account-circle-outline"></span>
           </button>
-          <button class="settings-button no-drag" @click="openSettings" :title="t('main.settings')">
+          <button
+            class="settings-button no-drag"
+            data-testid="open-settings"
+            @click="openSettings"
+            :title="t('main.settings')"
+          >
             <span class="mdi mdi-cog-outline"></span>
           </button>
         </div>

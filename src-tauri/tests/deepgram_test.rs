@@ -517,6 +517,7 @@ async fn test_e2e_full_pipeline_with_deepgram() {
 
     // Запускаем запись
     let on_audio_level = Arc::new(|_level: f32| {});
+    let on_audio_spectrum = Arc::new(|_spectrum: [f32; 48]| {});
     let on_error = Arc::new(|_msg: String, _err_type: String| {});
 
     let result = service
@@ -524,6 +525,7 @@ async fn test_e2e_full_pipeline_with_deepgram() {
             on_partial,
             on_final,
             on_audio_level,
+            on_audio_spectrum,
             on_error,
             noop_connection_quality(),
         )

@@ -3,7 +3,7 @@ use std::sync::atomic::AtomicU64;
 use tokio::sync::RwLock;
 
 use crate::application::TranscriptionService;
-use crate::domain::{AppConfig, Transcription, AudioCapture};
+use crate::domain::{AppConfig, Transcription, AudioCapture, UiPreferences};
 use crate::infrastructure::{
     audio::{SystemAudioCapture, VadCaptureWrapper, VadProcessor},
     DefaultSttProviderFactory,
@@ -40,8 +40,14 @@ pub struct AppState {
     /// Application configuration
     pub config: Arc<RwLock<AppConfig>>,
 
-    /// Ревизия конфига для синхронизации между окнами (монотонно растёт)
-    pub config_revision: Arc<RwLock<u64>>,
+    /// Per-topic ревизии для state-sync протокола (монотонно растут)
+    pub app_config_revision: Arc<RwLock<u64>>,
+    pub stt_config_revision: Arc<RwLock<u64>>,
+    pub auth_state_revision: Arc<RwLock<u64>>,
+    pub ui_preferences_revision: Arc<RwLock<u64>>,
+
+    /// UI-настройки (тема, локаль)
+    pub ui_preferences: Arc<RwLock<UiPreferences>>,
 
     /// Transcription history
     pub history: Arc<RwLock<Vec<Transcription>>>,
@@ -93,7 +99,11 @@ impl AppState {
                 return Self {
                     transcription_service: service,
                     config: Arc::new(RwLock::new(AppConfig::default())),
-                    config_revision: Arc::new(RwLock::new(0)),
+                    app_config_revision: Arc::new(RwLock::new(0)),
+                    stt_config_revision: Arc::new(RwLock::new(0)),
+                    auth_state_revision: Arc::new(RwLock::new(0)),
+                    ui_preferences_revision: Arc::new(RwLock::new(0)),
+                    ui_preferences: Arc::new(RwLock::new(UiPreferences::default())),
                     history: Arc::new(RwLock::new(Vec::new())),
                     partial_transcription: Arc::new(RwLock::new(None)),
                     final_transcription: Arc::new(RwLock::new(None)),
@@ -123,7 +133,11 @@ impl AppState {
                 return Self {
                     transcription_service: service,
                     config: Arc::new(RwLock::new(app_config)),
-                    config_revision: Arc::new(RwLock::new(0)),
+                    app_config_revision: Arc::new(RwLock::new(0)),
+                    stt_config_revision: Arc::new(RwLock::new(0)),
+                    auth_state_revision: Arc::new(RwLock::new(0)),
+                    ui_preferences_revision: Arc::new(RwLock::new(0)),
+                    ui_preferences: Arc::new(RwLock::new(UiPreferences::default())),
                     history: Arc::new(RwLock::new(Vec::new())),
                     partial_transcription: Arc::new(RwLock::new(None)),
                     final_transcription: Arc::new(RwLock::new(None)),
@@ -160,7 +174,11 @@ impl AppState {
         Self {
             transcription_service,
             config: Arc::new(RwLock::new(app_config)),
-            config_revision: Arc::new(RwLock::new(0)),
+            app_config_revision: Arc::new(RwLock::new(0)),
+            stt_config_revision: Arc::new(RwLock::new(0)),
+            auth_state_revision: Arc::new(RwLock::new(0)),
+            ui_preferences_revision: Arc::new(RwLock::new(0)),
+            ui_preferences: Arc::new(RwLock::new(UiPreferences::default())),
             history: Arc::new(RwLock::new(Vec::new())),
             partial_transcription: Arc::new(RwLock::new(None)),
             final_transcription: Arc::new(RwLock::new(None)),
@@ -171,6 +189,13 @@ impl AppState {
             is_authenticated: Arc::new(RwLock::new(false)),
             last_recording_hotkey_ms: AtomicU64::new(0),
         }
+    }
+
+    /// Инкрементирует ревизию и возвращает её строковое представление
+    pub async fn bump_revision(counter: &Arc<RwLock<u64>>) -> String {
+        let mut rev = counter.write().await;
+        *rev = rev.saturating_add(1);
+        rev.to_string()
     }
 
     /// Запускает обработчик VAD timeout событий (вызывается из setup)

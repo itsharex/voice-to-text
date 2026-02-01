@@ -171,6 +171,22 @@ impl Default for AppConfig {
     }
 }
 
+/// Пользовательские UI-настройки (тема, локаль), синхронизируются между окнами через state-sync
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UiPreferences {
+    pub theme: String,
+    pub locale: String,
+}
+
+impl Default for UiPreferences {
+    fn default() -> Self {
+        Self {
+            theme: "dark".to_string(),
+            locale: "ru".to_string(),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

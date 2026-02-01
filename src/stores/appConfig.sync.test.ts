@@ -1,6 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useAppConfigStore } from './appConfig';
+import { CMD_GET_APP_CONFIG_SNAPSHOT, STATE_SYNC_INVALIDATION_EVENT } from '@/windowing/stateSync';
 
 const invokeMock = vi.fn();
 const listenMock = vi.fn();
@@ -14,6 +15,17 @@ vi.mock('@tauri-apps/api/event', () => ({
 }));
 
 describe('useAppConfigStore sync', () => {
+  function makeSnapshotData(overrides: Partial<any> = {}) {
+    return {
+      recording_hotkey: 'CmdOrCtrl+Shift+X',
+      auto_copy_to_clipboard: false,
+      auto_paste_text: false,
+      microphone_sensitivity: 95,
+      selected_audio_device: null,
+      ...overrides,
+    };
+  }
+
   beforeEach(() => {
     setActivePinia(createPinia());
     (window as any).__TAURI__ = {};
@@ -21,116 +33,137 @@ describe('useAppConfigStore sync', () => {
     listenMock.mockReset();
   });
 
-  it('startSync: загружает snapshot и подписывается на config:changed', async () => {
-    const listeners: Array<(event: any) => Promise<void>> = [];
-    listenMock.mockImplementation(async (_event: string, handler: any) => {
-      listeners.push(handler);
-      return () => {};
-    });
+  it('startSync: подписывается и загружает snapshot', async () => {
+    const unlistenFn = vi.fn();
+    listenMock.mockResolvedValue(unlistenFn);
 
     invokeMock.mockResolvedValue({
-      revision: 7,
-      config: {
+      revision: '7',
+      data: makeSnapshotData({
         recording_hotkey: 'CmdOrCtrl+Shift+P',
-        auto_copy_to_clipboard: false,
         auto_paste_text: true,
         microphone_sensitivity: 120,
         selected_audio_device: 'Mic A',
-      },
+      }),
     });
 
     const store = useAppConfigStore();
     await store.startSync();
 
-    expect(invokeMock).toHaveBeenCalledWith('get_app_config_snapshot');
-    expect(store.revision).toBe(7);
+    // Библиотека вызывает listen для подписки на invalidation
+    expect(listenMock).toHaveBeenCalledWith(STATE_SYNC_INVALIDATION_EVENT, expect.any(Function));
+    // И invoke для получения snapshot
+    expect(invokeMock).toHaveBeenCalledWith(CMD_GET_APP_CONFIG_SNAPSHOT, undefined);
+    expect(store.revision).toBe('7');
     expect(store.recordingHotkey).toBe('CmdOrCtrl+Shift+P');
     expect(store.autoCopyToClipboard).toBe(false);
     expect(store.autoPasteText).toBe(true);
     expect(store.microphoneSensitivity).toBe(120);
     expect(store.selectedAudioDevice).toBe('Mic A');
-    expect(listeners).toHaveLength(1);
   });
 
-  it('реагирует только на scope="app" и на увеличение revision', async () => {
-    const listeners: Array<(event: any) => Promise<void>> = [];
-    listenMock.mockImplementation(async (_event: string, handler: any) => {
-      listeners.push(handler);
-      return () => {};
-    });
+  it('applySnapshot обновляет значения из SnapshotEnvelope', () => {
+    const store = useAppConfigStore();
 
-    let currentRevision = 1;
-    let currentHotkey = 'A';
-    invokeMock.mockImplementation(async (cmd: string) => {
-      if (cmd !== 'get_app_config_snapshot') throw new Error('unexpected command');
-      return { revision: currentRevision, config: { recording_hotkey: currentHotkey } };
+    store.applySnapshot(
+      {
+        recording_hotkey: 'Alt+Z',
+        auto_copy_to_clipboard: true,
+        auto_paste_text: false,
+        microphone_sensitivity: 50,
+        selected_audio_device: 'Mic B',
+      },
+      '42',
+    );
+
+    expect(store.revision).toBe('42');
+    expect(store.recordingHotkey).toBe('Alt+Z');
+    expect(store.autoCopyToClipboard).toBe(true);
+    expect(store.autoPasteText).toBe(false);
+    expect(store.microphoneSensitivity).toBe(50);
+    expect(store.selectedAudioDevice).toBe('Mic B');
+    expect(store.isLoaded).toBe(true);
+  });
+
+  it('refresh делегирует в handle.refresh()', async () => {
+    const unlistenFn = vi.fn();
+    listenMock.mockResolvedValue(unlistenFn);
+
+    invokeMock.mockResolvedValue({
+      revision: '5',
+      data: makeSnapshotData({ recording_hotkey: 'R' }),
     });
 
     const store = useAppConfigStore();
     await store.startSync();
-    expect(store.revision).toBe(1);
-    expect(store.recordingHotkey).toBe('A');
-    expect(invokeMock).toHaveBeenCalledTimes(1);
 
-    // Старый revision — игнор
-    currentRevision = 1;
-    currentHotkey = 'B';
-    await listeners[0]({ payload: { revision: 1, scope: 'app' } });
-    expect(invokeMock).toHaveBeenCalledTimes(1);
-    expect(store.recordingHotkey).toBe('A');
+    expect(store.recordingHotkey).toBe('R');
 
-    // scope не app — игнор
-    currentRevision = 2;
-    currentHotkey = 'C';
-    await listeners[0]({ payload: { revision: 2, scope: 'stt' } });
-    expect(invokeMock).toHaveBeenCalledTimes(1);
-    expect(store.recordingHotkey).toBe('A');
+    // Обновляем "бэкенд" и делаем ручной refresh
+    invokeMock.mockResolvedValue({
+      revision: '6',
+      data: makeSnapshotData({ recording_hotkey: 'S' }),
+    });
 
-    // Новая ревизия + app — обновление
-    await listeners[0]({ payload: { revision: 2, scope: 'app' } });
-    expect(invokeMock).toHaveBeenCalledTimes(2);
-    expect(store.revision).toBe(2);
-    expect(store.recordingHotkey).toBe('C');
+    await store.refresh();
+    expect(store.revision).toBe('6');
+    expect(store.recordingHotkey).toBe('S');
   });
 
-  it('e2e (модель): два окна получают одно и то же состояние после события', async () => {
-    const listeners: Array<(event: any) => Promise<void>> = [];
-    listenMock.mockImplementation(async (_event: string, handler: any) => {
-      listeners.push(handler);
-      return () => {};
+  it('stopSync вызывает unlisten и сбрасывает handle', async () => {
+    const unlistenFn = vi.fn();
+    listenMock.mockResolvedValue(unlistenFn);
+
+    invokeMock.mockResolvedValue({
+      revision: '1',
+      data: makeSnapshotData(),
     });
 
-    let currentRevision = 10;
-    let currentConfig = { recording_hotkey: 'X' };
-    invokeMock.mockImplementation(async (cmd: string) => {
-      if (cmd !== 'get_app_config_snapshot') throw new Error('unexpected command');
-      return { revision: currentRevision, config: currentConfig };
+    const store = useAppConfigStore();
+    await store.startSync();
+    expect(store.isSyncing).toBe(true);
+
+    store.stopSync();
+    expect(store.isSyncing).toBe(false);
+    expect(unlistenFn).toHaveBeenCalled();
+  });
+
+  it('startSync: при ошибке start() — handle обнуляется и retry работает', async () => {
+    listenMock.mockResolvedValue(vi.fn());
+    // Первый вызов start() внутри state-sync вызывает invoke → ошибка
+    invokeMock.mockRejectedValueOnce(new Error('network error'));
+
+    const store = useAppConfigStore();
+    const failed = await store.startSync();
+    expect(failed).toBe(false);
+    expect(store.isSyncing).toBe(false);
+
+    // retry — теперь invoke отдаёт валидный snapshot
+    invokeMock.mockResolvedValue({
+      revision: '1',
+      data: makeSnapshotData({ recording_hotkey: 'Alt+R' }),
     });
 
-    const piniaA = createPinia();
-    const piniaB = createPinia();
-    const storeA = useAppConfigStore(piniaA);
-    const storeB = useAppConfigStore(piniaB);
+    const succeeded = await store.startSync();
+    expect(succeeded).toBe(true);
+    expect(store.isSyncing).toBe(true);
+    expect(store.recordingHotkey).toBe('Alt+R');
+  });
 
-    await storeA.startSync();
-    await storeB.startSync();
+  it('startSync идемпотентен — повторный вызов не создаёт второй handle', async () => {
+    const unlistenFn = vi.fn();
+    listenMock.mockResolvedValue(unlistenFn);
 
-    expect(storeA.revision).toBe(10);
-    expect(storeB.revision).toBe(10);
-    expect(storeA.recordingHotkey).toBe('X');
-    expect(storeB.recordingHotkey).toBe('X');
+    invokeMock.mockResolvedValue({
+      revision: '1',
+      data: makeSnapshotData(),
+    });
 
-    // Меняем "бэкенд" и шлём событие
-    currentRevision = 11;
-    currentConfig = { recording_hotkey: 'Y' };
-    await Promise.all(
-      listeners.map((fn) => fn({ payload: { revision: 11, scope: 'app' } }))
-    );
+    const store = useAppConfigStore();
+    await store.startSync();
+    await store.startSync();
 
-    expect(storeA.revision).toBe(11);
-    expect(storeB.revision).toBe(11);
-    expect(storeA.recordingHotkey).toBe('Y');
-    expect(storeB.recordingHotkey).toBe('Y');
+    // listen должен быть вызван только один раз
+    expect(listenMock).toHaveBeenCalledTimes(1);
   });
 });
-

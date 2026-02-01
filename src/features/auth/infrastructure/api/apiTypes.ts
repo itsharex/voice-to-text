@@ -54,6 +54,18 @@ export interface ApiOAuthExchangeRequest {
   exchange_code: string;
 }
 
+export interface ApiOAuthPollRequest {
+  device_id: string;
+}
+
+export interface ApiOAuthPollResponse {
+  status: 'pending' | 'completed';
+  access_token?: string;
+  refresh_token?: string;
+  access_expires_at?: string;
+  refresh_expires_at?: string;
+}
+
 export interface ApiRefreshRequest {
   refresh_token: string;
   device_id: string;

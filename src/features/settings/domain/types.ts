@@ -46,7 +46,7 @@ export interface AppConfigData {
   recording_hotkey: string;
   auto_copy_to_clipboard: boolean;
   auto_paste_text: boolean;
-  selected_audio_device: string;
+  selected_audio_device: string | null;
 }
 
 // Полная конфигурация настроек для UI

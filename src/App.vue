@@ -5,21 +5,29 @@ import { useAuth, useAuthState } from './features/auth';
 import AuthScreen from './features/auth/presentation/components/AuthScreen.vue';
 import RecordingPopover from './presentation/components/RecordingPopover.vue';
 import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
+import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useUpdater } from './composables/useUpdater';
 import { getWindowMode, type AppWindowLabel } from './windowing/windowMode';
 import { SettingsWindow } from './features/settings';
+import {
+  bumpUiPrefsRevision,
+  UI_PREFS_LOCALE_KEY,
+  UI_PREFS_THEME_KEY,
+  readUiPreferencesFromStorage,
+  writeUiPreferencesCacheToStorage,
+} from './windowing/stateSync';
+import type { RevisionSyncHandle } from './windowing/stateSync';
+import { isTauriAvailable } from './utils/tauri';
 import { i18n } from './i18n';
+import { normalizeUiLocale, normalizeUiTheme } from './i18n.locales';
+import { createAuthStateSync } from './windowing/stateSync/authStateSync';
+import { createUiPreferencesSync } from './windowing/stateSync/uiPreferencesSync';
 
 const auth = useAuth();
 const authState = useAuthState();
 const theme = useTheme();
 const { setupUpdateListener, cleanupUpdateListener } = useUpdater();
-
-let unlistenConfigChanged: UnlistenFn | null = null;
-let unlistenUiThemeChange: UnlistenFn | null = null;
-let unlistenUiLocaleChange: UnlistenFn | null = null;
 
 // Флаг завершения инициализации (чтобы не мелькал AuthScreen)
 const isInitialized = ref(false);
@@ -64,11 +72,11 @@ watch(
   () => mode.value.render,
   async (render) => {
     if (!isInitialized.value) return;
+    // При HMR окно уже видно — не трогаем фокус/видимость
+    if (isHmrReload) return;
     try {
-      // Важно: если окно было скрыто в промежуточном состоянии (например, auth=true → auth=false),
-      // оно должно уметь снова показаться, иначе получается "приложение запущено, но окна нет".
       if (render === 'none') {
-        await getCurrentWindow().hide();
+      await getCurrentWindow().hide();
       } else {
         // Settings окно контролируется командами backend (show_settings_window/show_recording_window),
         // поэтому НЕ показываем его автоматически на старте.
@@ -80,20 +88,15 @@ watch(
   }
 );
 
-function applyUiSettingsFromStorage(): void {
-  const storedTheme = localStorage.getItem('uiTheme') || 'dark';
-  applyThemeValue(storedTheme);
-
-  const storedLocale = localStorage.getItem('uiLocale');
-  if (storedLocale) {
-    applyLocaleValue(storedLocale);
-  }
-}
-
 function applyThemeValue(value: string): void {
-  theme.global.name.value = value;
+  const next = normalizeUiTheme(value);
+  theme.global.name.value = next;
 
-  if (value === 'light') {
+  // Держим localStorage в консистентном состоянии (как кэш).
+  writeUiPreferencesCacheToStorage({ ...readUiPreferencesFromStorage(), theme: next });
+  document.documentElement.dataset.uiTheme = next;
+
+  if (next === 'light') {
     document.documentElement.classList.add('theme-light');
   } else {
     document.documentElement.classList.remove('theme-light');
@@ -101,16 +104,31 @@ function applyThemeValue(value: string): void {
 }
 
 function applyLocaleValue(value: string): void {
-  i18n.global.locale.value = value;
-  localStorage.setItem('uiLocale', value);
+  const next = normalizeUiLocale(value);
+  i18n.global.locale.value = next;
+  document.documentElement.dataset.uiLocale = next;
+  const prev = localStorage.getItem(UI_PREFS_LOCALE_KEY);
+  if (prev !== next) {
+    writeUiPreferencesCacheToStorage({ ...readUiPreferencesFromStorage(), locale: next });
+    if (!isTauriAvailable()) {
+      bumpUiPrefsRevision();
+    }
+  }
 }
 
 // Синхронизация темы с localStorage
-const storedTheme = localStorage.getItem('uiTheme') || 'dark';
+const storedTheme = normalizeUiTheme(localStorage.getItem(UI_PREFS_THEME_KEY));
 theme.global.name.value = storedTheme;
 
 watch(() => theme.global.name.value, (newTheme) => {
-  localStorage.setItem('uiTheme', String(newTheme));
+  const next = normalizeUiTheme(String(newTheme));
+  const prev = localStorage.getItem(UI_PREFS_THEME_KEY);
+  if (prev !== next) {
+    writeUiPreferencesCacheToStorage({ ...readUiPreferencesFromStorage(), theme: next });
+    if (!isTauriAvailable()) {
+      bumpUiPrefsRevision();
+    }
+  }
 });
 
 // При смене состояния авторизации - синхронизируем с backend и переключаем окна
@@ -128,7 +146,6 @@ watch(() => authState.isAuthenticated.value, async (isAuth) => {
     }
 
     // Переключение делаем по правилам окна, чтобы main не показывал auth UI и наоборот.
-    // Важно: сначала прячем текущее окно (иногда hide из backend может не отработать вовремя).
     if (windowLabel.value === 'auth' && isAuth) {
       try {
         await getCurrentWindow().hide();
@@ -140,7 +157,6 @@ watch(() => authState.isAuthenticated.value, async (isAuth) => {
       } catch {}
       await invoke('show_auth_window');
     } else if (windowLabel.value === 'settings' && !isAuth) {
-      // Если юзер разлогинился в настройках — закрываем настройки и показываем auth.
       try {
         await getCurrentWindow().hide();
       } catch {}
@@ -151,8 +167,11 @@ watch(() => authState.isAuthenticated.value, async (isAuth) => {
   }
 });
 
+// Per-topic sync handles
+let authSyncHandle: RevisionSyncHandle | null = null;
+let uiPrefsSyncHandle: RevisionSyncHandle | null = null;
+
 onMounted(async () => {
-  // Настраиваем глобальный listener для обновлений
   await setupUpdateListener();
 
   try {
@@ -170,12 +189,12 @@ onMounted(async () => {
   } finally {
     isInitialized.value = true;
 
-    // Синхронизируем флаг авторизации и токен с backend
     const isAuth = authState.isAuthenticated.value;
     const token = isAuth ? authState.accessToken.value : null;
     await invoke('set_authenticated', { authenticated: isAuth, token });
 
-    // После инициализации показываем нужное окно
+    // При HMR не переключаем окна — состояние уже корректное
+    if (!isHmrReload) {
     if (windowLabel.value === 'main' && !isAuth) {
       try {
         await getCurrentWindow().hide();
@@ -186,66 +205,73 @@ onMounted(async () => {
         await getCurrentWindow().hide();
       } catch {}
       await invoke('show_recording_window');
+      }
     }
   }
 
-  // Синхронизация между окнами: изменения конфига и авторизации
-  const currentWindow = getCurrentWindow();
-  unlistenConfigChanged = await listen<{
-    revision: number;
-    ts: number;
-    source_window?: string | null;
-    scope?: string | null;
-  }>('config:changed', async (event) => {
-    const source = event.payload?.source_window ?? null;
-    if (source && source === currentWindow.label) return;
+  // Создаём per-topic sync handles (только в Tauri окружении)
+  if (isTauriAvailable()) {
+    authSyncHandle = createAuthStateSync({
+      listen,
+      invoke,
+      getLocalIsAuthenticated: () => authState.isAuthenticated.value,
+      onExternalAuthState: () => {
+        void runExternalAuthSync(() => auth.initialize({ silent: true }));
+      },
+    });
 
-    const scope = event.payload?.scope ?? null;
-    if (scope === 'auth') {
-      await runExternalAuthSync(() => auth.initialize({ silent: true }));
-      return;
+    uiPrefsSyncHandle = createUiPreferencesSync({
+      listen,
+      invoke,
+      applyTheme: (t) => applyThemeValue(t),
+      applyLocale: (l) => applyLocaleValue(l),
+    });
+
+    try {
+      await Promise.all([
+        authSyncHandle.start(),
+        uiPrefsSyncHandle.start(),
+      ]);
+    } catch (err) {
+      console.error('[App] state-sync start failed:', err);
+      authSyncHandle?.stop(); authSyncHandle = null;
+      uiPrefsSyncHandle?.stop(); uiPrefsSyncHandle = null;
     }
-
-    applyUiSettingsFromStorage();
-  });
-
-  unlistenUiThemeChange = await listen<{ theme: string; sourceWindow?: string }>(
-    'ui:theme-changed',
-    async (event) => {
-      applyThemeValue(event.payload.theme);
-    }
-  );
-
-  unlistenUiLocaleChange = await listen<{ locale: string; sourceWindow?: string }>(
-    'ui:locale-changed',
-    async (event) => {
-      applyLocaleValue(event.payload.locale);
-    }
-  );
+  }
 });
 
 onUnmounted(() => {
-  if (unlistenConfigChanged) {
-    unlistenConfigChanged();
+  if (authSyncHandle) {
+    authSyncHandle.stop();
+    authSyncHandle = null;
   }
-  if (unlistenUiThemeChange) {
-    unlistenUiThemeChange();
-  }
-  if (unlistenUiLocaleChange) {
-    unlistenUiLocaleChange();
+  if (uiPrefsSyncHandle) {
+    uiPrefsSyncHandle.stop();
+    uiPrefsSyncHandle = null;
   }
   cleanupUpdateListener();
 });
 
-// HMR в dev иногда не размонтирует компонент "чисто".
-// На всякий случай отписываемся от tauri listeners при замене модуля,
-// чтобы не словить дублирование и повторные sync/переключения окон.
+// HMR: при перезагрузке модуля не дёргаем show/hide/focus — окно уже на месте
+let isHmrReload = false;
+
 if (import.meta.hot) {
-  import.meta.hot.dispose(() => {
+  // Если модуль уже был загружен ранее — значит это HMR reload
+  if (import.meta.hot.data.__hmrPreviouslyMounted) {
+    isHmrReload = true;
+  }
+
+  import.meta.hot.dispose((data) => {
+    data.__hmrPreviouslyMounted = true;
     try {
-      if (unlistenConfigChanged) unlistenConfigChanged();
-      if (unlistenUiThemeChange) unlistenUiThemeChange();
-      if (unlistenUiLocaleChange) unlistenUiLocaleChange();
+      if (authSyncHandle) {
+        authSyncHandle.stop();
+        authSyncHandle = null;
+      }
+      if (uiPrefsSyncHandle) {
+        uiPrefsSyncHandle.stop();
+        uiPrefsSyncHandle = null;
+      }
     } catch {}
     cleanupUpdateListener();
   });

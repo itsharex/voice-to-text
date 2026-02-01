@@ -6,21 +6,22 @@
 import { computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { SttProviderType } from '@/types';
-import { useTranscriptionStore } from '@/stores/transcription';
-import { emit } from '@tauri-apps/api/event';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 import { isTauriAvailable } from '@/utils/tauri';
+import { bumpUiPrefsRevision, CMD_UPDATE_UI_PREFERENCES } from '@/windowing/stateSync';
+import { normalizeUiLocale } from '@/i18n.locales';
 import { useSettingsStore } from '../../store/settingsStore';
 import { tauriSettingsService } from '../../infrastructure/adapters/TauriSettingsService';
+import { useAppConfigStore } from '@/stores/appConfig';
+import { useSttConfigStore } from '@/stores/sttConfig';
 import type { SttConfigData } from '../../domain/types';
 
 // Кэшируем определение macOS - это не меняется во время работы
 const IS_MACOS = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
 export function useSettings() {
-  const { locale, t } = useI18n();
+  const { locale } = useI18n();
   const store = useSettingsStore();
-  const transcriptionStore = useTranscriptionStore();
 
   // Computed для реактивных свойств
   const provider = computed({
@@ -81,11 +82,63 @@ export function useSettings() {
     store.clearError();
 
     try {
-      // Загружаем STT конфиг
-      const sttConfig = await tauriSettingsService.getSttConfig();
-      // Выбор провайдера выключен: всегда работаем через Backend
-      store.setProvider(SttProviderType.Backend);
-      store.setLanguage(sttConfig.language);
+      // В web preview/тестах без Tauri нельзя дергать invoke-команды.
+      // Поэтому грузим только из localStorage и/или уже инициализированных sync-store'ов.
+      if (!isTauriAvailable()) {
+        const sttConfigStoreInstance = useSttConfigStore();
+        const appConfigStoreInstance = useAppConfigStore();
+
+        // Язык UI: localStorage имеет приоритет
+        const storedLocale = normalizeUiLocale(localStorage.getItem('uiLocale'));
+        locale.value = storedLocale;
+        localStorage.setItem('uiLocale', storedLocale);
+
+        store.setProvider(SttProviderType.Backend);
+        store.setLanguage(storedLocale);
+
+        if (appConfigStoreInstance.isLoaded) {
+          store.setMicrophoneSensitivity(appConfigStoreInstance.microphoneSensitivity);
+          store.setRecordingHotkey(appConfigStoreInstance.recordingHotkey);
+          store.setAutoCopyToClipboard(appConfigStoreInstance.autoCopyToClipboard);
+          store.setAutoPasteText(appConfigStoreInstance.autoPasteText);
+          store.setSelectedAudioDevice(appConfigStoreInstance.selectedAudioDevice);
+        } else {
+          store.setMicrophoneSensitivity(95);
+          store.setRecordingHotkey('CmdOrCtrl+Shift+X');
+          store.setAutoCopyToClipboard(true);
+          store.setAutoPasteText(false);
+          store.setSelectedAudioDevice('');
+        }
+
+        // В web режиме аудио-устройства/permission недоступны
+        store.setAvailableAudioDevices([]);
+        store.setAccessibilityPermission(true);
+
+        // API ключи и whisper-модель не используются в backend-only.
+        store.setDeepgramApiKey('');
+        store.setAssemblyaiApiKey('');
+
+        // Если sttConfig store уже загружен (например, в тестах) — можно синхронизировать
+        if (sttConfigStoreInstance.isLoaded) {
+          const next = normalizeUiLocale(sttConfigStoreInstance.language);
+          store.setLanguage(next);
+          locale.value = next;
+          localStorage.setItem('uiLocale', next);
+        }
+
+        return;
+      }
+
+      // Загружаем STT конфиг — из sync store если уже загружен, иначе invoke
+      const sttConfigStoreInstance = useSttConfigStore();
+      if (sttConfigStoreInstance.isLoaded) {
+        store.setProvider(SttProviderType.Backend);
+        store.setLanguage(sttConfigStoreInstance.language);
+      } else {
+        const sttConfig = await tauriSettingsService.getSttConfig();
+        store.setProvider(SttProviderType.Backend);
+        store.setLanguage(sttConfig.language);
+      }
       // API ключи и whisper-модель больше не используются в настройках (backend-only).
       store.setDeepgramApiKey('');
       store.setAssemblyaiApiKey('');
@@ -94,23 +147,36 @@ export function useSettings() {
       // (пользователь мог выбрать язык на экране входа до загрузки конфига)
       const storedLocale = localStorage.getItem('uiLocale');
       if (storedLocale) {
-        locale.value = storedLocale;
-        store.setLanguage(storedLocale);
+        const next = normalizeUiLocale(storedLocale);
+        locale.value = next;
+        store.setLanguage(next);
+        if (storedLocale !== next) localStorage.setItem('uiLocale', next);
       } else {
-        locale.value = sttConfig.language;
-        localStorage.setItem('uiLocale', sttConfig.language);
+        const next = normalizeUiLocale(store.language);
+        locale.value = next;
+        store.setLanguage(next);
+        localStorage.setItem('uiLocale', next);
       }
 
-      // Загружаем App конфиг
-      try {
-        const appConfig = await tauriSettingsService.getAppConfig();
-        store.setMicrophoneSensitivity(appConfig.microphone_sensitivity ?? 95);
-        store.setRecordingHotkey(appConfig.recording_hotkey ?? 'CmdOrCtrl+Shift+X');
-        store.setAutoCopyToClipboard(appConfig.auto_copy_to_clipboard ?? true);
-        store.setAutoPasteText(appConfig.auto_paste_text ?? false);
-        store.setSelectedAudioDevice(appConfig.selected_audio_device ?? '');
-      } catch (err) {
-        console.log('App config не загружен, используем значения по умолчанию');
+      // Загружаем App конфиг — из sync store если уже загружен, иначе invoke
+      const appConfigStoreInstance = useAppConfigStore();
+      if (appConfigStoreInstance.isLoaded) {
+        store.setMicrophoneSensitivity(appConfigStoreInstance.microphoneSensitivity);
+        store.setRecordingHotkey(appConfigStoreInstance.recordingHotkey);
+        store.setAutoCopyToClipboard(appConfigStoreInstance.autoCopyToClipboard);
+        store.setAutoPasteText(appConfigStoreInstance.autoPasteText);
+        store.setSelectedAudioDevice(appConfigStoreInstance.selectedAudioDevice);
+      } else {
+        try {
+          const appConfig = await tauriSettingsService.getAppConfig();
+          store.setMicrophoneSensitivity(appConfig.microphone_sensitivity ?? 95);
+          store.setRecordingHotkey(appConfig.recording_hotkey ?? 'CmdOrCtrl+Shift+X');
+          store.setAutoCopyToClipboard(appConfig.auto_copy_to_clipboard ?? true);
+          store.setAutoPasteText(appConfig.auto_paste_text ?? false);
+          store.setSelectedAudioDevice(appConfig.selected_audio_device ?? '');
+        } catch (err) {
+          console.log('App config не загружен, используем значения по умолчанию');
+        }
       }
 
       // Загружаем список аудио устройств
@@ -168,9 +234,6 @@ export function useSettings() {
         selected_audio_device: store.selectedAudioDevice,
       });
 
-      // Перезагружаем конфиг в transcription store
-      await transcriptionStore.reloadConfig();
-
       store.setSaveStatus('success');
       return true;
     } catch (err) {
@@ -207,13 +270,22 @@ export function useSettings() {
    * Вызывается вручную когда нужно применить изменения
    */
   function syncLocale(): void {
-    locale.value = store.language;
-    localStorage.setItem('uiLocale', store.language);
+    const next = normalizeUiLocale(store.language);
+    const prev = localStorage.getItem('uiLocale');
 
+    locale.value = next;
+    if (prev !== next) {
+      localStorage.setItem('uiLocale', next);
+    }
+    if (!isTauriAvailable() && prev !== next) bumpUiPrefsRevision();
+
+    // Синхронизация через state-sync: сохраняем в Rust и уведомляем другие окна
     if (isTauriAvailable()) {
       try {
-        const w = getCurrentWindow();
-        void emit('ui:locale-changed', { locale: store.language, sourceWindow: w.label });
+        void invoke(CMD_UPDATE_UI_PREFERENCES, {
+          theme: localStorage.getItem('uiTheme') || 'dark',
+          locale: next,
+        });
       } catch {}
     }
   }

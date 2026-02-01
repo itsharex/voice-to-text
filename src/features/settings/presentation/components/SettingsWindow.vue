@@ -4,6 +4,8 @@ import { useI18n } from 'vue-i18n';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { isTauriAvailable } from '@/utils/tauri';
+import { useAppConfigStore } from '@/stores/appConfig';
+import { useSttConfigStore } from '@/stores/sttConfig';
 import UpdateDialog from '@/presentation/components/UpdateDialog.vue';
 import { useSettings } from '../composables/useSettings';
 import { useSettingsTheme } from '../composables/useSettingsTheme';
@@ -22,6 +24,9 @@ const { loadConfig, saveConfig, isSaving, isLoading, errorMessage, clearError } 
   useSettings();
 const { initializeTheme } = useSettingsTheme();
 
+const appConfigStore = useAppConfigStore();
+const sttConfigStore = useSttConfigStore();
+
 const showUpdateDialog = ref(false);
 
 let unlistenOpened: UnlistenFn | null = null;
@@ -33,8 +38,14 @@ onMounted(async () => {
     return;
   }
 
+  // Запускаем sync (идемпотентно — если уже запущен, сразу выходит)
+  await appConfigStore.startSync();
+  await sttConfigStore.startSync();
+
   unlistenOpened = await listen<boolean>('settings-window-opened', async () => {
     if (isLoading.value) return;
+    // Подтягиваем свежий конфиг через per-topic handles, дожидаемся завершения
+    await Promise.all([appConfigStore.refresh(), sttConfigStore.refresh()]);
     await loadConfig();
   });
 
@@ -186,4 +197,3 @@ async function handleSave(): Promise<void> {
   }
 }
 </style>
-

@@ -43,6 +43,7 @@ watch(language, () => {
 <template>
   <SettingGroup :title="t('settings.language.label')">
     <v-autocomplete
+      data-testid="settings-language-autocomplete"
       v-model="language"
       :items="languageOptions"
       item-title="label"
@@ -51,7 +52,7 @@ watch(language, () => {
       hide-details
       :placeholder="t('settings.language.searchPlaceholder')"
       auto-select-first="exact"
-      clearable="false"
+      :clearable="false"
     >
       <template #selection="{ item }">
         <span class="mr-2">{{ (item?.raw as UiLanguageOption)?.flag }}</span>

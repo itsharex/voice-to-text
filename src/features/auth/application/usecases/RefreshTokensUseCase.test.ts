@@ -38,6 +38,7 @@ describe('RefreshTokensUseCase', () => {
       logout: vi.fn(),
       requestPasswordReset: vi.fn(),
       confirmPasswordReset: vi.fn(),
+      pollOAuth: vi.fn(),
       getCurrentUser: vi.fn(),
     };
 

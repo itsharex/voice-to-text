@@ -240,6 +240,11 @@ const messages = {
         disabled: 'Paused',
         past_due: 'Past due',
       },
+      linkedAccounts: 'Linked accounts',
+      linked: 'Linked',
+      providers: {
+        google: 'Google',
+      },
     },
   },
   ru: {
@@ -480,6 +485,11 @@ const messages = {
         cancelled: 'Отменена',
         disabled: 'Приостановлена',
         past_due: 'Просрочена',
+      },
+      linkedAccounts: 'Привязанные аккаунты',
+      linked: 'Привязан',
+      providers: {
+        google: 'Google',
       },
     },
   },
@@ -722,6 +732,11 @@ const messages = {
         disabled: 'Pausada',
         past_due: 'Vencida',
       },
+      linkedAccounts: 'Cuentas vinculadas',
+      linked: 'Vinculada',
+      providers: {
+        google: 'Google',
+      },
     },
   },
   fr: {
@@ -962,6 +977,11 @@ const messages = {
         cancelled: 'Annulée',
         disabled: 'Suspendue',
         past_due: 'En retard',
+      },
+      linkedAccounts: 'Comptes liés',
+      linked: 'Lié',
+      providers: {
+        google: 'Google',
       },
     },
   },
@@ -1204,6 +1224,11 @@ const messages = {
         disabled: 'Pausiert',
         past_due: 'Überfällig',
       },
+      linkedAccounts: 'Verknüpfte Konten',
+      linked: 'Verknüpft',
+      providers: {
+        google: 'Google',
+      },
     },
   },
   uk: {
@@ -1444,6 +1469,11 @@ const messages = {
         cancelled: 'Скасована',
         disabled: 'Призупинена',
         past_due: 'Прострочена',
+      },
+      linkedAccounts: 'Привʼязані акаунти',
+      linked: 'Привʼязано',
+      providers: {
+        google: 'Google',
       },
     },
   },

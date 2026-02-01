@@ -1,5 +1,6 @@
 import { ref, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useAuthStore } from '../../store/authStore';
 import { getAuthContainer } from '../../infrastructure/di/authContainer';
 import { AuthError, AuthErrorCode } from '../../domain/errors';
@@ -7,6 +8,7 @@ import { useAuthState } from './useAuthState';
 import type { UnsubscribeFn } from '../../application/ports/IDeepLinkListener';
 
 const OAUTH_TIMEOUT_MS = 120000;
+const POLL_INTERVAL_MS = 2000;
 
 /**
  * Composable для OAuth авторизации
@@ -19,9 +21,12 @@ export function useOAuth() {
 
   let unsubscribeDeepLink: UnsubscribeFn | null = null;
   let oauthTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let pollIntervalId: ReturnType<typeof setInterval> | null = null;
 
   // Для защиты от двойной обработки
   const lastProcessedCode = ref<string | null>(null);
+  // Флаг: OAuth уже завершён (deep link или polling)
+  let oauthCompleted = false;
 
   function handleError(e: unknown): void {
     if (e instanceof AuthError) {
@@ -39,9 +44,17 @@ export function useOAuth() {
           store.setError(e.message);
       }
     } else {
+      console.error('OAuth: необработанная ошибка', e);
       store.setError(t('auth.errors.generic'));
     }
     store.setStatusError();
+  }
+
+  function stopPolling(): void {
+    if (pollIntervalId) {
+      clearInterval(pollIntervalId);
+      pollIntervalId = null;
+    }
   }
 
   function clearOAuthTimeout(): void {
@@ -80,8 +93,10 @@ export function useOAuth() {
     if (!result) return;
 
     clearOAuthTimeout();
+    stopPolling();
 
     if (result.error) {
+      oauthCompleted = true;
       store.setError(t('auth.errors.googleError', { error: decodeURIComponent(result.error) }));
       store.setUnauthenticated();
       return;
@@ -89,10 +104,11 @@ export function useOAuth() {
 
     if (result.exchangeCode) {
       // Защита от двойной обработки
-      if (result.exchangeCode === lastProcessedCode.value) {
+      if (result.exchangeCode === lastProcessedCode.value || oauthCompleted) {
         return;
       }
       lastProcessedCode.value = result.exchangeCode;
+      oauthCompleted = true;
 
       store.setLoading();
 
@@ -107,8 +123,46 @@ export function useOAuth() {
     }
   }
 
+  function startPolling(): void {
+    stopPolling();
+
+    const deviceId = container.tokenRepository.getDeviceId();
+
+    pollIntervalId = setInterval(async () => {
+      // Если OAuth уже завершён (через deep link), прекращаем
+      if (oauthCompleted) {
+        stopPolling();
+        return;
+      }
+
+      try {
+        const result = await container.authRepository.pollOAuth(deviceId);
+
+        if (result.status === 'completed' && result.session && !oauthCompleted) {
+          oauthCompleted = true;
+          stopPolling();
+          clearOAuthTimeout();
+
+          // Сохраняем сессию
+          await container.tokenRepository.save(result.session);
+          store.setAuthenticated(result.session);
+
+          // Переключаем фокус на окно приложения
+          try {
+            await getCurrentWindow().setFocus();
+          } catch {
+            // В dev-режиме может не сработать, не критично
+          }
+        }
+      } catch {
+        // Ошибки polling не критичны — deep link может сработать
+      }
+    }, POLL_INTERVAL_MS);
+  }
+
   async function startGoogleOAuth(): Promise<void> {
     store.setLoading();
+    oauthCompleted = false;
 
     try {
       // Подписываемся на deep link события
@@ -118,9 +172,13 @@ export function useOAuth() {
 
       await container.startGoogleOAuthUseCase.execute();
 
-      // Timeout на случай если deep link не сработает
+      // Запускаем polling параллельно с deep link
+      startPolling();
+
+      // Timeout на случай если ни deep link, ни polling не сработает
       clearOAuthTimeout();
       oauthTimeoutId = setTimeout(() => {
+        stopPolling();
         if (store.isLoading) {
           store.setUnauthenticated();
         }
@@ -133,6 +191,8 @@ export function useOAuth() {
 
   function cancelOAuth(): void {
     clearOAuthTimeout();
+    stopPolling();
+    oauthCompleted = true;
     if (store.isLoading) {
       store.setUnauthenticated();
     }
@@ -140,6 +200,7 @@ export function useOAuth() {
 
   function cleanup(): void {
     clearOAuthTimeout();
+    stopPolling();
     if (unsubscribeDeepLink) {
       unsubscribeDeepLink();
       unsubscribeDeepLink = null;

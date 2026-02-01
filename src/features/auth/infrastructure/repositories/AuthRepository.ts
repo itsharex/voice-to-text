@@ -59,6 +59,25 @@ export class AuthRepository implements IAuthRepository {
     return response.auth_url;
   }
 
+  async pollOAuth(deviceId: string): Promise<{ status: string; session?: Session }> {
+    const response = await this.apiClient.pollOAuth({ device_id: deviceId });
+
+    if (response.status === 'completed' && response.access_token && response.access_expires_at) {
+      const session = createSession({
+        accessToken: response.access_token,
+        refreshToken: response.refresh_token,
+        accessExpiresAt: new Date(response.access_expires_at),
+        refreshExpiresAt: response.refresh_expires_at
+          ? new Date(response.refresh_expires_at)
+          : undefined,
+        deviceId,
+      });
+      return { status: 'completed', session };
+    }
+
+    return { status: 'pending' };
+  }
+
   async exchangeOAuthCode(exchangeCode: string, deviceId: string): Promise<Session> {
     const response = await this.apiClient.exchangeOAuth({
       device_id: deviceId,

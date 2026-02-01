@@ -13,17 +13,17 @@ pub const EVENT_MICROPHONE_TEST_LEVEL: &str = "microphone_test:level";
 pub const EVENT_TRANSCRIPTION_ERROR: &str = "transcription:error";
 pub const EVENT_CONNECTION_QUALITY: &str = "connection:quality";
 
-// Синхронизация состояния между окнами (конфиг/настройки)
-pub const EVENT_CONFIG_CHANGED: &str = "config:changed";
+// State-sync протокол: invalidation event для синхронизации между окнами
+pub const EVENT_STATE_SYNC_INVALIDATION: &str = "state-sync:invalidation";
 
 #[derive(Debug, Clone, Serialize)]
-pub struct ConfigChangedPayload {
-    pub revision: u64,
-    pub ts: i64,
+#[serde(rename_all = "camelCase")]
+pub struct StateSyncInvalidationPayload {
+    pub topic: String,
+    pub revision: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub source_window: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub scope: Option<String>, // "app" | "stt" | "auth"
+    pub source_id: Option<String>,
+    pub timestamp_ms: i64,
 }
 
 /// Payload for partial transcription event

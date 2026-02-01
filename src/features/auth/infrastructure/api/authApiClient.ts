@@ -8,6 +8,8 @@ import type {
   ApiOAuthStartRequest,
   ApiOAuthStartResponse,
   ApiOAuthExchangeRequest,
+  ApiOAuthPollRequest,
+  ApiOAuthPollResponse,
   ApiRefreshRequest,
   ApiLogoutRequest,
   ApiPasswordResetStartRequest,
@@ -149,6 +151,13 @@ export class AuthApiClient {
 
   async exchangeOAuth(req: ApiOAuthExchangeRequest): Promise<ApiLoginResponse> {
     return this.request('/oauth/exchange', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    });
+  }
+
+  async pollOAuth(req: ApiOAuthPollRequest): Promise<ApiOAuthPollResponse> {
+    return this.request('/oauth/poll', {
       method: 'POST',
       body: JSON.stringify(req),
     });

@@ -1,29 +1,16 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { invoke } from '@tauri-apps/api/core';
-import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { isTauriAvailable } from '@/utils/tauri';
-
-interface AppConfigSnapshot {
-  revision: number;
-  config: {
-    recording_hotkey?: string;
-    auto_copy_to_clipboard?: boolean;
-    auto_paste_text?: boolean;
-    microphone_sensitivity?: number;
-    selected_audio_device?: string | null;
-  };
-}
-
-interface ConfigChangedPayload {
-  revision: number;
-  ts: number;
-  source_window?: string | null;
-  scope?: string | null;
-}
+import {
+  CMD_GET_APP_CONFIG_SNAPSHOT,
+  TOPIC_APP_CONFIG,
+  createStoreTauriTopicSync,
+} from '@/windowing/stateSync';
+import type { RevisionSyncHandle } from '@/windowing/stateSync';
+import type { AppConfigSnapshotData, TauriSnapshotEnvelope } from '@/windowing/stateSync';
 
 export const useAppConfigStore = defineStore('appConfig', () => {
-  const revision = ref(0);
+  const revision = ref('0');
   const isLoaded = ref(false);
   const isSyncing = ref(false);
 
@@ -33,84 +20,60 @@ export const useAppConfigStore = defineStore('appConfig', () => {
   const microphoneSensitivity = ref(95);
   const selectedAudioDevice = ref('');
 
-  let unlistenConfigChanged: UnlistenFn | null = null;
-  let isRefreshing = false;
-  let hasPendingRefresh = false;
+  let syncHandle: RevisionSyncHandle | null = null;
 
-  function applySnapshot(snapshot: AppConfigSnapshot): void {
-    revision.value = Number(snapshot.revision) || 0;
-
-    const cfg = snapshot.config ?? {};
-    recordingHotkey.value = cfg.recording_hotkey ?? recordingHotkey.value;
-    autoCopyToClipboard.value = cfg.auto_copy_to_clipboard ?? autoCopyToClipboard.value;
-    autoPasteText.value = cfg.auto_paste_text ?? autoPasteText.value;
-    microphoneSensitivity.value = cfg.microphone_sensitivity ?? microphoneSensitivity.value;
-    selectedAudioDevice.value = cfg.selected_audio_device ?? '';
-
+  function applySnapshot(data: AppConfigSnapshotData, rev: string): void {
+    revision.value = rev;
+    recordingHotkey.value = data.recording_hotkey ?? recordingHotkey.value;
+    autoCopyToClipboard.value = data.auto_copy_to_clipboard ?? autoCopyToClipboard.value;
+    autoPasteText.value = data.auto_paste_text ?? autoPasteText.value;
+    microphoneSensitivity.value = data.microphone_sensitivity ?? microphoneSensitivity.value;
+    selectedAudioDevice.value = data.selected_audio_device ?? '';
     isLoaded.value = true;
   }
 
   async function refresh(): Promise<void> {
-    if (!isTauriAvailable()) return;
-    if (isRefreshing) {
-      hasPendingRefresh = true;
-      return;
-    }
-    isRefreshing = true;
-
-    try {
-      const snapshot = await invoke<AppConfigSnapshot>('get_app_config_snapshot');
-      applySnapshot(snapshot);
-    } finally {
-      isRefreshing = false;
-      if (hasPendingRefresh) {
-        hasPendingRefresh = false;
-        await refresh();
-      }
-    }
+    if (!isTauriAvailable() || !syncHandle) return;
+    await syncHandle.refresh();
   }
 
-  async function startSync(): Promise<void> {
-    if (!isTauriAvailable()) return;
-    if (isSyncing.value) return;
+  async function startSync(): Promise<boolean> {
+    if (!isTauriAvailable()) return false;
+    // Идемпотентность: если уже запущено — считаем, что успешно.
+    if (syncHandle) return true;
 
-    // Важно: сначала подписываемся, потом делаем refresh.
-    // Иначе можно пропустить config:changed между refresh() и listen().
-    const unlisten = await listen<ConfigChangedPayload>(
-      'config:changed',
-      async (event) => {
-        const incomingRev = Number(event.payload?.revision) || 0;
-        if (incomingRev <= revision.value) return;
-
-        // Для main окна важнее всего scope="app", но если scope не передан — лучше обновиться.
-        const scope = event.payload?.scope ?? null;
-        if (scope && scope !== 'app') return;
-
-        await refresh();
-      }
-    );
-
-    unlistenConfigChanged = unlisten;
+    const handle = createStoreTauriTopicSync<AppConfigSnapshotData>({
+      topic: TOPIC_APP_CONFIG,
+      commandName: CMD_GET_APP_CONFIG_SNAPSHOT,
+      label: 'appConfig',
+      applier: {
+        apply(snapshot: TauriSnapshotEnvelope<AppConfigSnapshotData>) {
+          applySnapshot(snapshot.data, snapshot.revision);
+        },
+      },
+    });
 
     try {
-      await refresh();
+      await handle.start();
+      syncHandle = handle;
       isSyncing.value = true;
-    } catch (e) {
-      stopSync();
-      throw e;
+      return true;
+    } catch (err) {
+      handle.stop();
+      console.error('[appConfig] sync start failed:', err);
+      return false;
     }
   }
 
   function stopSync(): void {
-    if (unlistenConfigChanged) {
-      unlistenConfigChanged();
-      unlistenConfigChanged = null;
+    if (syncHandle) {
+      syncHandle.stop();
+      syncHandle = null;
     }
     isSyncing.value = false;
   }
 
   return {
-    // State
     revision,
     isLoaded,
     isSyncing,
@@ -120,14 +83,11 @@ export const useAppConfigStore = defineStore('appConfig', () => {
     microphoneSensitivity,
     selectedAudioDevice,
 
-    // Computed
     hasSelectedAudioDevice: computed(() => Boolean(selectedAudioDevice.value)),
 
-    // Actions
     refresh,
     startSync,
     stopSync,
     applySnapshot,
   };
 });
-

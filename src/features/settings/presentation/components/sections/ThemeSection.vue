@@ -14,6 +14,7 @@ const { currentTheme, setTheme } = useSettingsTheme();
 <template>
   <SettingGroup :title="t('settings.theme.label')">
     <v-switch
+      data-testid="settings-theme-switch"
       :model-value="currentTheme === 'light'"
       color="primary"
       hide-details

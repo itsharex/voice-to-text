@@ -1,37 +1,30 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { createPinia, setActivePinia } from 'pinia';
 import { useSettingsStore } from './settingsStore';
+import { CMD_UPDATE_UI_PREFERENCES } from '@/windowing/stateSync';
 
-const emitMock = vi.fn();
-const getCurrentWindowMock = vi.fn();
+const invokeMock = vi.fn();
 
-vi.mock('@tauri-apps/api/event', () => ({
-  emit: (...args: any[]) => emitMock(...args),
+vi.mock('@tauri-apps/api/core', () => ({
+  invoke: (...args: any[]) => invokeMock(...args),
 }));
 
-vi.mock('@tauri-apps/api/window', () => ({
-  getCurrentWindow: () => getCurrentWindowMock(),
-}));
-
-describe('settingsStore cross-window UI events', () => {
+describe('settingsStore cross-window UI sync', () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     (window as any).__TAURI__ = {};
-    emitMock.mockReset();
-    getCurrentWindowMock.mockReset();
-    getCurrentWindowMock.mockReturnValue({ label: 'settings' });
+    invokeMock.mockReset();
     localStorage.clear();
   });
 
-  it('setTheme emits ui:theme-changed in Tauri environment', () => {
+  it('setTheme вызывает update_ui_preferences через invoke', () => {
     const store = useSettingsStore();
     store.setTheme('light');
 
     expect(localStorage.getItem('uiTheme')).toBe('light');
-    expect(emitMock).toHaveBeenCalledWith('ui:theme-changed', {
+    expect(invokeMock).toHaveBeenCalledWith(CMD_UPDATE_UI_PREFERENCES, {
       theme: 'light',
-      sourceWindow: 'settings',
+      locale: 'ru',
     });
   });
 });
-

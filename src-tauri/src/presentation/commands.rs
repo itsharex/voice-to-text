@@ -299,6 +299,91 @@ where
 
     Ok(())
 }
+
+#[cfg(test)]
+mod snapshot_contract_tests {
+    use super::{AppConfigSnapshotData, SnapshotEnvelope, SttConfigSnapshotData};
+    use crate::domain::SttProviderType;
+
+    fn assert_absent(json: &str, needles: &[&str]) {
+        for needle in needles {
+            assert!(
+                !json.contains(needle),
+                "snapshot JSON must not contain `{}`; got: {}",
+                needle,
+                json
+            );
+        }
+    }
+
+    #[test]
+    fn app_config_snapshot_is_public_and_does_not_leak_secrets() {
+        let env = SnapshotEnvelope {
+            revision: "1".to_string(),
+            data: AppConfigSnapshotData {
+                microphone_sensitivity: 95,
+                recording_hotkey: "CmdOrCtrl+Shift+X".to_string(),
+                auto_copy_to_clipboard: true,
+                auto_paste_text: false,
+                selected_audio_device: None,
+            },
+        };
+
+        let json = serde_json::to_string(&env).expect("must serialize");
+
+        // Жёсткий запрет на потенциально чувствительные поля + запрет на вложенный stt.
+        assert_absent(
+            &json,
+            &[
+                "backend_auth_token",
+                "backend_url",
+                "refresh_token",
+                "access_token",
+                "\"stt\"",
+            ],
+        );
+
+        // И базовая проверка наличия ожидаемых ключей.
+        let v: serde_json::Value = serde_json::from_str(&json).expect("must parse json");
+        let data = v.get("data").and_then(|x| x.as_object()).expect("data object");
+        assert!(data.contains_key("microphone_sensitivity"));
+        assert!(data.contains_key("recording_hotkey"));
+        assert!(data.contains_key("auto_copy_to_clipboard"));
+        assert!(data.contains_key("auto_paste_text"));
+        assert!(data.contains_key("selected_audio_device"));
+    }
+
+    #[test]
+    fn stt_config_snapshot_is_public_and_does_not_leak_backend_token_or_url() {
+        let env = SnapshotEnvelope {
+            revision: "7".to_string(),
+            data: SttConfigSnapshotData {
+                provider: SttProviderType::Backend,
+                language: "ru".to_string(),
+                auto_detect_language: false,
+                enable_punctuation: true,
+                filter_profanity: false,
+                deepgram_api_key: None,
+                assemblyai_api_key: None,
+                model: None,
+                keep_connection_alive: true,
+            },
+        };
+
+        let json = serde_json::to_string(&env).expect("must serialize");
+        assert_absent(
+            &json,
+            &["backend_auth_token", "backend_url", "refresh_token", "access_token"],
+        );
+
+        // Проверяем, что JSON-форма стабильная (ожидаемые ключи присутствуют).
+        let v: serde_json::Value = serde_json::from_str(&json).expect("must parse json");
+        let data = v.get("data").and_then(|x| x.as_object()).expect("data object");
+        assert!(data.contains_key("provider"));
+        assert!(data.contains_key("language"));
+        assert!(data.contains_key("keep_connection_alive"));
+    }
+}
 /// Toggle window visibility
 #[tauri::command]
 pub async fn toggle_window(
@@ -486,15 +571,7 @@ pub async fn minimize_window(window: Window) -> Result<(), String> {
 // STT Configuration Commands
 //
 
-use crate::domain::{AppConfig, SttConfig, SttProviderType};
-
-/// Get current STT configuration
-#[tauri::command]
-pub async fn get_stt_config(state: State<'_, AppState>) -> Result<SttConfig, String> {
-    log::debug!("Command: get_stt_config");
-    let config = state.transcription_service.get_config().await;
-    Ok(config)
-}
+use crate::domain::SttProviderType;
 
 /// Update STT configuration
 #[tauri::command]
@@ -514,6 +591,12 @@ pub async fn update_stt_config(
     // Параметр provider оставлен, чтобы не ломать совместимость API.
     let _ = provider;
     let provider_type = SttProviderType::Backend;
+
+    // Запоминаем текущий language для проверки изменений
+    let old_language = {
+        let config = state.config.read().await;
+        config.stt.language.clone()
+    };
 
     // Загружаем существующую конфигурацию из файла (если есть)
     let mut config = ConfigStore::load_config().await.unwrap_or_default();
@@ -562,21 +645,20 @@ pub async fn update_stt_config(
         .await
         .map_err(|e| format!("Failed to save config: {}", e))?;
 
-    // Синхронизация между окнами: уведомляем что конфиг изменился
-    let revision = {
-        let mut rev = state.config_revision.write().await;
-        *rev = rev.saturating_add(1);
-        *rev
-    };
-    let _ = app_handle.emit(
-        EVENT_CONFIG_CHANGED,
-        ConfigChangedPayload {
-            revision,
-            ts: chrono::Utc::now().timestamp_millis(),
-            source_window: Some(window.label().to_string()),
-            scope: Some("stt".to_string()),
-        },
-    );
+    // Синхронизация между окнами — только при реальных изменениях
+    let language_changed = config.language != old_language;
+    if language_changed {
+        let revision = AppState::bump_revision(&state.stt_config_revision).await;
+        let _ = app_handle.emit(
+            EVENT_STATE_SYNC_INVALIDATION,
+            crate::presentation::StateSyncInvalidationPayload {
+                topic: "stt-config".to_string(),
+                revision,
+                source_id: Some(window.label().to_string()),
+                timestamp_ms: chrono::Utc::now().timestamp_millis(),
+            },
+        );
+    }
 
     log::info!("STT configuration updated and saved successfully");
     Ok(())
@@ -586,27 +668,152 @@ pub async fn update_stt_config(
 // App Configuration Commands
 //
 
-/// Get current application configuration
-#[tauri::command]
-pub async fn get_app_config(state: State<'_, AppState>) -> Result<AppConfig, String> {
-    log::debug!("Command: get_app_config");
-    let config = state.config.read().await.clone();
-    Ok(config)
+/// Обёртка snapshot для state-sync протокола
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SnapshotEnvelope<T: serde::Serialize> {
+    pub revision: String,
+    pub data: T,
 }
 
+/// Минимальный "public" снапшот app-config для фронтенда.
+///
+/// Важно: не включаем STT конфиг и тем более токены — снапшоты идут во все окна через IPC.
 #[derive(Debug, Clone, serde::Serialize)]
-pub struct AppConfigSnapshot {
-    pub revision: u64,
-    pub config: AppConfig,
+pub struct AppConfigSnapshotData {
+    pub microphone_sensitivity: u8,
+    pub recording_hotkey: String,
+    pub auto_copy_to_clipboard: bool,
+    pub auto_paste_text: bool,
+    pub selected_audio_device: Option<String>,
 }
 
 /// Get current application configuration + revision (for cross-window sync)
 #[tauri::command]
-pub async fn get_app_config_snapshot(state: State<'_, AppState>) -> Result<AppConfigSnapshot, String> {
+pub async fn get_app_config_snapshot(
+    state: State<'_, AppState>,
+) -> Result<SnapshotEnvelope<AppConfigSnapshotData>, String> {
     log::debug!("Command: get_app_config_snapshot");
     let config = state.config.read().await.clone();
-    let revision = *state.config_revision.read().await;
-    Ok(AppConfigSnapshot { revision, config })
+    let data = AppConfigSnapshotData {
+        microphone_sensitivity: config.microphone_sensitivity,
+        recording_hotkey: config.recording_hotkey,
+        auto_copy_to_clipboard: config.auto_copy_to_clipboard,
+        auto_paste_text: config.auto_paste_text,
+        selected_audio_device: config.selected_audio_device,
+    };
+    let revision = state.app_config_revision.read().await.to_string();
+    Ok(SnapshotEnvelope { revision, data })
+}
+
+/// Минимальный "public" снапшот stt-config для фронтенда.
+///
+/// Важно: не включаем backend_auth_token / backend_url (секреты), потому что снапшоты идут во все окна через IPC.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct SttConfigSnapshotData {
+    pub provider: crate::domain::SttProviderType,
+    pub language: String,
+    pub auto_detect_language: bool,
+    pub enable_punctuation: bool,
+    pub filter_profanity: bool,
+    pub deepgram_api_key: Option<String>,
+    pub assemblyai_api_key: Option<String>,
+    pub model: Option<String>,
+    pub keep_connection_alive: bool,
+}
+
+/// Get current STT configuration snapshot
+#[tauri::command]
+pub async fn get_stt_config_snapshot(
+    state: State<'_, AppState>,
+) -> Result<SnapshotEnvelope<SttConfigSnapshotData>, String> {
+    log::debug!("Command: get_stt_config_snapshot");
+    let config = state.transcription_service.get_config().await;
+    let data = SttConfigSnapshotData {
+        provider: config.provider,
+        language: config.language,
+        auto_detect_language: config.auto_detect_language,
+        enable_punctuation: config.enable_punctuation,
+        filter_profanity: config.filter_profanity,
+        deepgram_api_key: config.deepgram_api_key,
+        assemblyai_api_key: config.assemblyai_api_key,
+        model: config.model,
+        keep_connection_alive: config.keep_connection_alive,
+    };
+    let revision = state.stt_config_revision.read().await.to_string();
+    Ok(SnapshotEnvelope { revision, data })
+}
+
+/// Данные для snapshot авторизации
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AuthStateData {
+    pub is_authenticated: bool,
+}
+
+/// Get current auth state snapshot
+#[tauri::command]
+pub async fn get_auth_state_snapshot(state: State<'_, AppState>) -> Result<SnapshotEnvelope<AuthStateData>, String> {
+    log::debug!("Command: get_auth_state_snapshot");
+    let is_authenticated = *state.is_authenticated.read().await;
+    let revision = state.auth_state_revision.read().await.to_string();
+    Ok(SnapshotEnvelope {
+        revision,
+        data: AuthStateData { is_authenticated },
+    })
+}
+
+/// Get current UI preferences snapshot
+#[tauri::command]
+pub async fn get_ui_preferences_snapshot(state: State<'_, AppState>) -> Result<SnapshotEnvelope<crate::domain::UiPreferences>, String> {
+    log::debug!("Command: get_ui_preferences_snapshot");
+    let data = state.ui_preferences.read().await.clone();
+    let revision = state.ui_preferences_revision.read().await.to_string();
+    Ok(SnapshotEnvelope { revision, data })
+}
+
+/// Обновить UI-настройки (тема, локаль) и уведомить все окна
+#[tauri::command]
+pub async fn update_ui_preferences(
+    state: State<'_, AppState>,
+    app_handle: AppHandle,
+    window: Window,
+    theme: String,
+    locale: String,
+) -> Result<(), String> {
+    log::info!("Command: update_ui_preferences - theme: {}, locale: {}", theme, locale);
+
+    {
+        let current = state.ui_preferences.read().await;
+        if current.theme == theme && current.locale == locale {
+            return Ok(());
+        }
+    }
+
+    let prefs = crate::domain::UiPreferences {
+        theme: theme.clone(),
+        locale: locale.clone(),
+    };
+
+    // Сохраняем в state
+    *state.ui_preferences.write().await = prefs.clone();
+
+    // Сохраняем на диск
+    ConfigStore::save_ui_preferences(&prefs)
+        .await
+        .map_err(|e| format!("Failed to save UI preferences: {}", e))?;
+
+    // Bump revision и отправляем invalidation
+    let revision = AppState::bump_revision(&state.ui_preferences_revision).await;
+    let _ = app_handle.emit(
+        EVENT_STATE_SYNC_INVALIDATION,
+        crate::presentation::StateSyncInvalidationPayload {
+            topic: "ui-preferences".to_string(),
+            revision,
+            source_id: Some(window.label().to_string()),
+            timestamp_ms: chrono::Utc::now().timestamp_millis(),
+        },
+    );
+
+    Ok(())
 }
 
 /// Update application configuration (e.g., microphone sensitivity, recording hotkey, auto-copy/paste)
@@ -626,11 +833,15 @@ pub async fn update_app_config(
 
     let mut config = state.config.write().await;
     let mut hotkey_changed = false;
+    let mut any_changed = false;
 
     if let Some(sensitivity) = microphone_sensitivity {
         let clamped = sensitivity.min(200); // Ensure 0-200 range
-        log::info!("Updating microphone sensitivity: {} -> {}", config.microphone_sensitivity, clamped);
-        config.microphone_sensitivity = clamped;
+        if config.microphone_sensitivity != clamped {
+            log::info!("Updating microphone sensitivity: {} -> {}", config.microphone_sensitivity, clamped);
+            config.microphone_sensitivity = clamped;
+            any_changed = true;
+        }
 
         // Обновляем также в TranscriptionService для применения в реальном времени
         state.transcription_service.set_microphone_sensitivity(clamped).await;
@@ -647,17 +858,24 @@ pub async fn update_app_config(
             log::info!("Updating recording hotkey: {} -> {}", config.recording_hotkey, new_hotkey);
             config.recording_hotkey = new_hotkey;
             hotkey_changed = true;
+            any_changed = true;
         }
     }
 
     if let Some(auto_copy) = auto_copy_to_clipboard {
-        log::info!("Updating auto_copy_to_clipboard: {} -> {}", config.auto_copy_to_clipboard, auto_copy);
-        config.auto_copy_to_clipboard = auto_copy;
+        if config.auto_copy_to_clipboard != auto_copy {
+            log::info!("Updating auto_copy_to_clipboard: {} -> {}", config.auto_copy_to_clipboard, auto_copy);
+            config.auto_copy_to_clipboard = auto_copy;
+            any_changed = true;
+        }
     }
 
     if let Some(auto_paste) = auto_paste_text {
-        log::info!("Updating auto_paste_text: {} -> {}", config.auto_paste_text, auto_paste);
-        config.auto_paste_text = auto_paste;
+        if config.auto_paste_text != auto_paste {
+            log::info!("Updating auto_paste_text: {} -> {}", config.auto_paste_text, auto_paste);
+            config.auto_paste_text = auto_paste;
+            any_changed = true;
+        }
     }
 
     let mut device_changed = false;
@@ -669,7 +887,15 @@ pub async fn update_app_config(
             log::info!("Updating selected_audio_device: {:?} -> {:?}", config.selected_audio_device, device_opt);
             config.selected_audio_device = device_opt;
             device_changed = true;
+            any_changed = true;
         }
+    }
+
+    // Если ничего не менялось — выходим без лишнего I/O и invalidation
+    if !any_changed {
+        drop(config);
+        log::info!("App config unchanged, skipping save");
+        return Ok(());
     }
 
     log::info!("Saving app config to disk: sensitivity={}, hotkey={}, provider={:?}, language={}, device={:?}",
@@ -713,19 +939,15 @@ pub async fn update_app_config(
         log::info!("Audio device changed and applied successfully");
     }
 
-    // Синхронизация между окнами: уведомляем что конфиг изменился
-    let revision = {
-        let mut rev = state.config_revision.write().await;
-        *rev = rev.saturating_add(1);
-        *rev
-    };
+    // Синхронизация между окнами через state-sync
+    let revision = AppState::bump_revision(&state.app_config_revision).await;
     let _ = app_handle.emit(
-        EVENT_CONFIG_CHANGED,
-        ConfigChangedPayload {
+        EVENT_STATE_SYNC_INVALIDATION,
+        crate::presentation::StateSyncInvalidationPayload {
+            topic: "app-config".to_string(),
             revision,
-            ts: chrono::Utc::now().timestamp_millis(),
-            source_window: Some(window.label().to_string()),
-            scope: Some("app".to_string()),
+            source_id: Some(window.label().to_string()),
+            timestamp_ms: chrono::Utc::now().timestamp_millis(),
         },
     );
 
@@ -1341,6 +1563,23 @@ pub async fn set_authenticated(
     token: Option<String>,
 ) -> Result<(), String> {
     log::info!("Command: set_authenticated - authenticated: {}", authenticated);
+
+    let current_auth = *state.is_authenticated.read().await;
+    if current_auth == authenticated {
+        // Токен мог обновиться — проверяем и обновляем тихо (без bump revision)
+        if authenticated {
+            if let Some(ref t) = token {
+                let mut config = ConfigStore::load_config().await.unwrap_or_default();
+                if config.backend_auth_token.as_deref() != Some(t.as_str()) {
+                    config.backend_auth_token = Some(t.clone());
+                    let _ = ConfigStore::save_config(&config).await;
+                    let _ = state.transcription_service.update_config(config).await;
+                }
+            }
+        }
+        return Ok(());
+    }
+
     *state.is_authenticated.write().await = authenticated;
 
     // Сохраняем или очищаем backend auth token в конфиге
@@ -1365,21 +1604,17 @@ pub async fn set_authenticated(
         .map_err(|e| format!("Failed to save config: {}", e))?;
     let _ = state.transcription_service.update_config(config).await;
 
-     // Синхронизация между окнами: уведомляем что конфиг/авторизация изменились
-     let revision = {
-         let mut rev = state.config_revision.write().await;
-         *rev = rev.saturating_add(1);
-         *rev
-     };
-     let _ = app_handle.emit(
-         EVENT_CONFIG_CHANGED,
-         ConfigChangedPayload {
-             revision,
-             ts: chrono::Utc::now().timestamp_millis(),
-             source_window: Some(window.label().to_string()),
-             scope: Some("auth".to_string()),
-         },
-     );
+    // Синхронизация между окнами через state-sync
+    let revision = AppState::bump_revision(&state.auth_state_revision).await;
+    let _ = app_handle.emit(
+        EVENT_STATE_SYNC_INVALIDATION,
+        crate::presentation::StateSyncInvalidationPayload {
+            topic: "auth-state".to_string(),
+            revision,
+            source_id: Some(window.label().to_string()),
+            timestamp_ms: chrono::Utc::now().timestamp_millis(),
+        },
+    );
 
     Ok(())
 }

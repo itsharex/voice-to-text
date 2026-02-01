@@ -5,9 +5,15 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { SttProviderType } from '@/types';
-import { emit } from '@tauri-apps/api/event';
-import { getCurrentWindow } from '@tauri-apps/api/window';
+import { invoke } from '@tauri-apps/api/core';
 import { isTauriAvailable } from '@/utils/tauri';
+import {
+  bumpUiPrefsRevision,
+  CMD_UPDATE_UI_PREFERENCES,
+  readUiPreferencesFromStorage,
+  writeUiPreferencesCacheToStorage,
+} from '@/windowing/stateSync';
+import { normalizeUiLocale, normalizeUiTheme } from '@/i18n.locales';
 import type { AppTheme, SaveStatus, SettingsState } from '../domain/types';
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -69,7 +75,7 @@ export const useSettingsStore = defineStore('settings', () => {
   }));
 
   // Действия
-  function setProvider(value: SttProviderType) {
+  function setProvider(_value: SttProviderType) {
     // Выбор провайдера выключен: всегда используем Backend.
     provider.value = SttProviderType.Backend;
   }
@@ -91,20 +97,32 @@ export const useSettingsStore = defineStore('settings', () => {
   }
 
   function setTheme(value: AppTheme) {
-    theme.value = value;
-    localStorage.setItem('uiTheme', value);
+    const next = normalizeUiTheme(value);
+    const changed = theme.value !== next;
+    theme.value = next;
+    if (changed) {
+      writeUiPreferencesCacheToStorage({
+        ...readUiPreferencesFromStorage(),
+        theme: next,
+      });
+      if (!isTauriAvailable()) bumpUiPrefsRevision();
+    }
 
     // Обновляем класс на документе для CSS переменных
-    if (value === 'light') {
+    if (next === 'light') {
       document.documentElement.classList.add('theme-light');
     } else {
       document.documentElement.classList.remove('theme-light');
     }
 
+    // Синхронизация через state-sync: сохраняем в Rust и уведомляем другие окна
     if (isTauriAvailable()) {
+      if (!changed) return;
       try {
-        const w = getCurrentWindow();
-        void emit('ui:theme-changed', { theme: value, sourceWindow: w.label });
+        void invoke(CMD_UPDATE_UI_PREFERENCES, {
+          theme: next,
+          locale: normalizeUiLocale(localStorage.getItem('uiLocale')),
+        });
       } catch {}
     }
   }

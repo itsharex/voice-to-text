@@ -46,6 +46,12 @@ export interface IAuthRepository {
   exchangeOAuthCode(exchangeCode: string, deviceId: string): Promise<Session>;
 
   /**
+   * Polling для получения OAuth токенов по device_id
+   * Возвращает сессию если OAuth завершён, иначе null
+   */
+  pollOAuth(deviceId: string): Promise<{ status: string; session?: Session }>;
+
+  /**
    * Обновление токенов по refresh token
    */
   refreshTokens(refreshToken: string, deviceId: string): Promise<Session>;
