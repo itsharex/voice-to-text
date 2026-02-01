@@ -23,8 +23,8 @@ services:
         source: /sitemap.xml
         destination: /sitemap.xml
       - type: rewrite
-        source: /downloads.json
-        destination: /downloads.json
+        source: /releases.json
+        destination: /releases.json
       - type: rewrite
         source: /*
         destination: /index.html

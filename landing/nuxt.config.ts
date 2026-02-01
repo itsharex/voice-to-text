@@ -40,7 +40,7 @@ export default defineNuxtConfig({
         "/sitemap.xml",
         "/robots.txt",
         "/_robots.txt",
-        "/downloads.json"
+        "/releases.json"
       ]
     }
   },
@@ -77,7 +77,7 @@ export default defineNuxtConfig({
       githubRepo,
       githubReleasesUrl,
       tauriUpdaterUrl,
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || "http://localhost:8080"
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || "https://api.voicetext.site"
     }
   }
 });

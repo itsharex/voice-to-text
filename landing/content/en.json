@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "VoicetextAI",
-    "subtitle": "Privacy-focused voice-to-text app with offline support."
+    "subtitle": "Fast, accurate voice-to-text powered by Deepgram Nova-3."
   },
   "features": [
     {
@@ -10,14 +10,9 @@
       "description": "Live partial and final results while you speak."
     },
     {
-      "id": "openSource",
-      "title": "Open source",
-      "description": "Full source code on GitHub. Transparent and community-driven."
-    },
-    {
-      "id": "providers",
-      "title": "Multiple providers",
-      "description": "Deepgram, AssemblyAI, and Whisper (offline)."
+      "id": "multilingual",
+      "title": "50+ languages",
+      "description": "Transcribe speech in over 50 languages with high accuracy."
     },
     {
       "id": "crossPlatform",
@@ -27,32 +22,17 @@
     {
       "id": "hotkeys",
       "title": "Global hotkeys",
-      "description": "Start or stop recording from anywhere."
+      "description": "Start or stop recording from anywhere with a keystroke."
     },
     {
-      "id": "autoCopy",
-      "title": "Auto-copy",
-      "description": "Final text is copied to your clipboard."
+      "id": "autoPaste",
+      "title": "Auto-paste",
+      "description": "Transcription is pasted directly into any active text field."
     },
     {
-      "id": "multilingual",
-      "title": "Multilingual",
-      "description": "Interface in 6 languages with multi-language speech recognition."
-    },
-    {
-      "id": "offline",
-      "title": "Offline mode",
-      "description": "Full transcription without internet using local Whisper models."
-    },
-    {
-      "id": "autoUpdate",
-      "title": "Auto-updates",
-      "description": "Seamless updates delivered automatically via GitHub Releases."
-    },
-    {
-      "id": "vad",
-      "title": "Voice detection",
-      "description": "Smart WebRTC VAD filters silence and background noise."
+      "id": "openSource",
+      "title": "Open source",
+      "description": "Full source code on GitHub. Transparent and community-driven."
     },
     {
       "id": "tray",
@@ -60,9 +40,9 @@
       "description": "Runs quietly in the background, always one click away."
     },
     {
-      "id": "autoPaste",
-      "title": "Auto-paste",
-      "description": "Transcription is pasted directly into any active text field."
+      "id": "autoCopy",
+      "title": "Auto-copy",
+      "description": "Final text is copied to your clipboard automatically."
     }
   ],
   "providers": [
@@ -108,14 +88,9 @@
       "answer": "macOS, Windows, and Linux."
     },
     {
-      "id": "offline",
-      "question": "Can I use it offline?",
-      "answer": "Yes, with Whisper Local."
-    },
-    {
-      "id": "keys",
-      "question": "How do I use my own API keys?",
-      "answer": "Add keys in Settings and keep them local."
+      "id": "howItWorks",
+      "question": "How does transcription work?",
+      "answer": "Your voice is streamed to Deepgram Nova-3 and transcribed in real time with high accuracy."
     },
     {
       "id": "hotkey",
@@ -138,12 +113,12 @@
       "name": "Free",
       "price": "$0",
       "period": "forever",
-      "description": "Get started with offline transcription at no cost.",
+      "description": "Try VoicetextAI with a generous free tier.",
       "features": [
-        "Whisper Local (offline)",
-        "Unlimited transcription",
+        "Deepgram Nova-3",
+        "Real-time transcription",
         "Global hotkeys",
-        "Auto-copy to clipboard",
+        "Auto-copy & auto-paste",
         "Community support"
       ]
     },
@@ -152,31 +127,14 @@
       "name": "Pro",
       "price": "$9",
       "period": "per month",
-      "description": "Unlock cloud providers for maximum accuracy and speed.",
+      "description": "More minutes and priority support for power users.",
       "features": [
         "Everything in Free",
-        "Deepgram Nova-3",
-        "AssemblyAI integration",
-        "Real-time streaming",
+        "Extended usage limits",
         "Priority support",
         "Early access to features"
       ],
       "highlighted": true
-    },
-    {
-      "id": "team",
-      "name": "Team",
-      "price": "$29",
-      "period": "per month",
-      "description": "For teams that need shared access and admin tools.",
-      "features": [
-        "Everything in Pro",
-        "Up to 10 seats",
-        "Team admin dashboard",
-        "Shared API keys",
-        "Usage analytics",
-        "Dedicated support"
-      ]
     }
   ]
 }

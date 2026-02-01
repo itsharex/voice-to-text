@@ -1,7 +1,7 @@
 {
   "hero": {
     "title": "VoicetextAI",
-    "subtitle": "Aplicación de voz a texto centrada en la privacidad con soporte sin conexión."
+    "subtitle": "Voz a texto rápida y precisa con Deepgram Nova-3."
   },
   "features": [
     {
@@ -10,14 +10,9 @@
       "description": "Resultados parciales y finales mientras hablas."
     },
     {
-      "id": "openSource",
-      "title": "Código abierto",
-      "description": "Código fuente completo en GitHub. Transparente e impulsado por la comunidad."
-    },
-    {
-      "id": "providers",
-      "title": "Varios proveedores",
-      "description": "Deepgram, AssemblyAI y Whisper (offline)."
+      "id": "multilingual",
+      "title": "50+ idiomas",
+      "description": "Transcribe voz en más de 50 idiomas con alta precisión."
     },
     {
       "id": "crossPlatform",
@@ -27,32 +22,17 @@
     {
       "id": "hotkeys",
       "title": "Atajos globales",
-      "description": "Inicia o detén la grabación desde cualquier aplicación."
+      "description": "Inicia o detén la grabación desde cualquier aplicación con una tecla."
     },
     {
-      "id": "autoCopy",
-      "title": "Copia automática",
-      "description": "El texto final se copia al portapapeles."
+      "id": "autoPaste",
+      "title": "Pegado automático",
+      "description": "La transcripción se pega directamente en cualquier campo de texto activo."
     },
     {
-      "id": "multilingual",
-      "title": "Multilingüe",
-      "description": "Interfaz en 6 idiomas con reconocimiento de voz en múltiples idiomas."
-    },
-    {
-      "id": "offline",
-      "title": "Modo sin conexión",
-      "description": "Transcripción completa sin internet con modelos locales de Whisper."
-    },
-    {
-      "id": "autoUpdate",
-      "title": "Actualizaciones automáticas",
-      "description": "Actualizaciones entregadas automáticamente a través de GitHub Releases."
-    },
-    {
-      "id": "vad",
-      "title": "Detección de voz",
-      "description": "VAD inteligente de WebRTC que filtra el silencio y el ruido de fondo."
+      "id": "openSource",
+      "title": "Código abierto",
+      "description": "Código fuente completo en GitHub. Transparente e impulsado por la comunidad."
     },
     {
       "id": "tray",
@@ -60,9 +40,9 @@
       "description": "Se ejecuta silenciosamente en segundo plano, siempre a un clic."
     },
     {
-      "id": "autoPaste",
-      "title": "Pegado automático",
-      "description": "La transcripción se pega directamente en cualquier campo de texto activo."
+      "id": "autoCopy",
+      "title": "Copia automática",
+      "description": "El texto final se copia automáticamente al portapapeles."
     }
   ],
   "providers": [
@@ -108,14 +88,9 @@
       "answer": "macOS, Windows y Linux."
     },
     {
-      "id": "offline",
-      "question": "¿Puedo usarlo sin conexión?",
-      "answer": "Sí, con Whisper Local."
-    },
-    {
-      "id": "keys",
-      "question": "¿Cómo uso mis propias claves API?",
-      "answer": "Añade las claves en Configuración y se guardan localmente."
+      "id": "howItWorks",
+      "question": "¿Cómo funciona la transcripción?",
+      "answer": "Tu voz se transmite a Deepgram Nova-3 y se transcribe en tiempo real con alta precisión."
     },
     {
       "id": "hotkey",
@@ -138,12 +113,12 @@
       "name": "Gratis",
       "price": "$0",
       "period": "para siempre",
-      "description": "Comienza con transcripción offline sin costo.",
+      "description": "Prueba VoicetextAI con un generoso plan gratuito.",
       "features": [
-        "Whisper Local (offline)",
-        "Transcripción ilimitada",
+        "Deepgram Nova-3",
+        "Transcripción en tiempo real",
         "Atajos globales",
-        "Copia automática al portapapeles",
+        "Copia automática y pegado automático",
         "Soporte comunitario"
       ]
     },
@@ -152,31 +127,14 @@
       "name": "Pro",
       "price": "$9",
       "period": "por mes",
-      "description": "Desbloquea proveedores en la nube para máxima precisión y velocidad.",
+      "description": "Más minutos y soporte prioritario para usuarios avanzados.",
       "features": [
         "Todo lo de Gratis",
-        "Deepgram Nova-3",
-        "Integración AssemblyAI",
-        "Streaming en tiempo real",
+        "Límites de uso extendidos",
         "Soporte prioritario",
         "Acceso anticipado a funciones"
       ],
       "highlighted": true
-    },
-    {
-      "id": "team",
-      "name": "Equipo",
-      "price": "$29",
-      "period": "por mes",
-      "description": "Para equipos con acceso compartido y herramientas de administración.",
-      "features": [
-        "Todo lo de Pro",
-        "Hasta 10 puestos",
-        "Panel de admin del equipo",
-        "Claves API compartidas",
-        "Analíticas de uso",
-        "Soporte dedicado"
-      ]
     }
   ]
 }

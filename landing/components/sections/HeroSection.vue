@@ -53,13 +53,13 @@ const waveformHeights = Array.from({ length: 32 }, (_, i) => {
           <!-- Trust indicators -->
           <div class="hero-section__trust">
             <div class="hero-section__trust-item">
-              <v-icon size="16" class="hero-section__trust-icon">mdi-shield-check</v-icon>
-              <span>{{ t("hero.trust.privacyFirst") }}</span>
+              <v-icon size="16" class="hero-section__trust-icon">mdi-lightning-bolt</v-icon>
+              <span>{{ t("hero.trust.realtime") }}</span>
             </div>
             <div class="hero-section__trust-divider" />
             <div class="hero-section__trust-item">
-              <v-icon size="16" class="hero-section__trust-icon">mdi-wifi-off</v-icon>
-              <span>{{ t("hero.trust.offlineSupport") }}</span>
+              <v-icon size="16" class="hero-section__trust-icon">mdi-translate</v-icon>
+              <span>{{ t("hero.trust.multilingual") }}</span>
             </div>
             <div class="hero-section__trust-divider" />
             <div class="hero-section__trust-item">

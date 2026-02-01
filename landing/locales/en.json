@@ -14,8 +14,8 @@
     "ctaSecondary": "View Features",
     "preview": "Product preview",
     "trust": {
-      "privacyFirst": "Privacy-first",
-      "offlineSupport": "Offline support",
+      "realtime": "Real-time",
+      "multilingual": "50+ languages",
       "crossPlatform": "Cross-platform"
     },
     "transcription": {
@@ -40,7 +40,7 @@
   },
   "features": {
     "sectionTitle": "Everything you need for voice input",
-    "sectionSubtitle": "Powerful features designed to make voice-to-text seamless, private, and lightning fast."
+    "sectionSubtitle": "Powerful features for seamless, lightning-fast voice-to-text."
   },
   "providers": {
     "sectionTitle": "Powered by Deepgram Nova-3",
@@ -72,7 +72,7 @@
   },
   "footer": {
     "copyright": "© {year} VoicetextAI",
-    "tagline": "Privacy-first voice-to-text",
+    "tagline": "Fast, accurate voice-to-text",
     "links": {
       "terms": "Terms",
       "privacyPolicy": "Privacy",

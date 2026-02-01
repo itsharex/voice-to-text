@@ -8,8 +8,7 @@ const openPanels = ref<number[]>([]);
 
 const faqIcons = [
   'mdi-monitor-cellphone',
-  'mdi-wifi-off',
-  'mdi-key-variant',
+  'mdi-microphone-outline',
   'mdi-keyboard-settings-outline',
   'mdi-shield-check-outline',
 ];

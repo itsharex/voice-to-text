@@ -28,7 +28,7 @@ export const useReleaseDownloads = () => {
 
   // Для static деплоя нам нужен “файл”, а не runtime API (его может не быть).
   // Поэтому генерим слепок на билде через prerender и читаем как обычный JSON.
-  const { data, pending, error } = useFetch<DownloadsApiResponse>("/downloads.json", {
+  const { data, pending, error } = useFetch<DownloadsApiResponse>("/releases.json", {
     server: false,
     lazy: true
   });

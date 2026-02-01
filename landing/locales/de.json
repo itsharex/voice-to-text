@@ -14,8 +14,8 @@
     "ctaSecondary": "Funktionen ansehen",
     "preview": "Produktvorschau",
     "trust": {
-      "privacyFirst": "Datenschutz zuerst",
-      "offlineSupport": "Offline-Unterstützung",
+      "realtime": "Echtzeit",
+      "multilingual": "50+ Sprachen",
       "crossPlatform": "Plattformübergreifend"
     },
     "transcription": {
@@ -40,7 +40,7 @@
   },
   "features": {
     "sectionTitle": "Alles, was du für Spracheingabe brauchst",
-    "sectionSubtitle": "Leistungsstarke Funktionen für nahtlose, private und blitzschnelle Transkription."
+    "sectionSubtitle": "Leistungsstarke Funktionen für nahtlose, blitzschnelle Transkription."
   },
   "providers": {
     "sectionTitle": "Angetrieben von Deepgram Nova-3",
@@ -72,7 +72,7 @@
   },
   "footer": {
     "copyright": "© {year} VoicetextAI",
-    "tagline": "Sprache-zu-Text mit Fokus auf Datenschutz",
+    "tagline": "Schnelle, präzise Sprache-zu-Text",
     "links": {
       "terms": "AGB",
       "privacyPolicy": "Datenschutz",

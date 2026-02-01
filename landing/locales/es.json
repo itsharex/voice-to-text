@@ -14,8 +14,8 @@
     "ctaSecondary": "Ver características",
     "preview": "Vista previa del producto",
     "trust": {
-      "privacyFirst": "Privacidad primero",
-      "offlineSupport": "Soporte sin conexión",
+      "realtime": "Tiempo real",
+      "multilingual": "50+ idiomas",
       "crossPlatform": "Multiplataforma"
     },
     "transcription": {
@@ -40,7 +40,7 @@
   },
   "features": {
     "sectionTitle": "Todo lo que necesitas para la entrada de voz",
-    "sectionSubtitle": "Funciones potentes diseñadas para una transcripción fluida, privada y ultrarrápida."
+    "sectionSubtitle": "Funciones potentes para una transcripción fluida y ultrarrápida."
   },
   "providers": {
     "sectionTitle": "Impulsado por Deepgram Nova-3",
@@ -72,7 +72,7 @@
   },
   "footer": {
     "copyright": "© {year} VoicetextAI",
-    "tagline": "Voz a texto centrado en la privacidad",
+    "tagline": "Voz a texto rápida y precisa",
     "links": {
       "terms": "Términos",
       "privacyPolicy": "Privacidad",

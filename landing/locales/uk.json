@@ -14,8 +14,8 @@
     "ctaSecondary": "Переглянути можливості",
     "preview": "Огляд продукту",
     "trust": {
-      "privacyFirst": "Приватність насамперед",
-      "offlineSupport": "Робота офлайн",
+      "realtime": "В реальному часі",
+      "multilingual": "50+ мов",
       "crossPlatform": "Кросплатформність"
     },
     "transcription": {
@@ -40,7 +40,7 @@
   },
   "features": {
     "sectionTitle": "Все, що потрібно для голосового введення",
-    "sectionSubtitle": "Потужні функції для швидкої, приватної та зручної транскрипції голосу в текст."
+    "sectionSubtitle": "Потужні функції для швидкої та зручної транскрипції голосу в текст."
   },
   "providers": {
     "sectionTitle": "На базі Deepgram Nova-3",
@@ -72,7 +72,7 @@
   },
   "footer": {
     "copyright": "© {year} VoicetextAI",
-    "tagline": "Голос у текст із фокусом на приватність",
+    "tagline": "Швидкий і точний голос у текст",
     "links": {
       "terms": "Умови",
       "privacyPolicy": "Конфіденційність",
