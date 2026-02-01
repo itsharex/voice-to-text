@@ -20,29 +20,9 @@
       "description": "Unterstützt macOS, Windows und Linux."
     },
     {
-      "id": "hotkeys",
-      "title": "Globale Hotkeys",
-      "description": "Aufnahme überall mit einer Taste starten oder stoppen."
-    },
-    {
-      "id": "autoPaste",
-      "title": "Auto-Einfügen",
-      "description": "Die Transkription wird direkt in das aktive Textfeld eingefügt."
-    },
-    {
       "id": "openSource",
       "title": "Open Source",
       "description": "Vollständiger Quellcode auf GitHub. Transparent und community-getrieben."
-    },
-    {
-      "id": "tray",
-      "title": "System-Tray",
-      "description": "Läuft leise im Hintergrund, immer nur einen Klick entfernt."
-    },
-    {
-      "id": "autoCopy",
-      "title": "Automatisches Kopieren",
-      "description": "Der finale Text wird automatisch in die Zwischenablage kopiert."
     }
   ],
   "providers": [
@@ -135,6 +115,20 @@
         "Früher Zugang zu Features"
       ],
       "highlighted": true
+    },
+    {
+      "id": "team",
+      "name": "Team",
+      "price": "$29",
+      "period": "pro Monat",
+      "description": "Für Teams mit gemeinsamer Abrechnung und Admin-Kontrolle.",
+      "features": [
+        "Alles aus Pro",
+        "Bis zu 10 Plätze",
+        "Gemeinsame Abrechnung & Rechnungen",
+        "Team-Nutzungs-Dashboard",
+        "Dedizierter Support"
+      ]
     }
   ]
 }

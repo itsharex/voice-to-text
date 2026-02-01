@@ -2,9 +2,5 @@ export const features = [
   { id: "realtime", icon: "mdi-microphone-outline", key: "realtime", accent: "#6366f1" },
   { id: "multilingual", icon: "mdi-translate", key: "multilingual", accent: "#14b8a6" },
   { id: "crossPlatform", icon: "mdi-devices", key: "crossPlatform", accent: "#3b82f6" },
-  { id: "hotkeys", icon: "mdi-keyboard-outline", key: "hotkeys", accent: "#ec4899" },
-  { id: "autoPaste", icon: "mdi-clipboard-text-outline", key: "autoPaste", accent: "#e11d48" },
-  { id: "openSource", icon: "mdi-open-source-initiative", key: "openSource", accent: "#8b5cf6" },
-  { id: "tray", icon: "mdi-dock-bottom", key: "tray", accent: "#84cc16" },
-  { id: "autoCopy", icon: "mdi-content-copy", key: "autoCopy", accent: "#f59e0b" }
+  { id: "openSource", icon: "mdi-open-source-initiative", key: "openSource", accent: "#8b5cf6" }
 ] as const;

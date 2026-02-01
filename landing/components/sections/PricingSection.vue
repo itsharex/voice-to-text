@@ -38,7 +38,7 @@ function onGetStarted(plan: { id: string }) {
           :key="plan.id"
           cols="12"
           sm="6"
-          lg="5"
+          lg="4"
         >
           <div
             class="pricing-card"

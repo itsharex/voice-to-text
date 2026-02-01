@@ -24,13 +24,12 @@ usePageSeo("meta.termsTitle", "meta.termsDescription");
       <section class="legal-section">
         <h2 class="text-h6">2. Description of Service</h2>
         <p>
-          VoicetextAI is a desktop application that provides real-time voice-to-text transcription.
-          The Service supports multiple speech-to-text providers, including local offline processing
-          and cloud-based services. Key features include:
+          VoicetextAI is a desktop application that provides real-time voice-to-text transcription
+          powered by Deepgram Nova-3. Key features include:
         </p>
         <ul>
           <li>Real-time audio transcription with interim results</li>
-          <li>Support for multiple STT providers (Deepgram, AssemblyAI, Whisper Local)</li>
+          <li>Support for 50+ languages</li>
           <li>Global hotkey support for system-wide operation</li>
           <li>Automatic clipboard integration</li>
           <li>Cross-platform support (macOS, Windows, Linux)</li>
@@ -79,13 +78,9 @@ usePageSeo("meta.termsTitle", "meta.termsDescription");
       <section class="legal-section">
         <h2 class="text-h6">5. Third-Party Services</h2>
         <p>
-          The Service integrates with third-party speech-to-text providers. Your use of these
-          providers is subject to their respective terms of service and privacy policies. We are not
+          The Service uses Deepgram as a third-party speech-to-text provider. Your use of this
+          provider is subject to their terms of service and privacy policy. We are not
           responsible for the availability, accuracy, or content of third-party services.
-        </p>
-        <p>
-          When you provide your own API keys for third-party services, you are responsible for
-          compliance with the terms and usage limits of those providers.
         </p>
       </section>
 

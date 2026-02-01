@@ -20,29 +20,9 @@
       "description": "Compatible con macOS, Windows y Linux."
     },
     {
-      "id": "hotkeys",
-      "title": "Atajos globales",
-      "description": "Inicia o detén la grabación desde cualquier aplicación con una tecla."
-    },
-    {
-      "id": "autoPaste",
-      "title": "Pegado automático",
-      "description": "La transcripción se pega directamente en cualquier campo de texto activo."
-    },
-    {
       "id": "openSource",
       "title": "Código abierto",
       "description": "Código fuente completo en GitHub. Transparente e impulsado por la comunidad."
-    },
-    {
-      "id": "tray",
-      "title": "Bandeja del sistema",
-      "description": "Se ejecuta silenciosamente en segundo plano, siempre a un clic."
-    },
-    {
-      "id": "autoCopy",
-      "title": "Copia automática",
-      "description": "El texto final se copia automáticamente al portapapeles."
     }
   ],
   "providers": [
@@ -135,6 +115,20 @@
         "Acceso anticipado a funciones"
       ],
       "highlighted": true
+    },
+    {
+      "id": "team",
+      "name": "Team",
+      "price": "$29",
+      "period": "por mes",
+      "description": "Para equipos con facturación compartida y control administrativo.",
+      "features": [
+        "Todo lo de Pro",
+        "Hasta 10 puestos",
+        "Facturación compartida",
+        "Panel de uso del equipo",
+        "Soporte dedicado"
+      ]
     }
   ]
 }

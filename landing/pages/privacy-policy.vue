@@ -33,29 +33,12 @@ usePageSeo("meta.privacyPolicyTitle", "meta.privacyPolicyDescription");
 
         <h3 class="text-subtitle-1 font-weight-bold">2.2 Audio and Transcription Data</h3>
         <p>
-          Our Service processes voice audio to produce real-time text transcriptions. Depending on
-          the speech-to-text provider you choose:
-        </p>
-        <ul>
-          <li>
-            <strong>Local processing (Whisper):</strong> Audio is processed entirely on your device.
-            No audio or transcription data leaves your computer.
-          </li>
-          <li>
-            <strong>Cloud providers (Deepgram, AssemblyAI):</strong> Audio is streamed to the
-            selected third-party provider for transcription. We do not store or retain this audio or
-            the resulting transcriptions on our servers.
-          </li>
-        </ul>
-
-        <h3 class="text-subtitle-1 font-weight-bold">2.3 API Keys</h3>
-        <p>
-          If you use your own API keys for third-party speech-to-text providers, these keys are
-          stored locally on your device using the operating system's secure storage (e.g., macOS
-          Keychain). We never transmit or store your API keys on our servers.
+          Our Service processes voice audio to produce real-time text transcriptions. Audio is
+          streamed to Deepgram for transcription. We do not store or retain this audio or the
+          resulting transcriptions on our servers.
         </p>
 
-        <h3 class="text-subtitle-1 font-weight-bold">2.4 Usage Data</h3>
+        <h3 class="text-subtitle-1 font-weight-bold">2.3 Usage Data</h3>
         <p>
           We may collect anonymous usage data such as application version, operating system, feature
           usage statistics, and error reports to improve the Service.
@@ -96,18 +79,12 @@ usePageSeo("meta.privacyPolicyTitle", "meta.privacyPolicyDescription");
       <section class="legal-section">
         <h2 class="text-h6">5. Third-Party Services</h2>
         <p>
-          When you choose to use cloud-based speech-to-text providers, your audio data is processed
-          by those third-party services according to their respective privacy policies:
+          Your audio data is processed by Deepgram according to their privacy policy:
         </p>
         <ul>
           <li>
             <a href="https://deepgram.com/privacy" target="_blank" rel="noopener noreferrer"
               >Deepgram Privacy Policy</a
-            >
-          </li>
-          <li>
-            <a href="https://www.assemblyai.com/privacy" target="_blank" rel="noopener noreferrer"
-              >AssemblyAI Privacy Policy</a
             >
           </li>
         </ul>

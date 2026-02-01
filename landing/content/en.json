@@ -20,29 +20,9 @@
       "description": "macOS, Windows, and Linux supported."
     },
     {
-      "id": "hotkeys",
-      "title": "Global hotkeys",
-      "description": "Start or stop recording from anywhere with a keystroke."
-    },
-    {
-      "id": "autoPaste",
-      "title": "Auto-paste",
-      "description": "Transcription is pasted directly into any active text field."
-    },
-    {
       "id": "openSource",
       "title": "Open source",
       "description": "Full source code on GitHub. Transparent and community-driven."
-    },
-    {
-      "id": "tray",
-      "title": "System tray",
-      "description": "Runs quietly in the background, always one click away."
-    },
-    {
-      "id": "autoCopy",
-      "title": "Auto-copy",
-      "description": "Final text is copied to your clipboard automatically."
     }
   ],
   "providers": [
@@ -135,6 +115,20 @@
         "Early access to features"
       ],
       "highlighted": true
+    },
+    {
+      "id": "team",
+      "name": "Team",
+      "price": "$29",
+      "period": "per month",
+      "description": "For teams that need shared billing and admin controls.",
+      "features": [
+        "Everything in Pro",
+        "Up to 10 seats",
+        "Shared billing & invoices",
+        "Team usage dashboard",
+        "Dedicated support"
+      ]
     }
   ]
 }

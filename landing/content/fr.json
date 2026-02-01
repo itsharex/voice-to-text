@@ -20,29 +20,9 @@
       "description": "Compatible macOS, Windows et Linux."
     },
     {
-      "id": "hotkeys",
-      "title": "Raccourcis globaux",
-      "description": "Démarrez ou arrêtez l'enregistrement depuis n'importe où d'une touche."
-    },
-    {
-      "id": "autoPaste",
-      "title": "Collage automatique",
-      "description": "La transcription est collée directement dans le champ de texte actif."
-    },
-    {
       "id": "openSource",
       "title": "Open source",
       "description": "Code source complet sur GitHub. Transparent et communautaire."
-    },
-    {
-      "id": "tray",
-      "title": "Barre des tâches",
-      "description": "Fonctionne silencieusement en arrière-plan, toujours à un clic."
-    },
-    {
-      "id": "autoCopy",
-      "title": "Copie automatique",
-      "description": "Le texte final est copié automatiquement dans le presse-papiers."
     }
   ],
   "providers": [
@@ -135,6 +115,20 @@
         "Accès anticipé aux fonctionnalités"
       ],
       "highlighted": true
+    },
+    {
+      "id": "team",
+      "name": "Team",
+      "price": "$29",
+      "period": "par mois",
+      "description": "Pour les équipes avec facturation partagée et contrôle admin.",
+      "features": [
+        "Tout du plan Pro",
+        "Jusqu'à 10 places",
+        "Facturation partagée",
+        "Tableau de bord d'utilisation",
+        "Support dédié"
+      ]
     }
   ]
 }
