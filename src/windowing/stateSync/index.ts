@@ -5,9 +5,9 @@ export {
   TOPIC_UI_PREFERENCES,
 } from './topics';
 
-export type { RevisionSyncHandle } from 'state-sync';
-export { createTauriRevisionSync } from 'state-sync-tauri';
-export { createPiniaSnapshotApplier } from 'state-sync-pinia';
+export type { RevisionSyncHandle } from '@statesync/core';
+export { createTauriRevisionSync } from '@statesync/tauri';
+export { createPiniaSnapshotApplier } from '@statesync/pinia';
 
 export {
   STATE_SYNC_INVALIDATION_EVENT,

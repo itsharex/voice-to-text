@@ -1,6 +1,6 @@
 {
   "name": "voice-to-text",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "type": "module",
   "description": "Privacy-focused voice-to-text application with offline support",
   "scripts": {
@@ -23,9 +23,9 @@
     "pinia": "^2.1.0",
     "refresh-fetch": "^0.9.0",
     "vue": "^3.4.0",
-    "state-sync": "file:../state-sync/packages/core",
-    "state-sync-pinia": "file:../state-sync/packages/pinia",
-    "state-sync-tauri": "file:../state-sync/packages/tauri",
+    "@statesync/core": "file:../state-sync/packages/core",
+    "@statesync/pinia": "file:../state-sync/packages/pinia",
+    "@statesync/tauri": "file:../state-sync/packages/tauri",
     "vue-i18n": "^11.2.8",
     "vuetify": "^3.7.0"
   },

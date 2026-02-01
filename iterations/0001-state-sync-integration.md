@@ -167,7 +167,7 @@ type InvalidationEvent = {
 
 Для каждого topic — отдельная snapshot команда (source of truth).
 
-**Важно**: чтобы использовать `state-sync-tauri` без костылей, snapshot команда возвращает ровно envelope:
+**Важно**: чтобы использовать `@statesync/tauri` без костылей, snapshot команда возвращает ровно envelope:
 
 ```ts
 type SnapshotEnvelope<T> = {
@@ -313,9 +313,9 @@ Locked decision (чтобы не было двусмысленностей):
 ### 0) Подключение зависимостей
 
 В `frontend/package.json` добавляем:
-- `state-sync`
-- `state-sync-pinia`
-- `state-sync-tauri`
+- `@statesync/core`
+- `@statesync/pinia`
+- `@statesync/tauri`
 
 Источник пакетов:
 - если версии уже опубликованы в npm — ставим через `pnpm add`
@@ -344,7 +344,7 @@ Locked decision (чтобы не было двусмысленностей):
 - переписать `src/stores/appConfig.ts`:
   - убрать `listen('config:changed')`
   - убрать локальную очередь refresh
-  - создать `RevisionSyncHandle` через `state-sync-tauri` (eventName `state-sync:invalidation`, commandName `get_app_config_snapshot`)
+  - создать `RevisionSyncHandle` через `@statesync/tauri` (eventName `state-sync:invalidation`, commandName `get_app_config_snapshot`)
   - applier либо:
     - через `createPiniaSnapshotApplier` (если удобно), либо
     - через текущий `applySnapshot()` (как наиболее контролируемый вариант)

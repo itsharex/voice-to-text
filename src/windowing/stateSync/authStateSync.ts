@@ -5,10 +5,10 @@
  * Логику "что делать при внешней авторизации" передаём снаружи.
  */
 
-import type { RevisionSyncHandle, SnapshotEnvelope } from 'state-sync';
-import type { TauriInvoke, TauriListen } from 'state-sync-tauri';
+import type { RevisionSyncHandle, SnapshotEnvelope } from '@statesync/core';
+import type { TauriInvoke, TauriListen } from '@statesync/tauri';
 
-import { createTauriRevisionSync } from 'state-sync-tauri';
+import { createTauriRevisionSync } from '@statesync/tauri';
 
 import { STATE_SYNC_INVALIDATION_EVENT, CMD_GET_AUTH_STATE_SNAPSHOT } from './tauri';
 import { TOPIC_AUTH_STATE } from './topics';

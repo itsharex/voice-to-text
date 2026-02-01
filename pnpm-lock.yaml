@@ -8,21 +8,21 @@ dependencies:
   '@mdi/font':
     specifier: ^7.4.47
     version: 7.4.47
+  '@statesync/core':
+    specifier: file:../state-sync/packages/core
+    version: file:../state-sync/packages/core
+  '@statesync/pinia':
+    specifier: file:../state-sync/packages/pinia
+    version: file:../state-sync/packages/pinia(@statesync/core@0.1.0)
+  '@statesync/tauri':
+    specifier: file:../state-sync/packages/tauri
+    version: file:../state-sync/packages/tauri(@statesync/core@0.1.0)(@tauri-apps/api@2.8.0)
   pinia:
     specifier: ^2.1.0
     version: 2.3.1(typescript@5.9.3)(vue@3.5.22)
   refresh-fetch:
     specifier: ^0.9.0
     version: 0.9.0
-  state-sync:
-    specifier: file:../state-sync/packages/core
-    version: file:../state-sync/packages/core
-  state-sync-pinia:
-    specifier: file:../state-sync/packages/pinia
-    version: file:../state-sync/packages/pinia(state-sync@0.1.0)
-  state-sync-tauri:
-    specifier: file:../state-sync/packages/tauri
-    version: file:../state-sync/packages/tauri(@tauri-apps/api@2.8.0)(state-sync@0.1.0)
   vue:
     specifier: ^3.4.0
     version: 3.5.22(typescript@5.9.3)
@@ -5009,33 +5009,33 @@ packages:
 
   file:../state-sync/packages/core:
     resolution: {directory: ../state-sync/packages/core, type: directory}
-    name: state-sync
+    name: '@statesync/core'
     engines: {node: '>=18'}
     dev: false
 
-  file:../state-sync/packages/pinia(state-sync@0.1.0):
+  file:../state-sync/packages/pinia(@statesync/core@0.1.0):
     resolution: {directory: ../state-sync/packages/pinia, type: directory}
     id: file:../state-sync/packages/pinia
-    name: state-sync-pinia
+    name: '@statesync/pinia'
     engines: {node: '>=18'}
     peerDependencies:
-      state-sync: '*'
+      '@statesync/core': '*'
     dependencies:
-      state-sync: file:../state-sync/packages/core
+      '@statesync/core': file:../state-sync/packages/core
     dev: false
 
-  file:../state-sync/packages/tauri(@tauri-apps/api@2.8.0)(state-sync@0.1.0):
+  file:../state-sync/packages/tauri(@statesync/core@0.1.0)(@tauri-apps/api@2.8.0):
     resolution: {directory: ../state-sync/packages/tauri, type: directory}
     id: file:../state-sync/packages/tauri
-    name: state-sync-tauri
+    name: '@statesync/tauri'
     engines: {node: '>=18'}
     peerDependencies:
+      '@statesync/core': '*'
       '@tauri-apps/api': '>=2'
-      state-sync: '*'
     peerDependenciesMeta:
       '@tauri-apps/api':
         optional: true
     dependencies:
+      '@statesync/core': file:../state-sync/packages/core
       '@tauri-apps/api': 2.8.0
-      state-sync: file:../state-sync/packages/core
     dev: false

@@ -8,7 +8,7 @@
 
 import type { SttProviderType } from '@/types';
 import type { UiLocale, UiTheme } from '@/i18n.locales';
-import type { SnapshotEnvelope } from 'state-sync';
+import type { SnapshotEnvelope } from '@statesync/core';
 
 /**
  * Публичный снапшот app-config, который можно безопасно раздавать во все окна.

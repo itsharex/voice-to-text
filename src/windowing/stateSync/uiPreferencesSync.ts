@@ -7,10 +7,10 @@
  * - Разовая миграция localStorage → Rust допустима только если Rust на дефолте.
  */
 
-import type { RevisionSyncHandle, SnapshotEnvelope } from 'state-sync';
-import type { TauriInvoke, TauriListen } from 'state-sync-tauri';
+import type { RevisionSyncHandle, SnapshotEnvelope } from '@statesync/core';
+import type { TauriInvoke, TauriListen } from '@statesync/tauri';
 
-import { createTauriRevisionSync } from 'state-sync-tauri';
+import { createTauriRevisionSync } from '@statesync/tauri';
 
 import {
   CMD_GET_UI_PREFERENCES_SNAPSHOT,

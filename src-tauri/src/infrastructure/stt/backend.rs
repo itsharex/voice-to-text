@@ -1,6 +1,6 @@
 //! Backend STT Provider
 //!
-//! Подключается к нашему API (api.voicetotext.app) вместо прямого подключения к Deepgram.
+//! Подключается к нашему API (api.voicetext.site) вместо прямого подключения к Deepgram.
 //! Все транскрипции идут через наш бэкенд с лицензией и usage tracking.
 
 use async_trait::async_trait;
@@ -22,7 +22,7 @@ use crate::domain::{
 use super::backend_messages::{ClientMessage, ServerMessage};
 
 /// URL бэкенда для production
-const PROD_BACKEND_URL: &str = "wss://api.voicetotext.app";
+const PROD_BACKEND_URL: &str = "wss://api.voicetext.site";
 
 /// URL бэкенда для development (localhost)
 const DEV_BACKEND_URL: &str = "ws://localhost:8080";
@@ -281,7 +281,7 @@ impl SttProvider for BackendProvider {
                     // (например, не выставлен SECURITY_ALLOW_DEV_TOKEN=true).
                     if cfg!(debug_assertions) && is_local_backend_url(&self.backend_url) {
                         return SttError::Authentication(
-                            "401 Unauthorized от локального бэкенда. Проверь, что backend запущен с SECURITY_ALLOW_DEV_TOKEN=true (и APP_ENV=local). Если хочешь использовать свой сохранённый токен — укажи VOICE_TO_TEXT_BACKEND_URL=wss://api.voicetotext.app"
+                            "401 Unauthorized от локального бэкенда. Проверь, что backend запущен с SECURITY_ALLOW_DEV_TOKEN=true (и APP_ENV=local). Если хочешь использовать свой сохранённый токен — укажи VOICE_TO_TEXT_BACKEND_URL=wss://api.voicetext.site"
                                 .to_string(),
                         );
                     }

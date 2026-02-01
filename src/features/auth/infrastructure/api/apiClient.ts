@@ -7,7 +7,7 @@ import { runRefreshSingleFlight } from '../../application/services/refreshSingle
 import { isTauriAvailable } from '../../../../utils/tauri';
 import { useAuthStore } from '../../store/authStore';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.voicetotext.app';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.voicetext.site';
 const REQUEST_TIMEOUT_MS = 30000;
 
 async function syncAuthWithTauriBackend(params: {

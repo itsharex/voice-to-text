@@ -12,8 +12,8 @@
 
 import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
-import type { SnapshotEnvelope, SnapshotApplier, RevisionSyncHandle } from 'state-sync';
-import { createTauriRevisionSync } from 'state-sync-tauri';
+import type { SnapshotEnvelope, SnapshotApplier, RevisionSyncHandle } from '@statesync/core';
+import { createTauriRevisionSync } from '@statesync/tauri';
 
 import { STATE_SYNC_INVALIDATION_EVENT } from './tauri';
 

@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createAuthStateSync } from './authStateSync';
-import type { TauriInvoke, TauriListen } from 'state-sync-tauri';
+import type { TauriInvoke, TauriListen } from '@statesync/tauri';
 
 describe('createAuthStateSync', () => {
   it('не вызывает onExternalAuthState если состояние совпадает с локальным', async () => {

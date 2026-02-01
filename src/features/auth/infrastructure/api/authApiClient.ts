@@ -19,7 +19,7 @@ import type {
   ApiErrorResponse,
 } from './apiTypes';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'https://api.voicetotext.app';
+const API_BASE = import.meta.env.VITE_API_URL || 'https://api.voicetext.site';
 const REQUEST_TIMEOUT_MS = 30000;
 
 /**

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { createTauriRevisionSync } from 'state-sync-tauri';
+import { createTauriRevisionSync } from '@statesync/tauri';
 import { CMD_GET_AUTH_STATE_SNAPSHOT, STATE_SYNC_INVALIDATION_EVENT } from './tauri';
-import type { SnapshotEnvelope } from 'state-sync';
+import type { SnapshotEnvelope } from '@statesync/core';
 
 const invokeMock = vi.fn();
 const listenMock = vi.fn();

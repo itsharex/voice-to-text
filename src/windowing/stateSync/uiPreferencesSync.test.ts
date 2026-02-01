@@ -2,7 +2,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 
 import { createUiPreferencesSync } from './uiPreferencesSync';
 import { CMD_GET_UI_PREFERENCES_SNAPSHOT, CMD_UPDATE_UI_PREFERENCES } from './tauri';
-import type { TauriInvoke, TauriListen } from 'state-sync-tauri';
+import type { TauriInvoke, TauriListen } from '@statesync/tauri';
 import {
   UI_PREFS_LOCALE_KEY,
   UI_PREFS_MIGRATED_TO_RUST_KEY,

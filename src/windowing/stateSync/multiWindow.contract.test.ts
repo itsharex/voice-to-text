@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createTauriRevisionSync } from 'state-sync-tauri';
-import type { SnapshotEnvelope } from 'state-sync';
+import { createTauriRevisionSync } from '@statesync/tauri';
+import type { SnapshotEnvelope } from '@statesync/core';
 import { STATE_SYNC_INVALIDATION_EVENT } from './tauri';
 import { CMD_GET_APP_CONFIG_SNAPSHOT } from './tauri';
 

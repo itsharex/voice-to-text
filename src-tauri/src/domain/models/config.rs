@@ -54,10 +54,10 @@ pub struct SttConfig {
     pub model: Option<String>,
 
     /// Auth token для нашего Backend API (получается при активации лицензии)
-    /// Используется для подключения к api.voicetotext.app
+    /// Используется для подключения к api.voicetext.site
     pub backend_auth_token: Option<String>,
 
-    /// URL нашего Backend API (по умолчанию wss://api.voicetotext.app)
+    /// URL нашего Backend API (по умолчанию wss://api.voicetext.site)
     pub backend_url: Option<String>,
 
     /// Keep WebSocket connection alive between recording sessions (only for providers that support it)
