@@ -38,10 +38,12 @@ env
 # Secrets and credentials
 **/secrets*.txt
 **/credentials*.json
-**/*secret*
-**/*password*
-!**/usePassword*.ts
-!**/Password*Form.vue
+**/*secret*.txt
+**/*secret*.env
+**/*secret*.json
+**/*password*.txt
+**/*password*.env
+**/*password*.json
 **/*token*.txt
 
 # BFG Repo-Cleaner reports
