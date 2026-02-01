@@ -83,7 +83,7 @@ const platformColors: Record<string, string> = {
             class="download-section__card-indicator"
           >
             <v-icon size="16">mdi-check-circle</v-icon>
-            <span>Detected</span>
+            <span>{{ t("download.detected") }}</span>
           </div>
         </div>
       </div>

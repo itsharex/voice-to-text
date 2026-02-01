@@ -95,7 +95,7 @@
   "openSource": {
     "title": "Vollständig Open Source",
     "bullets": [
-      "Quellcode auf GitHub verfügbar — einsehen, ändern und frei erstellen",
+      "Quellcode auf GitHub verfügbar — einsehen, ändern und frei kompilieren",
       "Community-getriebene Entwicklung mit offenen Issues und Beiträgen",
       "MIT-Lizenz — in privaten und kommerziellen Projekten nutzbar"
     ],
@@ -154,7 +154,7 @@
       "period": "pro Monat",
       "description": "Cloud-Anbieter für maximale Genauigkeit und Geschwindigkeit.",
       "features": [
-        "Alles aus Kostenlos",
+        "Alles aus dem kostenlosen Tarif",
         "Deepgram Nova-3",
         "AssemblyAI-Integration",
         "Echtzeit-Streaming",
@@ -170,7 +170,7 @@
       "period": "pro Monat",
       "description": "Für Teams mit gemeinsamem Zugang und Admin-Tools.",
       "features": [
-        "Alles aus Pro",
+        "Alles aus dem Pro-Tarif",
         "Bis zu 10 Plätze",
         "Team-Admin-Dashboard",
         "Gemeinsame API-Schlüssel",

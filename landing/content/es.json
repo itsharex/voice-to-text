@@ -11,7 +11,7 @@
     },
     {
       "id": "openSource",
-      "title": "Open source",
+      "title": "Código abierto",
       "description": "Código fuente completo en GitHub. Transparente e impulsado por la comunidad."
     },
     {
@@ -93,7 +93,7 @@
     }
   ],
   "openSource": {
-    "title": "Totalmente open source",
+    "title": "Totalmente código abierto",
     "bullets": [
       "Código fuente disponible en GitHub — inspecciona, modifica y compila libremente",
       "Desarrollo impulsado por la comunidad con issues abiertos y contribuciones",

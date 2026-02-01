@@ -4,6 +4,13 @@ import { useLandingContent } from '~/composables/useLandingContent'
 
 const { content } = useLandingContent()
 const { t } = useI18n()
+
+function onGetStarted(plan: { id: string }) {
+  const el = document.getElementById('download')
+  if (el) {
+    el.scrollIntoView({ behavior: 'smooth' })
+  }
+}
 </script>
 
 <template>
@@ -16,7 +23,7 @@ const { t } = useI18n()
 
     <v-container>
       <div class="pricing-section__header">
-        <span class="pricing-section__badge">Pricing</span>
+        <span class="pricing-section__badge">{{ t("nav.pricing") }}</span>
         <h2 class="pricing-section__title">
           {{ t("pricing.sectionTitle") }}
         </h2>
@@ -71,6 +78,7 @@ const { t } = useI18n()
             <button
               class="pricing-card__btn"
               :class="{ 'pricing-card__btn--primary': plan.highlighted }"
+              @click="onGetStarted(plan)"
             >
               {{ t("pricing.getStarted") }}
             </button>

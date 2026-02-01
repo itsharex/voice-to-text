@@ -1,6 +1,14 @@
 <script setup lang="ts">
 const { content } = useLandingContent();
 const { t } = useI18n();
+
+// Deterministic waveform heights for SSR consistency
+const waveformHeights = Array.from({ length: 32 }, (_, i) => {
+  const idx = i + 1;
+  // Seeded pseudo-random using a simple LCG-like approach
+  const pseudo = ((idx * 2654435761) >>> 0) % 100;
+  return 20 + Math.sin(idx * 0.6) * 40 + (pseudo / 100) * 30;
+});
 </script>
 
 <template>
@@ -19,7 +27,7 @@ const { t } = useI18n();
         <v-col cols="12" md="6" class="hero-section__content">
           <span class="hero-section__badge">
             <span class="hero-section__badge-dot" />
-            Voice to Text
+            {{ t("hero.badge") }}
           </span>
 
           <h1 class="hero-section__title">
@@ -46,17 +54,17 @@ const { t } = useI18n();
           <div class="hero-section__trust">
             <div class="hero-section__trust-item">
               <v-icon size="16" class="hero-section__trust-icon">mdi-shield-check</v-icon>
-              <span>Privacy-first</span>
+              <span>{{ t("hero.trust.privacyFirst") }}</span>
             </div>
             <div class="hero-section__trust-divider" />
             <div class="hero-section__trust-item">
               <v-icon size="16" class="hero-section__trust-icon">mdi-wifi-off</v-icon>
-              <span>Offline support</span>
+              <span>{{ t("hero.trust.offlineSupport") }}</span>
             </div>
             <div class="hero-section__trust-divider" />
             <div class="hero-section__trust-item">
               <v-icon size="16" class="hero-section__trust-icon">mdi-monitor-multiple</v-icon>
-              <span>Cross-platform</span>
+              <span>{{ t("hero.trust.crossPlatform") }}</span>
             </div>
           </div>
         </v-col>
@@ -79,12 +87,12 @@ const { t } = useI18n();
               <!-- Waveform visualization -->
               <div class="hero-section__waveform">
                 <div
-                  v-for="i in 32"
+                  v-for="(height, i) in waveformHeights"
                   :key="i"
                   class="hero-section__waveform-bar"
                   :style="{
-                    '--bar-index': i,
-                    '--bar-height': `${20 + Math.sin(i * 0.6) * 40 + Math.random() * 30}%`,
+                    '--bar-index': i + 1,
+                    '--bar-height': `${height}%`,
                   }"
                 />
               </div>
@@ -92,7 +100,7 @@ const { t } = useI18n();
               <!-- Transcription preview -->
               <div class="hero-section__transcription">
                 <div class="hero-section__transcription-line hero-section__transcription-line--1">
-                  <span class="hero-section__transcription-text">Hello, this is a voice message...</span>
+                  <span class="hero-section__transcription-text">{{ t("hero.transcription.sample") }}</span>
                 </div>
                 <div class="hero-section__transcription-line hero-section__transcription-line--2">
                   <span class="hero-section__transcription-cursor" />
@@ -103,7 +111,7 @@ const { t } = useI18n();
               <div class="hero-section__preview-status">
                 <div class="hero-section__status-recording">
                   <span class="hero-section__status-dot" />
-                  <span>Recording</span>
+                  <span>{{ t("hero.status.recording") }}</span>
                 </div>
                 <span class="hero-section__status-time">0:04</span>
               </div>

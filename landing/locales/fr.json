@@ -9,12 +9,25 @@
     "pricing": "Tarifs"
   },
   "hero": {
+    "badge": "Voice to Text",
     "ctaPrimary": "Télécharger pour {platform}",
     "ctaSecondary": "Voir les fonctionnalités",
-    "preview": "Aperçu du produit"
+    "preview": "Aperçu du produit",
+    "trust": {
+      "privacyFirst": "Confidentialité d'abord",
+      "offlineSupport": "Support hors ligne",
+      "crossPlatform": "Multiplateforme"
+    },
+    "transcription": {
+      "sample": "Bonjour, ceci est un message vocal..."
+    },
+    "status": {
+      "recording": "Enregistrement"
+    }
   },
   "download": {
     "title": "Télécharger",
+    "detected": "Détecté",
     "systemRequirements": "Configuration requise",
     "version": "Version {version}"
   },
@@ -54,7 +67,8 @@
     "dark": "Thème sombre",
     "light": "Thème clair",
     "settings": "Paramètres",
-    "recording": "Enregistrement"
+    "recording": "Enregistrement",
+    "toggleTheme": "Changer le thème de la capture"
   },
   "footer": {
     "copyright": "© {year} Voice to Text",
@@ -70,7 +84,7 @@
     "privacyPolicyTitle": "Politique de confidentialité — Voice to Text",
     "privacyPolicyDescription": "Comment nous collectons, utilisons et protégeons vos données.",
     "termsTitle": "Conditions d'utilisation — Voice to Text",
-    "termsDescription": "Conditions générales d'utilisation de l'application Voice to Text."
+    "termsDescription": "Conditions générales d'utilisation de l'application Voice to Text.",
     "openSourceTitle": "Open Source — Voice to Text",
     "openSourceDescription": "Explorez le code open source de Voice to Text sur GitHub."
   }

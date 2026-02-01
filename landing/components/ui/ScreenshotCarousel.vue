@@ -2,15 +2,26 @@
 import { ref } from "vue";
 import { Swiper, SwiperSlide } from "swiper/vue";
 import { A11y, Keyboard, Pagination } from "swiper/modules";
+import type { Swiper as SwiperType } from "swiper";
 import "swiper/css";
 import "swiper/css/pagination";
 import { screenshots } from "~/data/screenshots";
 
 const { t } = useI18n();
 const activeIndex = ref(0);
+const swiperInstance = ref<SwiperType | null>(null);
 
-function onSlideChange(swiper: { activeIndex: number }) {
+function onSwiper(swiper: SwiperType) {
+  swiperInstance.value = swiper;
+}
+
+function onSlideChange(swiper: SwiperType) {
   activeIndex.value = swiper.activeIndex;
+}
+
+function goToSlide(index: number) {
+  activeIndex.value = index;
+  swiperInstance.value?.slideTo(index);
 }
 </script>
 
@@ -24,7 +35,7 @@ function onSlideChange(swiper: { activeIndex: number }) {
           :key="shot.id"
           class="carousel__tab"
           :class="{ 'carousel__tab--active': activeIndex === index }"
-          @click="activeIndex = index"
+          @click="goToSlide(index)"
         >
           <span class="carousel__tab-dot" />
           <span class="carousel__tab-label">{{ t(shot.labelKey) }}</span>
@@ -46,6 +57,7 @@ function onSlideChange(swiper: { activeIndex: number }) {
           960: { slidesPerView: 1.6, spaceBetween: 32 },
           1280: { slidesPerView: 2.0, spaceBetween: 40 }
         }"
+        @swiper="onSwiper"
         @slide-change="onSlideChange"
       >
         <SwiperSlide v-for="(shot, index) in screenshots" :key="shot.id">

@@ -63,6 +63,7 @@ function next() {
             :class="{ 'screenshots-section__switch--dark': isScreenshotDark }"
             role="switch"
             :aria-checked="isScreenshotDark"
+            :aria-label="t('screenshots.toggleTheme')"
             @click="toggleScreenshotTheme"
           >
             <span class="screenshots-section__switch-thumb" />

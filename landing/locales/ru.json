@@ -9,12 +9,25 @@
     "pricing": "Цены"
   },
   "hero": {
+    "badge": "Voice to Text",
     "ctaPrimary": "Скачать для {platform}",
     "ctaSecondary": "Посмотреть возможности",
-    "preview": "Превью продукта"
+    "preview": "Превью продукта",
+    "trust": {
+      "privacyFirst": "Приватность прежде всего",
+      "offlineSupport": "Работа офлайн",
+      "crossPlatform": "Кроссплатформенность"
+    },
+    "transcription": {
+      "sample": "Привет, это голосовое сообщение..."
+    },
+    "status": {
+      "recording": "Запись"
+    }
   },
   "download": {
     "title": "Скачать",
+    "detected": "Определено",
     "systemRequirements": "Системные требования",
     "version": "Версия {version}"
   },
@@ -54,7 +67,8 @@
     "dark": "Тёмная тема",
     "light": "Светлая тема",
     "settings": "Настройки",
-    "recording": "Запись"
+    "recording": "Запись",
+    "toggleTheme": "Переключить тему скриншота"
   },
   "footer": {
     "copyright": "© {year} Voice to Text",
@@ -70,7 +84,7 @@
     "privacyPolicyTitle": "Политика конфиденциальности — Voice to Text",
     "privacyPolicyDescription": "Как мы собираем, используем и защищаем ваши данные.",
     "termsTitle": "Условия использования — Voice to Text",
-    "termsDescription": "Условия и положения использования приложения Voice to Text."
+    "termsDescription": "Условия и положения использования приложения Voice to Text.",
     "openSourceTitle": "Open Source — Voice to Text",
     "openSourceDescription": "Изучите открытый исходный код Voice to Text на GitHub."
   }

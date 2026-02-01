@@ -9,12 +9,25 @@
     "pricing": "Ціни"
   },
   "hero": {
+    "badge": "Voice to Text",
     "ctaPrimary": "Завантажити для {platform}",
     "ctaSecondary": "Переглянути можливості",
-    "preview": "Огляд продукту"
+    "preview": "Огляд продукту",
+    "trust": {
+      "privacyFirst": "Приватність насамперед",
+      "offlineSupport": "Робота офлайн",
+      "crossPlatform": "Кросплатформність"
+    },
+    "transcription": {
+      "sample": "Привіт, це голосове повідомлення..."
+    },
+    "status": {
+      "recording": "Запис"
+    }
   },
   "download": {
     "title": "Завантажити",
+    "detected": "Визначено",
     "systemRequirements": "Системні вимоги",
     "version": "Версія {version}"
   },
@@ -54,7 +67,8 @@
     "dark": "Темна тема",
     "light": "Світла тема",
     "settings": "Налаштування",
-    "recording": "Запис"
+    "recording": "Запис",
+    "toggleTheme": "Перемкнути тему скріншота"
   },
   "footer": {
     "copyright": "© {year} Voice to Text",
@@ -70,7 +84,7 @@
     "privacyPolicyTitle": "Політика конфіденційності — Voice to Text",
     "privacyPolicyDescription": "Як ми збираємо, використовуємо та захищаємо ваші дані.",
     "termsTitle": "Умови використання — Voice to Text",
-    "termsDescription": "Умови та положення використання застосунку Voice to Text."
+    "termsDescription": "Умови та положення використання застосунку Voice to Text.",
     "openSourceTitle": "Open Source — Voice to Text",
     "openSourceDescription": "Досліджуйте відкритий вихідний код Voice to Text на GitHub."
   }

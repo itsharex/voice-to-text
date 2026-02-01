@@ -46,7 +46,7 @@
     },
     {
       "id": "autoUpdate",
-      "title": "Mises à jour auto",
+      "title": "Mises à jour automatiques",
       "description": "Mises à jour livrées automatiquement via GitHub Releases."
     },
     {
@@ -154,7 +154,7 @@
       "period": "par mois",
       "description": "Débloquez les fournisseurs cloud pour une précision et une vitesse maximales.",
       "features": [
-        "Tout de Gratuit",
+        "Tout du plan Gratuit",
         "Deepgram Nova-3",
         "Intégration AssemblyAI",
         "Streaming en temps réel",
@@ -170,7 +170,7 @@
       "period": "par mois",
       "description": "Pour les équipes avec accès partagé et outils d'administration.",
       "features": [
-        "Tout de Pro",
+        "Tout du plan Pro",
         "Jusqu'à 10 places",
         "Tableau de bord admin",
         "Clés API partagées",
