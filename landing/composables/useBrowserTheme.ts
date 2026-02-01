@@ -1,10 +1,12 @@
-import { computed, watch } from "vue";
+import { computed, watch, onUnmounted } from "vue";
 import { useThemeStore } from "~/stores/theme";
 
 export const useBrowserTheme = () => {
   const themeStore = useThemeStore();
   const { $vuetifyTheme } = useNuxtApp();
   const vuetifyTheme = $vuetifyTheme as { global: { name: import("vue").Ref<string> } } | null;
+  let mediaQueryHandler: ((event: MediaQueryListEvent) => void) | null = null;
+  let mediaQuery: MediaQueryList | null = null;
 
   const applyVuetifyTheme = (name: "light" | "dark") => {
     if (vuetifyTheme) {
@@ -24,21 +26,27 @@ export const useBrowserTheme = () => {
     applyVuetifyTheme(initialTheme);
 
     if (process.client && !themeStore.userSelected) {
-      const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-      const handler = (event: MediaQueryListEvent) => {
+      mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+      mediaQueryHandler = (event: MediaQueryListEvent) => {
         if (!themeStore.userSelected) {
           const newTheme = event.matches ? "dark" : "light";
           themeStore.setTheme(newTheme, false);
           applyVuetifyTheme(newTheme);
         }
       };
-      mediaQuery.addEventListener("change", handler);
+      mediaQuery.addEventListener("change", mediaQueryHandler);
     }
   };
 
   const toggleTheme = () => {
     applyTheme(themeStore.current === "dark" ? "light" : "dark");
   };
+
+  onUnmounted(() => {
+    if (mediaQuery && mediaQueryHandler) {
+      mediaQuery.removeEventListener("change", mediaQueryHandler);
+    }
+  });
 
   watch(
     () => themeStore.current,
