@@ -4,16 +4,30 @@
     "providers": "Провайдеры",
     "screenshots": "Скриншоты",
     "download": "Скачать",
-    "privacy": "Приватность",
-    "faq": "FAQ"
+    "openSource": "Open Source",
+    "faq": "FAQ",
+    "pricing": "Цены"
   },
   "hero": {
+    "badge": "Voice to Text",
     "ctaPrimary": "Скачать для {platform}",
     "ctaSecondary": "Посмотреть возможности",
-    "preview": "Превью продукта"
+    "preview": "Превью продукта",
+    "trust": {
+      "privacyFirst": "Приватность прежде всего",
+      "offlineSupport": "Работа офлайн",
+      "crossPlatform": "Кроссплатформенность"
+    },
+    "transcription": {
+      "sample": "Привет, это голосовое сообщение..."
+    },
+    "status": {
+      "recording": "Запись"
+    }
   },
   "download": {
     "title": "Скачать",
+    "detected": "Определено",
     "systemRequirements": "Системные требования",
     "version": "Версия {version}"
   },
@@ -24,14 +38,37 @@
   "language": {
     "label": "Язык"
   },
+  "features": {
+    "sectionTitle": "Всё, что нужно для голосового ввода",
+    "sectionSubtitle": "Мощные функции для быстрой, приватной и удобной транскрипции голоса в текст."
+  },
+  "providers": {
+    "sectionTitle": "На базе Deepgram Nova-3",
+    "sectionSubtitle": "Лидирующий движок распознавания речи с непревзойдённой точностью и мультиязычной поддержкой в реальном времени.",
+    "learnMoreBtn": "Подробнее"
+  },
+  "pricing": {
+    "sectionTitle": "Простые и прозрачные цены",
+    "sectionSubtitle": "Начните бесплатно. Обновитесь, когда нужно больше.",
+    "getStarted": "Начать",
+    "popular": "Популярный"
+  },
+  "faq": {
+    "sectionTitle": "Есть вопросы? У нас есть ответы",
+    "subtitle": "Ответы на часто задаваемые вопросы"
+  },
   "common": {
     "learnMore": "Подробнее"
   },
   "screenshots": {
+    "sectionTitle": "Посмотрите в действии",
+    "sectionSubtitle": "Изучите элегантный интерфейс, созданный для продуктивности и комфорта.",
+    "main": "Главный экран",
     "dark": "Тёмная тема",
     "light": "Светлая тема",
     "settings": "Настройки",
-    "recording": "Запись"
+    "recording": "Запись",
+    "toggleTheme": "Переключить тему скриншота"
   },
   "footer": {
     "copyright": "© {year} Voice to Text",
@@ -47,6 +84,8 @@
     "privacyPolicyTitle": "Политика конфиденциальности — Voice to Text",
     "privacyPolicyDescription": "Как мы собираем, используем и защищаем ваши данные.",
     "termsTitle": "Условия использования — Voice to Text",
-    "termsDescription": "Условия и положения использования приложения Voice to Text."
+    "termsDescription": "Условия и положения использования приложения Voice to Text.",
+    "openSourceTitle": "Open Source — Voice to Text",
+    "openSourceDescription": "Изучите открытый исходный код Voice to Text на GitHub."
   }
 }

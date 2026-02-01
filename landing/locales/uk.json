@@ -4,16 +4,30 @@
     "providers": "Провайдери",
     "screenshots": "Скріншоти",
     "download": "Завантажити",
-    "privacy": "Приватність",
-    "faq": "FAQ"
+    "openSource": "Open Source",
+    "faq": "FAQ",
+    "pricing": "Ціни"
   },
   "hero": {
+    "badge": "Voice to Text",
     "ctaPrimary": "Завантажити для {platform}",
     "ctaSecondary": "Переглянути можливості",
-    "preview": "Огляд продукту"
+    "preview": "Огляд продукту",
+    "trust": {
+      "privacyFirst": "Приватність насамперед",
+      "offlineSupport": "Робота офлайн",
+      "crossPlatform": "Кросплатформність"
+    },
+    "transcription": {
+      "sample": "Привіт, це голосове повідомлення..."
+    },
+    "status": {
+      "recording": "Запис"
+    }
   },
   "download": {
     "title": "Завантажити",
+    "detected": "Визначено",
     "systemRequirements": "Системні вимоги",
     "version": "Версія {version}"
   },
@@ -24,14 +38,37 @@
   "language": {
     "label": "Мова"
   },
+  "features": {
+    "sectionTitle": "Все, що потрібно для голосового введення",
+    "sectionSubtitle": "Потужні функції для швидкої, приватної та зручної транскрипції голосу в текст."
+  },
+  "providers": {
+    "sectionTitle": "На базі Deepgram Nova-3",
+    "sectionSubtitle": "Провідний рушій розпізнавання мовлення з неперевершеною точністю та мультимовною підтримкою в реальному часі.",
+    "learnMoreBtn": "Детальніше"
+  },
+  "pricing": {
+    "sectionTitle": "Прості та прозорі ціни",
+    "sectionSubtitle": "Починайте безкоштовно. Оновіться, коли потрібно більше.",
+    "getStarted": "Почати",
+    "popular": "Популярний"
+  },
+  "faq": {
+    "sectionTitle": "Маєте запитання? У нас є відповіді",
+    "subtitle": "Відповіді на поширені запитання"
+  },
   "common": {
     "learnMore": "Детальніше"
   },
   "screenshots": {
+    "sectionTitle": "Подивіться в дії",
+    "sectionSubtitle": "Ознайомтеся з елегантним інтерфейсом, створеним для продуктивності та зручності.",
+    "main": "Головний екран",
     "dark": "Темна тема",
     "light": "Світла тема",
     "settings": "Налаштування",
-    "recording": "Запис"
+    "recording": "Запис",
+    "toggleTheme": "Перемкнути тему скріншота"
   },
   "footer": {
     "copyright": "© {year} Voice to Text",
@@ -47,6 +84,8 @@
     "privacyPolicyTitle": "Політика конфіденційності — Voice to Text",
     "privacyPolicyDescription": "Як ми збираємо, використовуємо та захищаємо ваші дані.",
     "termsTitle": "Умови використання — Voice to Text",
-    "termsDescription": "Умови та положення використання застосунку Voice to Text."
+    "termsDescription": "Умови та положення використання застосунку Voice to Text.",
+    "openSourceTitle": "Open Source — Voice to Text",
+    "openSourceDescription": "Досліджуйте відкритий вихідний код Voice to Text на GitHub."
   }
 }
