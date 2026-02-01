@@ -11,12 +11,16 @@ const { t } = useI18n();
         {{ t("languages.supported") }}
       </span>
       <div class="supported-languages__flags">
-        <Icon
+        <img
           v-for="lang in languages"
           :key="lang.code"
-          :name="`circle-flags:${lang.country_code}`"
-          class="supported-languages__flag"
+          :src="`https://flagcdn.com/${lang.country_code}.svg`"
+          :alt="lang.name"
           :title="lang.name"
+          class="supported-languages__flag"
+          loading="lazy"
+          width="20"
+          height="15"
         />
       </div>
     </v-container>
@@ -53,9 +57,10 @@ const { t } = useI18n();
 }
 
 .supported-languages__flag {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
+  width: 24px;
+  height: 18px;
+  border-radius: 3px;
+  object-fit: cover;
   flex-shrink: 0;
   transition: transform 0.15s ease;
 }
@@ -75,8 +80,8 @@ const { t } = useI18n();
   }
 
   .supported-languages__flag {
-    width: 18px;
-    height: 18px;
+    width: 20px;
+    height: 15px;
   }
 }
 </style>

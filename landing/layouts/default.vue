@@ -1,8 +1,8 @@
 <template>
   <v-app>
     <AppHeader />
-    <SupportedLanguages />
     <v-main>
+      <SupportedLanguages />
       <div>
         <slot />
       </div>
