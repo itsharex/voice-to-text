@@ -2,7 +2,7 @@
 name = "voice-to-text"
 version = "0.5.1"
 description = "Privacy-focused voice-to-text application with offline support"
-authors = ["Voice to Text Contributors"]
+authors = ["VoicetextAI Contributors"]
 license = "MIT"
 repository = ""
 edition = "2021"

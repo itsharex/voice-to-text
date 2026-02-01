@@ -68,7 +68,7 @@ pub struct AppState {
     /// VAD timeout handler task (для перезапуска при смене устройства)
     vad_handler_task: Arc<RwLock<Option<tauri::async_runtime::JoinHandle<()>>>>,
 
-    /// Bundle ID последнего активного приложения (перед показом Voice to Text окна)
+    /// Bundle ID последнего активного приложения (перед показом VoicetextAI окна)
     /// Используется для автоматической вставки текста в правильное окно
     pub last_focused_app_bundle_id: Arc<RwLock<Option<String>>>,
 

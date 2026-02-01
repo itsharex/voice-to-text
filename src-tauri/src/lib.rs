@@ -127,7 +127,7 @@ pub fn run() {
         .setup(|app| {
             #[cfg(debug_assertions)]
             {
-                log::info!("Voice to Text application started in debug mode");
+                log::info!("VoicetextAI application started in debug mode");
             }
 
             // E2E режим: нужен для WebDriver тестов (Linux/Windows), чтобы:

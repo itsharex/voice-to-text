@@ -9,7 +9,7 @@
     "pricing": "Ціни"
   },
   "hero": {
-    "badge": "Voice to Text",
+    "badge": "VoicetextAI",
     "ctaPrimary": "Завантажити для {platform}",
     "ctaSecondary": "Переглянути можливості",
     "preview": "Огляд продукту",
@@ -71,7 +71,7 @@
     "toggleTheme": "Перемкнути тему скріншота"
   },
   "footer": {
-    "copyright": "© {year} Voice to Text",
+    "copyright": "© {year} VoicetextAI",
     "tagline": "Голос у текст із фокусом на приватність",
     "links": {
       "terms": "Умови",
@@ -82,17 +82,27 @@
   "meta": {
     "homeTitle": "VoicetextAI — безкоштовний, простий, швидкий голос-у-текст у реальному часі",
     "homeDescription": "Сучасний кросплатформний десктопний застосунок на базі ШІ. 50 мов. Безкоштовно.",
-    "downloadTitle": "Завантажити Voice to Text",
+    "downloadTitle": "Завантажити VoicetextAI",
     "downloadDescription": "Збірки для macOS, Windows та Linux.",
-    "privacyTitle": "Приватність Voice to Text",
+    "privacyTitle": "Приватність VoicetextAI",
     "privacyDescription": "Як ми захищаємо дані та зберігаємо їх локально.",
-    "privacyPolicyTitle": "Політика конфіденційності — Voice to Text",
+    "privacyPolicyTitle": "Політика конфіденційності — VoicetextAI",
     "privacyPolicyDescription": "Як ми збираємо, використовуємо та захищаємо ваші дані.",
-    "termsTitle": "Умови використання — Voice to Text",
-    "termsDescription": "Умови та положення використання застосунку Voice to Text.",
-    "refundPolicyTitle": "Політика повернень — Voice to Text",
-    "refundPolicyDescription": "Повернення коштів, скасування підписки та як запросити повернення для підписок Voice to Text.",
-    "openSourceTitle": "Open Source — Voice to Text",
-    "openSourceDescription": "Досліджуйте відкритий вихідний код Voice to Text на GitHub."
+    "termsTitle": "Умови використання — VoicetextAI",
+    "termsDescription": "Умови та положення використання застосунку VoicetextAI.",
+    "refundPolicyTitle": "Політика повернень — VoicetextAI",
+    "refundPolicyDescription": "Повернення коштів, скасування підписки та як запросити повернення для підписок VoicetextAI.",
+    "openSourceTitle": "Open Source — VoicetextAI",
+    "openSourceDescription": "Досліджуйте відкритий вихідний код VoicetextAI на GitHub."
+  },
+  "languages": {
+    "supported": "Підтримувані мови:"
+  },
+  "error": {
+    "notFoundTitle": "Сторінку не знайдено",
+    "notFoundDescription": "Сторінка, яку ви шукаєте, не існує або була переміщена.",
+    "genericTitle": "Щось пішло не так",
+    "genericDescription": "Сталася неочікувана помилка. Спробуйте пізніше.",
+    "goHome": "На головну"
   }
 }

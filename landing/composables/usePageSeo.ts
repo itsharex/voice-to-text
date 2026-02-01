@@ -1,5 +1,5 @@
 import { computed } from "vue";
-import { supportedLocales } from "~/data/i18n";
+import { supportedLocales, defaultLocale } from "~/data/i18n";
 import ogImage from "~/assets/images/screenshots/light.svg";
 
 type PageSeoImage = {
@@ -37,7 +37,7 @@ export const usePageSeo = (titleKey: string, descriptionKey: string, options: Pa
       width: 1200,
       height: 750,
       type: "image/svg+xml",
-      alt: `${siteName} — voice to text`
+      alt: `${siteName} — voice-to-text app`
     };
   });
 

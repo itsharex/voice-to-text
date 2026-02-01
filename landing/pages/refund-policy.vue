@@ -11,7 +11,7 @@ usePageSeo("meta.refundPolicyTitle", "meta.refundPolicyDescription");
       <section class="legal-section">
         <h2 class="text-h6">1. Overview</h2>
         <p>
-          This Refund Policy explains how refunds work for paid subscriptions to Voice to Text (the "Service").
+          This Refund Policy explains how refunds work for paid subscriptions to VoicetextAI (the "Service").
           If you have questions, contact us at
           <a href="mailto:iliyazelenkog@gmail.com">iliyazelenkog@gmail.com</a>.
         </p>

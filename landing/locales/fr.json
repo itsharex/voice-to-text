@@ -9,7 +9,7 @@
     "pricing": "Tarifs"
   },
   "hero": {
-    "badge": "Voice to Text",
+    "badge": "VoicetextAI",
     "ctaPrimary": "Télécharger pour {platform}",
     "ctaSecondary": "Voir les fonctionnalités",
     "preview": "Aperçu du produit",
@@ -71,7 +71,7 @@
     "toggleTheme": "Changer le thème de la capture"
   },
   "footer": {
-    "copyright": "© {year} Voice to Text",
+    "copyright": "© {year} VoicetextAI",
     "tagline": "Dictée axée sur la confidentialité",
     "links": {
       "terms": "Conditions",
@@ -82,17 +82,27 @@
   "meta": {
     "homeTitle": "VoicetextAI — voix en texte gratuit, simple, rapide et en temps réel",
     "homeDescription": "Application de bureau multiplateforme avec IA. 50 langues. Gratuit.",
-    "downloadTitle": "Télécharger Voice to Text",
+    "downloadTitle": "Télécharger VoicetextAI",
     "downloadDescription": "Versions pour macOS, Windows et Linux.",
-    "privacyTitle": "Confidentialité Voice to Text",
+    "privacyTitle": "Confidentialité VoicetextAI",
     "privacyDescription": "Comment nous protégeons vos données et les gardons localement.",
-    "privacyPolicyTitle": "Politique de confidentialité — Voice to Text",
+    "privacyPolicyTitle": "Politique de confidentialité — VoicetextAI",
     "privacyPolicyDescription": "Comment nous collectons, utilisons et protégeons vos données.",
-    "termsTitle": "Conditions d'utilisation — Voice to Text",
-    "termsDescription": "Conditions générales d'utilisation de l'application Voice to Text.",
-    "refundPolicyTitle": "Politique de remboursement — Voice to Text",
-    "refundPolicyDescription": "Remboursements, annulations et comment demander un remboursement pour les abonnements Voice to Text.",
-    "openSourceTitle": "Open Source — Voice to Text",
-    "openSourceDescription": "Explorez le code open source de Voice to Text sur GitHub."
+    "termsTitle": "Conditions d'utilisation — VoicetextAI",
+    "termsDescription": "Conditions générales d'utilisation de l'application VoicetextAI.",
+    "refundPolicyTitle": "Politique de remboursement — VoicetextAI",
+    "refundPolicyDescription": "Remboursements, annulations et comment demander un remboursement pour les abonnements VoicetextAI.",
+    "openSourceTitle": "Open Source — VoicetextAI",
+    "openSourceDescription": "Explorez le code open source de VoicetextAI sur GitHub."
+  },
+  "languages": {
+    "supported": "Langues prises en charge :"
+  },
+  "error": {
+    "notFoundTitle": "Page introuvable",
+    "notFoundDescription": "La page que vous recherchez n'existe pas ou a été déplacée.",
+    "genericTitle": "Une erreur est survenue",
+    "genericDescription": "Une erreur inattendue s'est produite. Veuillez réessayer plus tard.",
+    "goHome": "Retour à l'accueil"
   }
 }

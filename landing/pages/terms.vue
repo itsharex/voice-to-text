@@ -11,7 +11,7 @@ usePageSeo("meta.termsTitle", "meta.termsDescription");
       <section class="legal-section">
         <h2 class="text-h6">1. Acceptance of Terms</h2>
         <p>
-          By accessing or using Voice to Text (the "Service"), you agree to be bound by these Terms
+          By accessing or using VoicetextAI (the "Service"), you agree to be bound by these Terms
           of Service ("Terms"). If you do not agree to these Terms, do not use the Service.
         </p>
         <p>
@@ -24,7 +24,7 @@ usePageSeo("meta.termsTitle", "meta.termsDescription");
       <section class="legal-section">
         <h2 class="text-h6">2. Description of Service</h2>
         <p>
-          Voice to Text is a desktop application that provides real-time voice-to-text transcription.
+          VoicetextAI is a desktop application that provides real-time voice-to-text transcription.
           The Service supports multiple speech-to-text providers, including local offline processing
           and cloud-based services. Key features include:
         </p>
@@ -124,7 +124,7 @@ usePageSeo("meta.termsTitle", "meta.termsDescription");
         <h2 class="text-h6">7. Intellectual Property</h2>
         <p>
           The Service, including its design, code, graphics, logos, and trademarks, is the property
-          of Voice to Text and is protected by intellectual property laws. You are granted a limited,
+          of VoicetextAI and is protected by intellectual property laws. You are granted a limited,
           non-exclusive, non-transferable license to use the Service in accordance with these Terms.
         </p>
         <p>
@@ -160,7 +160,7 @@ usePageSeo("meta.termsTitle", "meta.termsDescription");
       <section class="legal-section">
         <h2 class="text-h6">10. Limitation of Liability</h2>
         <p>
-          TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL VOICE TO TEXT, ITS
+          TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL VOICETEXTAI, ITS
           OFFICERS, DIRECTORS, EMPLOYEES, OR AGENTS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
           CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS OR REVENUES, WHETHER INCURRED
           DIRECTLY OR INDIRECTLY, OR ANY LOSS OF DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES,
@@ -177,7 +177,7 @@ usePageSeo("meta.termsTitle", "meta.termsDescription");
       <section class="legal-section">
         <h2 class="text-h6">11. Indemnification</h2>
         <p>
-          You agree to indemnify and hold harmless Voice to Text and its affiliates, officers,
+          You agree to indemnify and hold harmless VoicetextAI and its affiliates, officers,
           agents, and employees from any claim, liability, damage, loss, or expense (including
           reasonable attorneys' fees) arising from your use of the Service, your violation of these
           Terms, or your violation of any rights of a third party.

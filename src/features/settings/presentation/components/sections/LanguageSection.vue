@@ -55,7 +55,6 @@ watch(language, () => {
           <template #prepend>
             <FlagIcon :locale="(item?.raw as UiLanguageOption)?.value" :size="18" class="mr-2" />
           </template>
-          <v-list-item-title>{{ (item?.raw as UiLanguageOption)?.label }}</v-list-item-title>
         </v-list-item>
       </template>
     </v-autocomplete>

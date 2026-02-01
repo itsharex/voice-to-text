@@ -1,5 +1,5 @@
 <template>
-  <NuxtLink to="/" class="app-logo">Voice to Text</NuxtLink>
+  <NuxtLink to="/" class="app-logo">VoicetextAI</NuxtLink>
 </template>
 
 <style scoped>

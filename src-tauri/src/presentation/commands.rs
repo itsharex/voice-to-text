@@ -1400,7 +1400,7 @@ pub async fn auto_paste_text(
     // Получаем bundle ID последнего активного окна
     let last_bundle_id = state.last_focused_app_bundle_id.read().await.clone();
 
-    // Не скрываем окно Voice to Text - оставляем его видимым поверх всех
+    // Не скрываем окно VoicetextAI - оставляем его видимым поверх всех
     // (оно уже настроено с alwaysOnTop: true в tauri.conf.json)
 
     // Если есть сохраненное окно - пытаемся активировать его
@@ -1434,10 +1434,10 @@ pub async fn auto_paste_text(
     .map_err(|e| format!("Failed to join blocking task: {}", e))?
     .map_err(|e| format!("Failed to paste text: {}", e))?;
 
-    // Возвращаем окно Voice to Text поверх всех окон (но без фокуса)
+    // Возвращаем окно VoicetextAI поверх всех окон (но без фокуса)
     if let Some(window) = app_handle.get_webview_window("main") {
         let _ = window.set_always_on_top(true);
-        log::debug!("Voice to Text window kept on top");
+        log::debug!("VoicetextAI window kept on top");
     }
 
     log::info!("Text auto-pasted successfully");

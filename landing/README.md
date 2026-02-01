@@ -1,4 +1,4 @@
-# Voice to Text Landing
+# VoicetextAI Landing
 
 ## Quick start
 

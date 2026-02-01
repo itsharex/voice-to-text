@@ -1,4 +1,4 @@
-# Voice to Text
+# VoicetextAI
 
 Privacy-focused voice-to-text application with offline support, built with Tauri, Rust, and Vue 3.
 

@@ -1,7 +1,7 @@
 {
     "$schema": "../gen/schemas/desktop-schema.json",
     "identifier": "default",
-    "description": "Enables permissions for voice-to-text app: window management, global shortcut, clipboard, and events",
+    "description": "Enables permissions for VoicetextAI app: window management, global shortcut, clipboard, and events",
     "windows": [
         "main"
     ],

@@ -1,6 +1,6 @@
 {
     "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
-    "productName": "Voice to Text",
+    "productName": "VoicetextAI",
     "version": "0.5.1",
     "identifier": "com.voicetotext.app",
     "build": {
@@ -14,7 +14,7 @@
         "windows": [
             {
                 "label": "main",
-                "title": "Voice to Text",
+                "title": "VoicetextAI",
                 "width": 460,
                 "height": 330,
                 "minWidth": 460,
@@ -35,7 +35,7 @@
             },
             {
                 "label": "auth",
-                "title": "Voice to Text",
+                "title": "VoicetextAI",
                 "width": 460,
                 "height": 580,
                 "visible": false,
@@ -50,7 +50,7 @@
             },
             {
                 "label": "settings",
-                "title": "Voice to Text — Settings",
+                "title": "VoicetextAI — Settings",
                 "width": 860,
                 "height": 760,
                 "minWidth": 720,
