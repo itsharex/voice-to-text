@@ -5,23 +5,15 @@ import { useAuthState } from '../composables/useAuthState';
 import LoginForm from './LoginForm.vue';
 import VerifyEmailForm from './VerifyEmailForm.vue';
 import PasswordResetForm from './PasswordResetForm.vue';
+import FlagIcon from '@/presentation/components/FlagIcon.vue';
+import { UI_LOCALES, type UiLocale } from '@/i18n.locales';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
 const { t, locale } = useI18n();
 const authState = useAuthState();
 
-// Доступные языки интерфейса
-const uiLanguages = [
-  { code: 'en', flag: '🇺🇸' },
-  { code: 'ru', flag: '🇷🇺' },
-  { code: 'uk', flag: '🇺🇦' },
-  { code: 'es', flag: '🇪🇸' },
-  { code: 'fr', flag: '🇫🇷' },
-  { code: 'de', flag: '🇩🇪' },
-];
-
-const currentLanguage = computed(() =>
-  uiLanguages.find(l => l.code === locale.value) || uiLanguages[0]
+const currentLocale = computed(() =>
+  UI_LOCALES.includes(locale.value as UiLocale) ? (locale.value as UiLocale) : 'en'
 );
 
 function changeLanguage(code: string) {
@@ -81,20 +73,20 @@ function switchToReset() {
             size="small"
             class="lang-btn"
           >
-            <span class="lang-flag">{{ currentLanguage.flag }}</span>
+            <FlagIcon :locale="currentLocale" :size="20" />
           </v-btn>
         </template>
         <v-list density="compact" class="lang-list">
           <v-list-item
-            v-for="lang in uiLanguages"
-            :key="lang.code"
-            :active="locale === lang.code"
-            @click="changeLanguage(lang.code)"
+            v-for="code in UI_LOCALES"
+            :key="code"
+            :active="locale === code"
+            @click="changeLanguage(code)"
           >
             <template #prepend>
-              <span class="lang-flag-item">{{ lang.flag }}</span>
+              <FlagIcon :locale="code" :size="18" class="mr-2" />
             </template>
-            <v-list-item-title>{{ t(`languages.${lang.code}`) }}</v-list-item-title>
+            <v-list-item-title>{{ t(`languages.${code}`) }}</v-list-item-title>
           </v-list-item>
         </v-list>
       </v-menu>
@@ -173,15 +165,6 @@ function switchToReset() {
 
 .lang-btn:hover {
   opacity: 1;
-}
-
-.lang-flag {
-  font-size: 18px;
-}
-
-.lang-flag-item {
-  font-size: 16px;
-  margin-right: 8px;
 }
 
 .lang-list {

@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { downloadAssets } from "~/data/downloads";
+import type { DownloadArch } from "~/data/downloads";
 
 const { content } = useLandingContent();
 const { t } = useI18n();
 const downloadStore = useDownloadStore();
+const { resolve } = useReleaseDownloads();
 
 onMounted(() => downloadStore.init());
 
@@ -17,6 +19,22 @@ const platformColors: Record<string, string> = {
   macos: "#a78bfa",
   windows: "#60a5fa",
   linux: "#fbbf24",
+};
+
+const getDownloadUrl = (asset: (typeof downloadAssets)[number]) => {
+  if (asset.os === "macos") {
+    const arch = (downloadStore.arch === "unknown" ? "x64" : downloadStore.arch) as DownloadArch;
+    return resolve("macos", arch)?.url || asset.url;
+  }
+  return resolve(asset.os, asset.arch)?.url || asset.url;
+};
+
+const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
+  if (asset.os === "macos") {
+    const arch = (downloadStore.arch === "unknown" ? "x64" : downloadStore.arch) as DownloadArch;
+    return resolve("macos", arch)?.version || null;
+  }
+  return resolve(asset.os, asset.arch)?.version || null;
 };
 </script>
 
@@ -65,12 +83,15 @@ const platformColors: Record<string, string> = {
           <div class="download-section__card-info">
             <h3 class="download-section__card-label">{{ asset.label }}</h3>
             <span class="download-section__card-arch">{{ asset.arch }}</span>
+            <span v-if="getDownloadVersion(asset)" class="download-section__card-version">
+              v{{ getDownloadVersion(asset) }}
+            </span>
           </div>
 
           <!-- Download button -->
           <a
             class="download-section__btn"
-            :href="asset.url"
+            :href="getDownloadUrl(asset)"
             @click.stop="downloadStore.setSelected(asset.id)"
           >
             <v-icon size="18" class="download-section__btn-icon">mdi-download</v-icon>
@@ -319,6 +340,15 @@ const platformColors: Record<string, string> = {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   opacity: 0.45;
+}
+
+.download-section__card-version {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  opacity: 0.5;
 }
 
 /* Download button */

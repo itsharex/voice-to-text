@@ -11,7 +11,14 @@ export const supportedLocales = [
 
 export const defaultLocale: LocaleCode = "en";
 
-export const pages = ["/", "/download"] as const;
+export const pages = [
+  "/",
+  "/download",
+  "/privacy",
+  "/privacy-policy",
+  "/terms",
+  "/refund-policy"
+] as const;
 
 export const generateI18nRoutes = (): string[] => {
   const routes: string[] = [];

@@ -10,6 +10,25 @@
 export const UI_LOCALES = ['ru', 'en', 'es', 'fr', 'de', 'uk'] as const;
 export type UiLocale = (typeof UI_LOCALES)[number];
 
+/**
+ * Маппинг UI-локали → ISO 3166-1 alpha-2 код страны (для флагов).
+ * Код страны используется CDN flagcdn.com: https://flagcdn.com/{code}.svg
+ */
+export const LOCALE_FLAG_CODES: Record<UiLocale, string> = {
+  en: 'gb',
+  ru: 'ru',
+  uk: 'ua',
+  es: 'es',
+  fr: 'fr',
+  de: 'de',
+};
+
+/** URL флага по коду локали (SVG, CDN) */
+export function getFlagUrl(locale: UiLocale): string {
+  const code = LOCALE_FLAG_CODES[locale] ?? 'gb';
+  return `https://flagcdn.com/${code}.svg`;
+}
+
 export function isUiLocale(value: string): value is UiLocale {
   return (UI_LOCALES as readonly string[]).includes(value);
 }

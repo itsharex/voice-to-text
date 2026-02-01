@@ -5,6 +5,7 @@ import { listen, type UnlistenFn, emit } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
 import { getCurrentWebviewWindow } from '@tauri-apps/api/webviewWindow';
 import { LogicalSize } from '@tauri-apps/api/dpi';
+import { getVersion } from '@tauri-apps/api/app';
 import { useTranscriptionStore } from '../../stores/transcription';
 import { useAppConfigStore } from '../../stores/appConfig';
 import { useSttConfigStore } from '../../stores/sttConfig';
@@ -45,7 +46,16 @@ const { t } = useI18n();
 const showSettings = ref(false);
 const showProfile = ref(false);
 const showUpdateDialog = ref(false);
-const recordingHotkey = computed(() => appConfigStore.recordingHotkey);
+const appVersion = ref('');
+const glowColor = ref<'blue' | 'red' | null>(null);
+const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+
+// Для отображения заменяем CmdOrCtrl на понятное пользователю название
+const recordingHotkey = computed(() => {
+  const raw = appConfigStore.recordingHotkey;
+  if (!isMac) return raw.replace(/CmdOrCtrl/g, 'Ctrl');
+  return raw.replace(/CmdOrCtrl/g, 'Cmd');
+});
 
 // Debouncing для hotkey - блокирует повторные вызовы в течение 500ms
 let hotkeyDebounceTimeout: number | null = null;
@@ -113,6 +123,11 @@ onMounted(async () => {
     store.error = t('main.tauriUnavailable');
     return;
   }
+
+  // Загружаем версию приложения
+  try {
+    appVersion.value = await getVersion();
+  } catch {}
 
   await store.initialize();
   await appConfigStore.startSync();
@@ -208,6 +223,14 @@ const handleToggle = async () => {
   await store.toggleRecording();
 };
 
+// Обёртка для клика — запускает glow pulse эффект и переключает запись
+const onRecordClick = (e: MouseEvent) => {
+  glowColor.value = store.isRecording ? 'red' : 'blue';
+  const btn = e.currentTarget as HTMLElement;
+  btn.addEventListener('animationend', () => { glowColor.value = null; }, { once: true });
+  handleToggle();
+};
+
 const handleHotkeyToggle = async () => {
   // Защита от случайных двойных нажатий (debouncing)
   if (isHotkeyProcessing) {
@@ -298,6 +321,7 @@ const minimizeWindow = async () => {
       <div class="header" data-tauri-drag-region @mousedown="onDragMouseDown">
         <div class="title-row">
           <div class="title">{{ t('app.title') }}</div>
+          <span v-if="appVersion" class="app-version">{{ appVersion }}</span>
           <v-chip
             v-if="updateStore.availableVersion"
             class="update-badge no-drag"
@@ -373,10 +397,17 @@ const minimizeWindow = async () => {
       <!-- Controls -->
       <div class="controls">
         <button
+          v-ripple="{ class: store.isRecording ? 'text-red' : 'text-blue' }"
           class="record-button no-drag"
-          :class="{ recording: store.isRecording, starting: store.isStarting, processing: store.isProcessing }"
+          :class="{
+            recording: store.isRecording,
+            starting: store.isStarting,
+            processing: store.isProcessing,
+            'glow-blue': glowColor === 'blue',
+            'glow-red': glowColor === 'red',
+          }"
           :disabled="store.isProcessing || store.isStarting"
-          @click="handleToggle"
+          @click="onRecordClick"
         >
           <span v-if="store.isRecording" class="mdi mdi-stop"></span>
           <span v-else-if="store.isProcessing" class="mdi mdi-cached record-icon-spin"></span>
@@ -477,13 +508,9 @@ const minimizeWindow = async () => {
 }
 
 .title {
-  flex: 1;
   font-size: 19px;
   font-weight: 600;
   color: var(--color-text);
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -708,6 +735,7 @@ const minimizeWindow = async () => {
 }
 
 .record-button {
+  position: relative;
   width: 64px;
   height: 64px;
   border-radius: 50%;
@@ -719,7 +747,41 @@ const minimizeWindow = async () => {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+  overflow: visible;
+}
+
+/* Glow pulse эффект снаружи кнопки */
+.record-button.glow-blue {
+  animation: glow-pulse-blue 1s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+.record-button.glow-red {
+  animation: glow-pulse-red 1s cubic-bezier(0.2, 0, 0.2, 1) forwards;
+}
+
+@keyframes glow-pulse-blue {
+  0% {
+    box-shadow: 0 0 0 0 rgba(33, 150, 243, 0.5);
+  }
+  30% {
+    box-shadow: 0 0 16px 10px rgba(33, 150, 243, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 20px rgba(33, 150, 243, 0);
+  }
+}
+
+@keyframes glow-pulse-red {
+  0% {
+    box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.5);
+  }
+  30% {
+    box-shadow: 0 0 16px 10px rgba(244, 67, 54, 0.35);
+  }
+  100% {
+    box-shadow: 0 0 0 20px rgba(244, 67, 54, 0);
+  }
 }
 
 .record-button:hover:not(:disabled) {
@@ -834,12 +896,21 @@ const minimizeWindow = async () => {
   transform: translateY(-5px);
 }
 
+/* Версия приложения */
+.app-version {
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--color-text-secondary, rgba(255, 255, 255, 0.35));
+  white-space: nowrap;
+  user-select: none;
+}
+
 /* Бейдж "Есть обновление" рядом с заголовком */
 .title-row {
   flex: 1;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-width: 0;
 }
 

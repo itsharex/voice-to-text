@@ -106,9 +106,11 @@ usePageSeo("meta.termsTitle", "meta.termsDescription");
           </li>
           <li>
             <strong>Refunds:</strong> Refund requests are handled on a case-by-case basis. Please
-            contact us at
-            <a href="mailto:iliyazelenkog@gmail.com">iliyazelenkog@gmail.com</a> for refund
-            inquiries.
+            review our
+            <a href="/refund-policy">Refund Policy</a>
+            and contact us at
+            <a href="mailto:iliyazelenkog@gmail.com">iliyazelenkog@gmail.com</a>
+            for refund inquiries.
           </li>
           <li>
             <strong>Price Changes:</strong> We may change subscription prices with at least 30 days'

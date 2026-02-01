@@ -1,6 +1,13 @@
 import vuetify from "vite-plugin-vuetify";
 import { generateI18nRoutes, supportedLocales } from "./data/i18n";
 
+const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || "https://example.com";
+const githubRepo = process.env.NUXT_PUBLIC_GITHUB_REPO || "777genius/voice-to-text";
+const githubReleasesUrl = `https://github.com/${githubRepo}/releases`;
+const tauriUpdaterUrl =
+  process.env.NUXT_PUBLIC_TAURI_UPDATER_URL ||
+  `https://github.com/${githubRepo}/releases/latest/download/latest.json`;
+
 export default defineNuxtConfig({
   compatibilityDate: "2026-01-19",
   ssr: true,
@@ -26,7 +33,15 @@ export default defineNuxtConfig({
   },
   nitro: {
     prerender: {
-      routes: generateI18nRoutes()
+      // Важно для static деплоя (Render): пререндерим не только страницы, но и “сервисные” файлы
+      // (sitemap/robots) + слепок актуальных ссылок на релизы.
+      routes: [
+        ...generateI18nRoutes(),
+        "/sitemap.xml",
+        "/robots.txt",
+        "/_robots.txt",
+        "/downloads.json"
+      ]
     }
   },
   i18n: {
@@ -48,12 +63,20 @@ export default defineNuxtConfig({
     }
   },
   site: {
-    url: "https://example.com",
-    name: "Voice to Text"
+    url: siteUrl,
+    name: "VoicetextAI"
   },
   runtimeConfig: {
+    // Приватный токен не обязателен (мы в основном читаем public latest.json),
+    // но оставляем на будущее, если захотим дергать GitHub API без лимитов.
+    github: {
+      token: process.env.GITHUB_TOKEN
+    },
     public: {
-      siteUrl: "https://example.com"
+      siteUrl,
+      githubRepo,
+      githubReleasesUrl,
+      tauriUpdaterUrl
     }
   }
 });

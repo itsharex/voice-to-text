@@ -72,11 +72,16 @@
   },
   "footer": {
     "copyright": "© {year} Voice to Text",
-    "tagline": "Privacy-first voice-to-text"
+    "tagline": "Privacy-first voice-to-text",
+    "links": {
+      "terms": "Terms",
+      "privacyPolicy": "Privacy",
+      "refundPolicy": "Refunds"
+    }
   },
   "meta": {
-    "homeTitle": "Voice to Text — Privacy-focused transcription",
-    "homeDescription": "Real-time voice-to-text app with offline support and global hotkeys.",
+    "homeTitle": "VoicetextAI — free, easy, fast, real-time voice-to-text",
+    "homeDescription": "Modern cross-platform desktop app using AI. 50 languages. Free.",
     "downloadTitle": "Download Voice to Text",
     "downloadDescription": "Get the latest builds for macOS, Windows, and Linux.",
     "privacyTitle": "Privacy at Voice to Text",
@@ -85,6 +90,8 @@
     "privacyPolicyDescription": "How we collect, use, and protect your data. Voice to Text privacy policy.",
     "termsTitle": "Terms of Service — Voice to Text",
     "termsDescription": "Terms and conditions for using Voice to Text application and services.",
+    "refundPolicyTitle": "Refund Policy — Voice to Text",
+    "refundPolicyDescription": "Refunds, cancellations, and how to request a refund for Voice to Text subscriptions.",
     "openSourceTitle": "Open Source — Voice to Text",
     "openSourceDescription": "Explore the open-source code behind Voice to Text on GitHub."
   }

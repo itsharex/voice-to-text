@@ -189,6 +189,18 @@ onMounted(() => {
             </v-list-item-subtitle>
           </v-list-item>
 
+          <v-list-item v-else>
+            <template #prepend>
+              <v-icon>mdi-card-account-details-outline</v-icon>
+            </template>
+            <v-list-item-title class="text-body-2 text-medium-emphasis">
+              {{ t('profile.plan') }}
+            </v-list-item-title>
+            <v-list-item-subtitle class="text-body-1">
+              {{ t('profile.noPlan') }}
+            </v-list-item-subtitle>
+          </v-list-item>
+
           <v-list-item v-if="license && usageInfo">
             <template #prepend>
               <v-icon>mdi-clock-outline</v-icon>

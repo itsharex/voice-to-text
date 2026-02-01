@@ -6,33 +6,24 @@
 import { computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import SettingGroup from '../shared/SettingGroup.vue';
+import FlagIcon from '@/presentation/components/FlagIcon.vue';
 import { useSettings } from '../../composables/useSettings';
-import type { LanguageOption } from '../../../domain/types';
+import { UI_LOCALES, type UiLocale } from '@/i18n.locales';
 
 const { t } = useI18n();
 const { language, syncLocale } = useSettings();
 
-type UiLanguageOption = LanguageOption & {
-  flag: string;
-};
+interface UiLanguageOption {
+  value: UiLocale;
+  label: string;
+}
 
-const FLAGS: Record<string, string> = {
-  en: '🇺🇸',
-  ru: '🇷🇺',
-  uk: '🇺🇦',
-  es: '🇪🇸',
-  fr: '🇫🇷',
-  de: '🇩🇪',
-};
-
-const languageOptions = computed<UiLanguageOption[]>(() => [
-  { value: 'en', label: t('languages.en'), flag: FLAGS.en },
-  { value: 'ru', label: t('languages.ru'), flag: FLAGS.ru },
-  { value: 'uk', label: t('languages.uk'), flag: FLAGS.uk },
-  { value: 'es', label: t('languages.es'), flag: FLAGS.es },
-  { value: 'fr', label: t('languages.fr'), flag: FLAGS.fr },
-  { value: 'de', label: t('languages.de'), flag: FLAGS.de },
-]);
+const languageOptions = computed<UiLanguageOption[]>(() =>
+  UI_LOCALES.map(code => ({
+    value: code,
+    label: t(`languages.${code}`),
+  }))
+);
 
 // Синхронизируем UI локаль при изменении языка
 watch(language, () => {
@@ -55,14 +46,14 @@ watch(language, () => {
       :clearable="false"
     >
       <template #selection="{ item }">
-        <span class="mr-2">{{ (item?.raw as UiLanguageOption)?.flag }}</span>
+        <FlagIcon :locale="(item?.raw as UiLanguageOption)?.value" :size="18" class="mr-2" />
         <span>{{ (item?.raw as UiLanguageOption)?.label }}</span>
       </template>
 
       <template #item="{ props, item }">
         <v-list-item v-bind="props">
           <template #prepend>
-            <span class="mr-2">{{ (item?.raw as UiLanguageOption)?.flag }}</span>
+            <FlagIcon :locale="(item?.raw as UiLanguageOption)?.value" :size="18" class="mr-2" />
           </template>
           <v-list-item-title>{{ (item?.raw as UiLanguageOption)?.label }}</v-list-item-title>
         </v-list-item>

@@ -5,6 +5,8 @@
 
 import { computed, onUnmounted, ref, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
+import { invoke } from '@tauri-apps/api/core';
+import { isTauriAvailable } from '@/utils/tauri';
 import SettingGroup from '../shared/SettingGroup.vue';
 import { useSettings } from '../../composables/useSettings';
 
@@ -20,17 +22,40 @@ const hotkeyPlaceholder = computed(() =>
     : t('settings.hotkey.placeholder')
 );
 
-watch(isCapturing, (enabled) => {
-  if (enabled) setupWindowListener();
-  else cleanupWindowListener();
+watch(isCapturing, async (enabled) => {
+  if (enabled) {
+    // Временно снимаем глобальный хоткей, чтобы он не перехватывал нажатия
+    if (isTauriAvailable()) {
+      try {
+        await invoke('unregister_recording_hotkey');
+      } catch (e) {
+        console.warn('Не удалось снять хоткей:', e);
+      }
+    }
+    setupWindowListener();
+  } else {
+    cleanupWindowListener();
+    // Восстанавливаем глобальный хоткей
+    if (isTauriAvailable()) {
+      try {
+        await invoke('register_recording_hotkey');
+      } catch (e) {
+        console.warn('Не удалось зарегистрировать хоткей:', e);
+      }
+    }
+  }
 });
 
 onUnmounted(() => {
   cleanupWindowListener();
+  // Если компонент размонтирован во время захвата — восстанавливаем хоткей
+  if (isCapturing.value && isTauriAvailable()) {
+    invoke('register_recording_hotkey').catch(() => {});
+  }
 });
 
 function formatHotkeyFromKeyboardEvent(event: KeyboardEvent): string | null {
-  // Не считаем одиночные модификаторы “клавишей” — ждём реальную кнопку.
+  // Не считаем одиночные модификаторы "клавишей" — ждём реальную кнопку.
   if (event.key === 'Shift' || event.key === 'Control' || event.key === 'Alt' || event.key === 'Meta') {
     return null;
   }
@@ -39,7 +64,7 @@ function formatHotkeyFromKeyboardEvent(event: KeyboardEvent): string | null {
 
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
-  // По умолчанию пишем в “тауришном” формате. На macOS отдельно поддерживаем чистый Ctrl,
+  // По умолчанию пишем в "тауришном" формате. На macOS отдельно поддерживаем чистый Ctrl,
   // чтобы сочетание сохранялось так же, как пользователь его нажал.
   if (event.metaKey) {
     parts.push('CmdOrCtrl');
@@ -108,7 +133,7 @@ function formatHotkeyFromKeyboardEvent(event: KeyboardEvent): string | null {
         key = 'Right';
         break;
       default: {
-        // F-клавиши и прочие “понятные” варианты берём из event.key, иначе игнорируем.
+        // F-клавиши и прочие "понятные" варианты берём из event.key, иначе игнорируем.
         const k = (event.key ?? '').toUpperCase();
         if (/^F\d{1,2}$/.test(k)) key = k;
         break;
@@ -118,7 +143,7 @@ function formatHotkeyFromKeyboardEvent(event: KeyboardEvent): string | null {
 
   if (!key) return null;
 
-  // Если пользователь нажал только “кнопку” без модификаторов — тоже позволяем (формат валидный).
+  // Если пользователь нажал только "кнопку" без модификаторов — тоже позволяем (формат валидный).
   return parts.length > 0 ? [...parts, key].join('+') : key;
 }
 
@@ -170,18 +195,49 @@ function stopCapture() {
       hide-details
       prepend-inner-icon="mdi-keyboard"
       readonly
+      :class="{ 'hotkey-capturing': isCapturing }"
       :append-inner-icon="isCapturing ? 'mdi-record-circle-outline' : undefined"
       @focus="startCapture"
       @click="startCapture"
       @blur="stopCapture"
     />
 
+    <!-- Подсказка при активном захвате -->
+    <div v-if="isCapturing" class="hotkey-capture-hint mt-2">
+      <v-icon size="14" color="error" class="mr-1">mdi-circle</v-icon>
+      <span>{{ t('settings.hotkey.captureHint') }}</span>
+    </div>
+
     <template #hint>
       <div class="text-caption text-medium-emphasis mt-2">
         <p class="mb-1">{{ t('settings.hotkey.hintLine1') }}</p>
-        <p class="mb-1">{{ t('settings.hotkey.hintLine2') }}</p>
-        <p class="mb-0">{{ t('settings.hotkey.hintLine3') }}</p>
+        <p class="mb-0">{{ t('settings.hotkey.hintLine2') }}</p>
       </div>
     </template>
   </SettingGroup>
 </template>
+
+<style scoped>
+.hotkey-capturing :deep(.v-field) {
+  border: 2px solid rgb(var(--v-theme-error)) !important;
+  box-shadow: 0 0 0 1px rgba(var(--v-theme-error), 0.25);
+}
+
+.hotkey-capturing :deep(.v-field__append-inner .v-icon) {
+  color: rgb(var(--v-theme-error));
+  animation: pulse-recording 1.2s ease-in-out infinite;
+}
+
+.hotkey-capture-hint {
+  display: flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: rgb(var(--v-theme-error));
+  font-weight: 500;
+}
+
+@keyframes pulse-recording {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+</style>

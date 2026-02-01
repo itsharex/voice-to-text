@@ -64,9 +64,9 @@ const messages = {
         label: 'Recording hotkey',
         placeholder: 'Click and press a key combination',
         capturePlaceholder: 'Press keys...',
+        captureHint: 'Press the desired key combination — it will be applied automatically',
         hintLine1: 'Click the field and press a key combo — the format will be set automatically.',
         hintLine2: 'Supported modifiers: Ctrl, Alt, Shift, Cmd (Mac), CmdOrCtrl (cross‑platform Cmd/Ctrl).',
-        hintLine3: '⚠️ Avoid Ctrl+X on macOS - this combo is reserved by the system.',
       },
       micSensitivity: {
         label: 'Microphone sensitivity: {value}%',
@@ -240,6 +240,7 @@ const messages = {
         disabled: 'Paused',
         past_due: 'Past due',
       },
+      noPlan: 'No active plan',
       linkedAccounts: 'Linked accounts',
       linked: 'Linked',
       providers: {
@@ -310,9 +311,9 @@ const messages = {
         label: 'Горячая клавиша для записи',
         placeholder: 'Кликните и нажмите сочетание клавиш',
         capturePlaceholder: 'Нажмите клавиши...',
+        captureHint: 'Нажмите нужную комбинацию клавиш — она применится автоматически',
         hintLine1: 'Кликните по полю и нажмите сочетание — формат выставится автоматически.',
         hintLine2: 'Поддерживаемые модификаторы: Ctrl, Alt, Shift, Cmd (Mac), CmdOrCtrl (кроссплатформенный Cmd/Ctrl).',
-        hintLine3: '⚠️ Избегайте Ctrl+X на macOS - эта комбинация занята системой.',
       },
       micSensitivity: {
         label: 'Чувствительность микрофона: {value}%',
@@ -486,6 +487,7 @@ const messages = {
         disabled: 'Приостановлена',
         past_due: 'Просрочена',
       },
+      noPlan: 'Нет активного плана',
       linkedAccounts: 'Привязанные аккаунты',
       linked: 'Привязан',
       providers: {
@@ -556,9 +558,9 @@ const messages = {
         label: 'Atajo de grabación',
         placeholder: 'Haz clic y pulsa una combinación',
         capturePlaceholder: 'Pulsa teclas...',
+        captureHint: 'Pulsa la combinación de teclas deseada — se aplicará automáticamente',
         hintLine1: 'Haz clic en el campo y pulsa una combinación — el formato se aplicará automáticamente.',
         hintLine2: 'Modificadores compatibles: Ctrl, Alt, Shift, Cmd (Mac), CmdOrCtrl (Cmd/Ctrl).',
-        hintLine3: '⚠️ Evite Ctrl+X en macOS - está reservado por el sistema.',
       },
       micSensitivity: {
         label: 'Sensibilidad del micrófono: {value}%',
@@ -732,6 +734,7 @@ const messages = {
         disabled: 'Pausada',
         past_due: 'Vencida',
       },
+      noPlan: 'Sin plan activo',
       linkedAccounts: 'Cuentas vinculadas',
       linked: 'Vinculada',
       providers: {
@@ -799,12 +802,12 @@ const messages = {
         },
       },
       hotkey: {
-        label: 'Raccourci d’enregistrement',
+        label: 'Raccourci d\u2019enregistrement',
         placeholder: 'Cliquez et appuyez sur une combinaison',
         capturePlaceholder: 'Appuyez sur les touches...',
+        captureHint: 'Appuyez sur la combinaison souhaitée — elle sera appliquée automatiquement',
         hintLine1: 'Cliquez dans le champ et appuyez sur une combinaison — le format sera défini automatiquement.',
         hintLine2: 'Modificateurs pris en charge : Ctrl, Alt, Shift, Cmd (Mac), CmdOrCtrl.',
-        hintLine3: '⚠️ Évitez Ctrl+X sur macOS - combinaison réservée par le système.',
       },
       micSensitivity: {
         label: 'Sensibilité du micro : {value}%',
@@ -978,6 +981,7 @@ const messages = {
         disabled: 'Suspendue',
         past_due: 'En retard',
       },
+      noPlan: 'Aucun forfait actif',
       linkedAccounts: 'Comptes liés',
       linked: 'Lié',
       providers: {
@@ -1048,9 +1052,9 @@ const messages = {
         label: 'Aufnahme-Hotkey',
         placeholder: 'Klicken und Tastenkombination drücken',
         capturePlaceholder: 'Tasten drücken...',
+        captureHint: 'Drücken Sie die gewünschte Tastenkombination — sie wird automatisch übernommen',
         hintLine1: 'Klicken Sie in das Feld und drücken Sie die Kombination — das Format wird automatisch gesetzt.',
         hintLine2: 'Unterstützte Modifikatoren: Ctrl, Alt, Shift, Cmd (Mac), CmdOrCtrl.',
-        hintLine3: '⚠️ Vermeiden Sie Ctrl+X auf macOS - Systemkürzel.',
       },
       micSensitivity: {
         label: 'Mikrofonempfindlichkeit: {value}%',
@@ -1224,6 +1228,7 @@ const messages = {
         disabled: 'Pausiert',
         past_due: 'Überfällig',
       },
+      noPlan: 'Kein aktiver Tarif',
       linkedAccounts: 'Verknüpfte Konten',
       linked: 'Verknüpft',
       providers: {
@@ -1294,9 +1299,9 @@ const messages = {
         label: 'Гаряча клавіша для запису',
         placeholder: 'Клікніть і натисніть комбінацію клавіш',
         capturePlaceholder: 'Натисніть клавіші...',
+        captureHint: 'Натисніть потрібну комбінацію клавіш — вона застосується автоматично',
         hintLine1: 'Клікніть по полю й натисніть комбінацію — формат виставиться автоматично.',
         hintLine2: 'Підтримувані модифікатори: Ctrl, Alt, Shift, Cmd (Mac), CmdOrCtrl (кросплатформний Cmd/Ctrl).',
-        hintLine3: '⚠️ Уникайте Ctrl+X на macOS - ця комбінація зайнята системою.',
       },
       micSensitivity: {
         label: 'Чутливість мікрофона: {value}%',
@@ -1470,6 +1475,7 @@ const messages = {
         disabled: 'Призупинена',
         past_due: 'Прострочена',
       },
+      noPlan: 'Немає активного плану',
       linkedAccounts: 'Привʼязані акаунти',
       linked: 'Привʼязано',
       providers: {

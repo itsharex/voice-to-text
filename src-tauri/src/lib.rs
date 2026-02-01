@@ -107,6 +107,7 @@ pub fn run() {
             commands::start_microphone_test,
             commands::stop_microphone_test,
             commands::register_recording_hotkey,
+            commands::unregister_recording_hotkey,
             commands::check_for_updates,
             commands::install_update,
             commands::get_available_whisper_models,

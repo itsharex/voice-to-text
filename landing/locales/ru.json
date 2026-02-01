@@ -72,11 +72,16 @@
   },
   "footer": {
     "copyright": "© {year} Voice to Text",
-    "tagline": "Голос в текст с фокусом на приватность"
+    "tagline": "Голос в текст с фокусом на приватность",
+    "links": {
+      "terms": "Условия",
+      "privacyPolicy": "Конфиденциальность",
+      "refundPolicy": "Возвраты"
+    }
   },
   "meta": {
-    "homeTitle": "Voice to Text — приватная транскрипция",
-    "homeDescription": "Приложение голос‑в‑текст с офлайн‑режимом и хоткеями.",
+    "homeTitle": "VoicetextAI — бесплатный, простой, быстрый голос-в-текст в реальном времени",
+    "homeDescription": "Современное кроссплатформенное десктопное приложение на базе ИИ. 50 языков. Бесплатно.",
     "downloadTitle": "Скачать Voice to Text",
     "downloadDescription": "Сборки для macOS, Windows и Linux.",
     "privacyTitle": "Приватность Voice to Text",
@@ -85,6 +90,8 @@
     "privacyPolicyDescription": "Как мы собираем, используем и защищаем ваши данные.",
     "termsTitle": "Условия использования — Voice to Text",
     "termsDescription": "Условия и положения использования приложения Voice to Text.",
+    "refundPolicyTitle": "Политика возвратов — Voice to Text",
+    "refundPolicyDescription": "Возвраты, отмена подписки и как запросить возврат для подписок Voice to Text.",
     "openSourceTitle": "Open Source — Voice to Text",
     "openSourceDescription": "Изучите открытый исходный код Voice to Text на GitHub."
   }

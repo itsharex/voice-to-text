@@ -1172,6 +1172,22 @@ pub async fn register_recording_hotkey(
     Ok(())
 }
 
+/// Временно снять регистрацию горячей клавиши (пока пользователь настраивает новую)
+#[tauri::command]
+pub async fn unregister_recording_hotkey(
+    app_handle: AppHandle,
+) -> Result<(), String> {
+    use tauri_plugin_global_shortcut::GlobalShortcutExt;
+
+    log::info!("Command: unregister_recording_hotkey - временно снимаем хоткей");
+
+    if let Err(e) = app_handle.global_shortcut().unregister_all() {
+        log::warn!("Failed to unregister all shortcuts: {}", e);
+    }
+
+    Ok(())
+}
+
 //
 // Update Commands
 //
