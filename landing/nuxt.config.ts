@@ -1,6 +1,10 @@
 import vuetify from "vite-plugin-vuetify";
 import { generateI18nRoutes, supportedLocales } from "./data/i18n";
 
+// В nuxt.config.ts мы используем process.env, но не тянем node-тайпинги в lint.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const process: any;
+
 const siteUrl = process.env.NUXT_PUBLIC_SITE_URL || "https://example.com";
 const githubRepo = process.env.NUXT_PUBLIC_GITHUB_REPO || "777genius/voice-to-text";
 const githubReleasesUrl = `https://github.com/${githubRepo}/releases`;
@@ -55,7 +59,9 @@ export default defineNuxtConfig({
   },
   i18n: {
     restructureDir: false,
-    locales: supportedLocales,
+    // Nuxt i18n expects a mutable array type, but our list is declared as readonly for safety.
+    // Spread makes it mutable without changing runtime behavior.
+    locales: [...supportedLocales] as any,
     defaultLocale: "en",
     strategy: "prefix_except_default",
     lazy: true,
@@ -71,6 +77,7 @@ export default defineNuxtConfig({
       fallbackLocale: "en"
     }
   },
+  // @ts-expect-error - поле предоставляется nuxt-модулями (например sitemap/site), типы в текущем конфиге не подключены.
   site: {
     url: siteUrl,
     name: "VoicetextAI"
@@ -86,7 +93,18 @@ export default defineNuxtConfig({
       githubRepo,
       githubReleasesUrl,
       tauriUpdaterUrl,
-      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || "https://api.voicetext.site"
+      apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || "https://api.voicetext.site",
+      paddle: {
+        // Paddle.js client-side token (test_... for sandbox, live_... for production)
+        clientToken: process.env.NUXT_PUBLIC_PADDLE_CLIENT_TOKEN || "",
+        // "sandbox" | "live"
+        environment: process.env.NUXT_PUBLIC_PADDLE_ENVIRONMENT || "live",
+        // Price IDs for Paddle.Checkout.open()
+        priceIds: {
+          pro: process.env.NUXT_PUBLIC_PADDLE_PRICE_ID_PRO || "",
+          business: process.env.NUXT_PUBLIC_PADDLE_PRICE_ID_BUSINESS || ""
+        }
+      }
     }
   }
 });

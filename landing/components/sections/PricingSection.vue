@@ -4,8 +4,76 @@ import { useLandingContent } from '~/composables/useLandingContent'
 
 const { content } = useLandingContent()
 const { t } = useI18n()
+const cfg = useRuntimeConfig()
+const { $paddle } = useNuxtApp()
+
+const isCheckoutDialogOpen = ref(false)
+const checkoutEmail = ref("")
+const selectedPlanId = ref<string | null>(null)
+
+const priceIdByPlan = computed<Record<string, string>>(() => {
+  const p = (cfg.public as any)?.paddle?.priceIds || {}
+  return {
+    pro: p.pro || "",
+    business: p.business || ""
+  }
+})
+
+const canUsePaddle = computed(() => Boolean(($paddle as any) && (cfg.public as any)?.paddle?.clientToken))
 
 function onGetStarted(plan: { id: string }) {
+  // Free tier → просто ведём на скачивание как раньше.
+  if (plan.id === "free") {
+    const el = document.getElementById('download')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
+    }
+    return
+  }
+
+  // Paid plans → открываем checkout (если Paddle.js настроен).
+  const priceId = priceIdByPlan.value[plan.id]
+  if (!priceId || !canUsePaddle.value) {
+    const el = document.getElementById('download')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' })
+    }
+    return
+  }
+
+  selectedPlanId.value = plan.id
+  isCheckoutDialogOpen.value = true
+}
+
+function openCheckout() {
+  const planId = selectedPlanId.value
+  if (!planId) return
+
+  const priceId = priceIdByPlan.value[planId]
+  if (!priceId || !canUsePaddle.value) return
+
+  const email = checkoutEmail.value.trim()
+  if (!email) return
+
+  ;($paddle as any).Checkout.open({
+    // В доке рекомендуют открывать overlay через settings.displayMode
+    settings: {
+      displayMode: "overlay",
+      variant: "multi-page"
+    },
+    items: [{ priceId, quantity: 1 }],
+    // Prefill email to speed up checkout (and makes it deterministic for our webhooks).
+    customer: { email },
+    // We rely on this value as fallback for email extraction in webhooks.
+    customData: {
+      voicetext_customer_email: email
+    }
+  })
+
+  isCheckoutDialogOpen.value = false
+  checkoutEmail.value = ""
+  selectedPlanId.value = null
+
   const el = document.getElementById('download')
   if (el) {
     el.scrollIntoView({ behavior: 'smooth' })
@@ -90,6 +158,32 @@ function onGetStarted(plan: { id: string }) {
         <v-icon size="16" class="pricing-section__refund-icon">mdi-shield-check-outline</v-icon>
         {{ t("pricing.refundNote") }}
       </p>
+
+      <v-dialog v-model="isCheckoutDialogOpen" max-width="520">
+        <v-card>
+          <v-card-title class="text-h6">Checkout</v-card-title>
+          <v-card-text>
+            <p style="opacity: 0.75; margin-bottom: 12px">
+              Enter your email to continue. We use it to send receipts and to deliver your license key.
+            </p>
+            <v-text-field
+              v-model="checkoutEmail"
+              label="Email"
+              type="email"
+              autocomplete="email"
+              variant="outlined"
+              placeholder="you@example.com"
+            />
+          </v-card-text>
+          <v-card-actions>
+            <v-spacer />
+            <v-btn variant="text" @click="isCheckoutDialogOpen = false">Cancel</v-btn>
+            <v-btn color="primary" :disabled="!checkoutEmail.trim()" @click="openCheckout">
+              Continue
+            </v-btn>
+          </v-card-actions>
+        </v-card>
+      </v-dialog>
     </v-container>
   </section>
 </template>
