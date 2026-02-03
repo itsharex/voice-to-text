@@ -46,6 +46,10 @@ onMounted(async () => {
 
   unlistenOpened = await listen<boolean>('settings-window-opened', async () => {
     if (isLoading.value) return;
+    // Если пользователь быстро закрыл настройки после изменения чувствительности,
+    // debounce/flush мог не успеть примениться до refresh(). В таком случае refresh подтянет старое (95)
+    // и перетрёт UI. Поэтому сначала "дожимаем" pending значение, и только потом делаем refresh + loadConfig.
+    await settingsStore.flushMicrophoneSensitivityPersist();
     // Подтягиваем свежий конфиг через per-topic handles, дожидаемся завершения
     await Promise.all([appConfigStore.refresh(), sttConfigStore.refresh()]);
     await loadConfig();

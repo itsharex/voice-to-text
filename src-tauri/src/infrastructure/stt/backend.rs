@@ -27,6 +27,11 @@ const PROD_BACKEND_URL: &str = "wss://api.voicetext.site";
 /// URL бэкенда для development (localhost)
 const DEV_BACKEND_URL: &str = "ws://localhost:8080";
 
+// Таймауты: критичны для стабильности при плохом интернете.
+// Без них connect/send могут "подвиснуть" и UI будет бесконечно ждать.
+const WS_CONNECT_TIMEOUT_SECS: u64 = 8;
+const WS_SEND_TIMEOUT_SECS: u64 = 3;
+
 /// Проверяем, что URL указывает на локальный бэкенд (localhost/loopback).
 ///
 /// Нужен для dev-режима: если у пользователя сохранён "боевой" токен, но он запускает
@@ -164,12 +169,23 @@ impl BackendProvider {
             let json = serde_json::to_string(msg)
                 .map_err(|e| SttError::Processing(format!("JSON serialize error: {}", e)))?;
 
-            ws_write
-                .lock()
-                .await
-                .send(Message::Text(json))
-                .await
-                .map_err(|e| SttError::Connection(format!("WS send error: {}", e)))?;
+            let send_fut = async {
+                let mut guard = ws_write.lock().await;
+                guard.send(Message::Text(json)).await
+            };
+
+            match tokio::time::timeout(Duration::from_secs(WS_SEND_TIMEOUT_SECS), send_fut).await {
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => {
+                    // Если не можем отправлять — считаем соединение "поломанным", чтобы send_audio быстро фейлился.
+                    self.is_closed.store(true, Ordering::SeqCst);
+                    return Err(SttError::Connection(format!("WS send error: {}", e)));
+                }
+                Err(_) => {
+                    self.is_closed.store(true, Ordering::SeqCst);
+                    return Err(SttError::Connection("WS send timeout".to_string()));
+                }
+            }
 
             Ok(())
         } else {
@@ -290,7 +306,13 @@ impl SttProvider for BackendProvider {
             .body(())
             .map_err(|e| SttError::Connection(format!("Failed to build WS request: {}", e)))?;
 
-        let (ws_stream, _response) = connect_async(request).await.map_err(|e| match e {
+        let (ws_stream, _response) = tokio::time::timeout(
+            Duration::from_secs(WS_CONNECT_TIMEOUT_SECS),
+            connect_async(request),
+        )
+        .await
+        .map_err(|_| SttError::Connection("WS connection timeout".to_string()))?
+        .map_err(|e| match e {
             tokio_tungstenite::tungstenite::Error::Http(resp) => {
                 let status = resp.status();
 
@@ -558,8 +580,19 @@ impl SttProvider for BackendProvider {
                 if is_closed_for_keepalive.load(Ordering::SeqCst) {
                     break;
                 }
-                let mut guard = ws_write_for_keepalive.lock().await;
-                if guard.send(Message::Ping(Vec::new())).await.is_err() {
+                let ping_fut = async {
+                    let mut guard = ws_write_for_keepalive.lock().await;
+                    guard.send(Message::Ping(Vec::new())).await
+                };
+
+                if tokio::time::timeout(Duration::from_secs(WS_SEND_TIMEOUT_SECS), ping_fut)
+                    .await
+                    .ok()
+                    .and_then(|r| r.ok())
+                    .is_none()
+                {
+                    // Пинг не смогли отправить → считаем соединение закрытым/битым.
+                    is_closed_for_keepalive.store(true, Ordering::SeqCst);
                     break;
                 }
             }
@@ -645,12 +678,22 @@ impl SttProvider for BackendProvider {
                 );
             }
 
-            ws_write
-                .lock()
-                .await
-                .send(Message::Binary(bytes))
-                .await
-                .map_err(|e| SttError::Connection(format!("Failed to send audio: {}", e)))?;
+            let send_fut = async {
+                let mut guard = ws_write.lock().await;
+                guard.send(Message::Binary(bytes)).await
+            };
+
+            match tokio::time::timeout(Duration::from_secs(WS_SEND_TIMEOUT_SECS), send_fut).await {
+                Ok(Ok(())) => {}
+                Ok(Err(e)) => {
+                    self.is_closed.store(true, Ordering::SeqCst);
+                    return Err(SttError::Connection(format!("Failed to send audio: {}", e)));
+                }
+                Err(_) => {
+                    self.is_closed.store(true, Ordering::SeqCst);
+                    return Err(SttError::Connection("WS send timeout".to_string()));
+                }
+            }
 
             if self.audio_batch_frames == 0 {
                 self.batch_started_at = None;
@@ -673,7 +716,11 @@ impl SttProvider for BackendProvider {
                 self.batch_started_at = None;
                 self.sent_chunks_count += 1;
                 self.sent_bytes_total += bytes.len();
-                let _ = ws_write.lock().await.send(Message::Binary(bytes)).await;
+                let flush_fut = async {
+                    let mut guard = ws_write.lock().await;
+                    guard.send(Message::Binary(bytes)).await
+                };
+                let _ = tokio::time::timeout(Duration::from_secs(WS_SEND_TIMEOUT_SECS), flush_fut).await;
             }
         }
 
@@ -692,7 +739,11 @@ impl SttProvider for BackendProvider {
 
         // Закрываем WebSocket
         if let Some(ref ws_write) = self.ws_write {
-            let _ = ws_write.lock().await.close().await;
+            let close_fut = async {
+                let mut guard = ws_write.lock().await;
+                guard.close().await
+            };
+            let _ = tokio::time::timeout(Duration::from_secs(WS_SEND_TIMEOUT_SECS), close_fut).await;
         }
 
         // Останавливаем receiver task
@@ -742,7 +793,11 @@ impl SttProvider for BackendProvider {
 
         // Принудительно закрываем без отправки Close
         if let Some(ref ws_write) = self.ws_write {
-            let _ = ws_write.lock().await.close().await;
+            let close_fut = async {
+                let mut guard = ws_write.lock().await;
+                guard.close().await
+            };
+            let _ = tokio::time::timeout(Duration::from_secs(WS_SEND_TIMEOUT_SECS), close_fut).await;
         }
 
         if let Some(task) = self.receiver_task.take() {
@@ -781,7 +836,11 @@ impl SttProvider for BackendProvider {
                 self.batch_started_at = None;
                 self.sent_chunks_count += 1;
                 self.sent_bytes_total += bytes.len();
-                let _ = ws_write.lock().await.send(Message::Binary(bytes)).await;
+                let flush_fut = async {
+                    let mut guard = ws_write.lock().await;
+                    guard.send(Message::Binary(bytes)).await
+                };
+                let _ = tokio::time::timeout(Duration::from_secs(WS_SEND_TIMEOUT_SECS), flush_fut).await;
             }
         }
 

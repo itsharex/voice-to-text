@@ -9,6 +9,41 @@ use crate::presentation::{
     RecordingStatusPayload, MicrophoneTestLevelPayload, TranscriptionErrorPayload, ConnectionQualityPayload,
 };
 
+fn classify_transcription_error_type(raw: &str) -> String {
+    // Делаем классификацию максимально "практичной":
+    // этот error_type используется во фронте для connect-retry и отображения понятных сообщений.
+    let lower = raw.to_lowercase();
+
+    if lower.contains("authentication error")
+        || lower.contains("unauthorized")
+        || lower.contains("401")
+        || (lower.contains("token") && lower.contains("auth"))
+    {
+        return "authentication".to_string();
+    }
+
+    if lower.contains("timeout") || lower.contains("timed out") {
+        return "timeout".to_string();
+    }
+
+    if lower.contains("configuration error") {
+        return "configuration".to_string();
+    }
+
+    // Включаем сюда websocket/handshake/refused и т.п.
+    if lower.contains("connection error")
+        || lower.contains("websocket")
+        || lower.contains("handshake")
+        || lower.contains("connection refused")
+        || lower.contains("broken pipe")
+        || lower.contains("network")
+    {
+        return "connection".to_string();
+    }
+
+    "processing".to_string()
+}
+
 /// Start recording voice
 #[tauri::command]
 pub async fn start_recording(
@@ -171,18 +206,32 @@ pub async fn start_recording(
     );
 
     // Start recording (async - WebSocket connect, audio capture start)
-    state
+    let start_result = state
         .transcription_service
         .start_recording(
             on_partial,
             on_final,
             on_audio_level,
             on_audio_spectrum,
-            on_error,
-            on_connection_quality,
+            on_error.clone(),
+            on_connection_quality.clone(),
         )
-        .await
-        .map_err(|e| e.to_string())?;
+        .await;
+
+    // Важно: если старт провалился ДО того, как провайдер успел вызвать on_error (например, упали на handshake/connection refused),
+    // UI останется в Starting и будет ощущение "подключение идёт, но ничего не происходит".
+    // Поэтому здесь явно отправляем error + status=Error тем же контрактом, что и в runtime-ошибках.
+    if let Err(e) = start_result {
+        let error = e.to_string();
+        let error_type = classify_transcription_error_type(&error);
+
+        log::error!("Failed to start recording: {} (type: {})", error, error_type);
+
+        // Сначала transcription:error, потом recording:status=Error (во фронте есть логика suppression/retry).
+        on_error(error.clone(), error_type.clone());
+
+        return Err(error);
+    }
 
     // Emit Recording status after successful start
     log::debug!("Emitting status: Recording (stopped_via_hotkey: false)");
