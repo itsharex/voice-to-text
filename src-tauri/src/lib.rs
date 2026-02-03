@@ -8,6 +8,8 @@ use presentation::commands;
 use presentation::state::AppState;
 use tauri::{Emitter, Manager};
 use infrastructure::ConfigStore;
+#[cfg(target_os = "windows")]
+use std::time::Duration;
 
 // Определяем базовый NSPanel класс для macOS (появление поверх fullscreen приложений)
 #[cfg(target_os = "macos")]
@@ -220,6 +222,55 @@ pub fn run() {
                         // Скрываем окно
                         let _ = window_clone.hide();
                         log::debug!("Window hidden instead of closed (app still running in tray)");
+                    }
+                });
+            }
+
+            // Safety-net для Windows после апдейта: если приложение перезапустилось и стартует скрытым,
+            // показываем окно один раз, чтобы пользователь понял что всё ок.
+            //
+            // На других платформах оставляем поведение как есть.
+            #[cfg(target_os = "windows")]
+            if !is_e2e {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    // Даём чуть времени на инициализацию (tray, listeners, etc).
+                    // 200ms обычно достаточно, а задержка меньше раздражает.
+                    tokio::time::sleep(Duration::from_millis(200)).await;
+
+                    let marker = match ConfigStore::take_post_update_marker().await {
+                        Ok(m) => m,
+                        Err(e) => {
+                            log::warn!("Failed to access post-update marker: {}", e);
+                            None
+                        }
+                    };
+
+                    let Some(marker) = marker else { return; };
+
+                    // TTL: если маркер очень старый — не дёргаем UI (но сам файл уже удалён one-shot логикой).
+                    let now_ms = chrono::Utc::now().timestamp_millis();
+                    let ttl_ms = 7_i64 * 24 * 60 * 60 * 1000; // 7 дней
+                    if marker.created_at_ms > 0 && now_ms.saturating_sub(marker.created_at_ms) > ttl_ms {
+                        log::info!(
+                            "Post-update marker expired (version={}, age_ms={}), skipping auto-show",
+                            marker.version,
+                            now_ms.saturating_sub(marker.created_at_ms)
+                        );
+                        return;
+                    }
+
+                    log::info!(
+                        "Post-update marker detected (version={}), showing main window once",
+                        marker.version
+                    );
+
+                    if let Some(window) = app_handle.get_webview_window("main") {
+                        if let Err(e) = commands::show_webview_window_on_active_monitor(&window) {
+                            log::error!("Failed to show main window after update: {}", e);
+                        }
+                        let _ = window.emit(crate::presentation::events::EVENT_RECORDING_WINDOW_SHOWN, ());
+                        // Важно: не форсим focus, чтобы не выдёргивать пользователя из текущего приложения.
                     }
                 });
             }

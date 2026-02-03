@@ -50,6 +50,7 @@ onMounted(async () => {
 function handleClose(): void {
   // Не блокируем закрытие окна настройками автосохранения.
   // invoke отправится сразу, даже если UI закроется в этот же тик.
+  void settingsStore.flushSttLanguagePersist();
   void settingsStore.flushMicrophoneSensitivityPersist();
   emit('close');
 }

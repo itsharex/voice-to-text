@@ -54,8 +54,8 @@ describe('scenario: app-config sync across windows (mocked tauri)', () => {
 
       if (commandName === CMD_UPDATE_APP_CONFIG) {
         // "Rust" applies change and emits invalidation
-        if (typeof args?.auto_copy_to_clipboard === 'boolean') {
-          currentData = { ...currentData, auto_copy_to_clipboard: args.auto_copy_to_clipboard };
+        if (typeof args?.autoCopyToClipboard === 'boolean') {
+          currentData = { ...currentData, auto_copy_to_clipboard: args.autoCopyToClipboard };
         }
         currentRevision = String(BigInt(currentRevision) + BigInt(1));
 
@@ -83,7 +83,7 @@ describe('scenario: app-config sync across windows (mocked tauri)', () => {
     expect(appConfigMain.autoCopyToClipboard).toBe(false);
 
     // "Settings window" triggers update on Rust side
-    await invokeMock(CMD_UPDATE_APP_CONFIG, { auto_copy_to_clipboard: true });
+    await invokeMock(CMD_UPDATE_APP_CONFIG, { autoCopyToClipboard: true });
 
     await vi.waitFor(() => {
       expect(appConfigMain.autoCopyToClipboard).toBe(true);

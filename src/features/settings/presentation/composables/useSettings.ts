@@ -96,7 +96,7 @@ export function useSettings() {
         localStorage.setItem('sttLanguage', storedSttLang);
 
         store.setProvider(SttProviderType.Backend);
-        store.setLanguage(storedSttLang);
+        store.setLanguage(storedSttLang, { persist: false });
 
         if (appConfigStoreInstance.isLoaded) {
           store.setMicrophoneSensitivity(appConfigStoreInstance.microphoneSensitivity, { persist: false });
@@ -123,7 +123,7 @@ export function useSettings() {
         // Если sttConfig store уже загружен (например, в тестах) — можно синхронизировать
         if (sttConfigStoreInstance.isLoaded) {
           const sttLang = normalizeSttLanguage(sttConfigStoreInstance.language);
-          store.setLanguage(sttLang);
+          store.setLanguage(sttLang, { persist: false });
           const fallbackLocale = sttLangToUiLocale(sttLang);
           locale.value = fallbackLocale;
           localStorage.setItem('uiLocale', fallbackLocale);
@@ -137,11 +137,11 @@ export function useSettings() {
       const sttConfigStoreInstance = useSttConfigStore();
       if (sttConfigStoreInstance.isLoaded) {
         store.setProvider(SttProviderType.Backend);
-        store.setLanguage(sttConfigStoreInstance.language);
+        store.setLanguage(sttConfigStoreInstance.language, { persist: false });
       } else {
         const sttConfig = await tauriSettingsService.getSttConfig();
         store.setProvider(SttProviderType.Backend);
-        store.setLanguage(sttConfig.language);
+        store.setLanguage(sttConfig.language, { persist: false });
       }
       // API ключи и whisper-модель больше не используются в настройках (backend-only).
       store.setDeepgramApiKey('');
@@ -149,7 +149,7 @@ export function useSettings() {
 
       // Синхронизируем UI-локаль: STT-язык из store.language маппим на UI-локаль
       const sttLang = normalizeSttLanguage(store.language);
-      store.setLanguage(sttLang);
+      store.setLanguage(sttLang, { persist: false });
       const uiLocale = sttLangToUiLocale(sttLang);
       locale.value = uiLocale;
       localStorage.setItem('uiLocale', uiLocale);
@@ -225,6 +225,23 @@ export function useSettings() {
       };
 
       await tauriSettingsService.updateSttConfig(sttConfigData);
+
+      // Проверяем, что язык реально применился в Rust SoT.
+      // Иначе UI может переключиться (syncLocale), но запись останется на старом языке.
+      try {
+        const stt1 = await tauriSettingsService.getSttConfig();
+        if (stt1.language !== store.language) {
+          await tauriSettingsService.updateSttConfig(sttConfigData);
+          const stt2 = await tauriSettingsService.getSttConfig();
+          if (stt2.language !== store.language) {
+            throw new Error(
+              `Язык распознавания не сохранился: ожидали ${store.language}, получили ${stt2.language}`,
+            );
+          }
+        }
+      } catch (verifyErr) {
+        throw verifyErr;
+      }
 
       // Сохраняем App конфиг
       // Отдельно сохраняем чувствительность: это критично для UX, и так мы избегаем

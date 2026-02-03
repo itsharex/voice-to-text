@@ -10,9 +10,10 @@ import { isTauriAvailable } from '@/utils/tauri';
 import {
   bumpUiPrefsRevision,
   CMD_UPDATE_UI_PREFERENCES,
-  CMD_UPDATE_APP_CONFIG,
   readUiPreferencesFromStorage,
   writeUiPreferencesCacheToStorage,
+  invokeUpdateAppConfig,
+  invokeUpdateSttConfig,
 } from '@/windowing/stateSync';
 import { normalizeUiLocale, normalizeUiTheme } from '@/i18n.locales';
 import type { AppTheme, SaveStatus, SettingsState } from '../domain/types';
@@ -38,6 +39,10 @@ export const useSettingsStore = defineStore('settings', () => {
   // Debounce для автосохранения чувствительности (иначе будем спамить invoke при перетаскивании слайдера)
   let micSensitivityPersistTimer: ReturnType<typeof setTimeout> | null = null;
   let lastPersistedMicSensitivity: number | null = null;
+
+  // Debounce для автосохранения STT языка
+  let sttLanguagePersistTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastPersistedSttLanguage: string | null = null;
 
   // Список доступных устройств
   const availableAudioDevices = ref<string[]>([]);
@@ -87,8 +92,57 @@ export const useSettingsStore = defineStore('settings', () => {
     provider.value = SttProviderType.Backend;
   }
 
-  function setLanguage(value: string) {
-    language.value = value;
+  function setLanguage(value: string, opts?: { persist?: boolean }) {
+    const next = String(value ?? '').trim();
+    language.value = next;
+
+    const shouldPersist = opts?.persist ?? true;
+    if (!shouldPersist) {
+      lastPersistedSttLanguage = next;
+      return;
+    }
+    if (!isTauriAvailable()) return;
+
+    if (sttLanguagePersistTimer) {
+      clearTimeout(sttLanguagePersistTimer);
+      sttLanguagePersistTimer = null;
+    }
+
+    // Смена языка — событие редкое, но всё равно делаем debounce чтобы не дергать IPC лишний раз.
+    sttLanguagePersistTimer = setTimeout(() => {
+      if (!language.value) return;
+      if (lastPersistedSttLanguage === language.value) return;
+      try {
+        void invokeUpdateSttConfig({
+          provider: SttProviderType.Backend,
+          language: language.value,
+        });
+        lastPersistedSttLanguage = language.value;
+      } catch {}
+    }, 150);
+  }
+
+  async function flushSttLanguagePersist(): Promise<void> {
+    if (!isTauriAvailable()) return;
+    if (sttLanguagePersistTimer) {
+      clearTimeout(sttLanguagePersistTimer);
+      sttLanguagePersistTimer = null;
+    }
+
+    const next = String(language.value ?? '').trim();
+    language.value = next;
+    if (!next) return;
+    if (lastPersistedSttLanguage === next) return;
+
+    try {
+      await invokeUpdateSttConfig({
+        provider: SttProviderType.Backend,
+        language: next,
+      });
+      lastPersistedSttLanguage = next;
+    } catch {
+      // Не мешаем UX: если flush не удался при закрытии окна — пользователь увидит это при следующей попытке записи/сохранения.
+    }
   }
 
   function setDeepgramApiKey(value: string) {
@@ -186,7 +240,7 @@ export const useSettingsStore = defineStore('settings', () => {
       if (lastPersistedMicSensitivity === microphoneSensitivity.value) return;
 
       try {
-        void invoke(CMD_UPDATE_APP_CONFIG, {
+          void invokeUpdateAppConfig({
           // Tauri command args ожидают camelCase (Rust: microphone_sensitivity)
           microphoneSensitivity: microphoneSensitivity.value,
         });
@@ -207,8 +261,7 @@ export const useSettingsStore = defineStore('settings', () => {
     if (lastPersistedMicSensitivity === next) return;
 
     try {
-      // Tauri command args ожидают camelCase (Rust: microphone_sensitivity)
-      await invoke(CMD_UPDATE_APP_CONFIG, { microphoneSensitivity: next });
+      await invokeUpdateAppConfig({ microphoneSensitivity: next });
       lastPersistedMicSensitivity = next;
     } catch {
       // Тут намеренно молчим: пользователь закрывает окно, не надо мешать UX.
@@ -260,7 +313,7 @@ export const useSettingsStore = defineStore('settings', () => {
   // Применить состояние из объекта
   function applyState(state: Partial<SettingsState>) {
     if (state.provider !== undefined) provider.value = state.provider;
-    if (state.language !== undefined) language.value = state.language;
+    if (state.language !== undefined) setLanguage(state.language, { persist: false });
     if (state.deepgramApiKey !== undefined)
       deepgramApiKey.value = state.deepgramApiKey;
     if (state.assemblyaiApiKey !== undefined)
@@ -309,6 +362,7 @@ export const useSettingsStore = defineStore('settings', () => {
     // Действия
     setProvider,
     setLanguage,
+    flushSttLanguagePersist,
     setDeepgramApiKey,
     setAssemblyaiApiKey,
     setWhisperModel,

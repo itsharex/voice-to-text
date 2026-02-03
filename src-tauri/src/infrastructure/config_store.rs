@@ -1,12 +1,49 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use anyhow::Result;
 
 use crate::domain::{SttConfig, AppConfig, UiPreferences};
+
+/// Маркер "приложение только что обновилось".
+///
+/// Нужен как safety-net для Windows: после перезапуска приложение по умолчанию стартует скрытым
+/// (без taskbar), и пользователь может подумать, что оно не запустилось.
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct PostUpdateMarker {
+    pub version: String,
+    pub created_at_ms: i64,
+}
 
 /// Персистентное хранилище конфигурации STT
 pub struct ConfigStore;
 
 impl ConfigStore {
+    async fn write_file_atomic(path: &Path, contents: &str) -> Result<()> {
+        // Пишем во временный файл и только потом атомарно подменяем.
+        // На Windows rename может падать, если цель уже существует, поэтому делаем best-effort remove.
+        let mut tmp = path.to_path_buf();
+        tmp.set_extension("tmp");
+
+        tokio::fs::write(&tmp, contents).await?;
+
+        // Best-effort: если файл уже был — убираем, иначе rename может упасть на Windows.
+        let _ = tokio::fs::remove_file(path).await;
+
+        match tokio::fs::rename(&tmp, path).await {
+            Ok(_) => Ok(()),
+            Err(e) => {
+                // Фоллбек на прямую запись (на случай нестандартных FS ограничений).
+                log::warn!(
+                    "Atomic rename failed for {:?}: {}. Falling back to direct write.",
+                    path,
+                    e
+                );
+                tokio::fs::write(path, contents).await?;
+                let _ = tokio::fs::remove_file(&tmp).await;
+                Ok(())
+            }
+        }
+    }
+
     /// Получить директорию конфигурации приложения
     fn config_dir() -> Result<PathBuf> {
         let config_dir = dirs::config_dir()
@@ -101,6 +138,48 @@ impl ConfigStore {
     /// Получить путь к файлу UI-настроек
     fn ui_preferences_path() -> Result<PathBuf> {
         Ok(Self::config_dir()?.join("ui_preferences.json"))
+    }
+
+    /// Получить путь к маркеру пост-апдейта
+    fn post_update_marker_path() -> Result<PathBuf> {
+        Ok(Self::config_dir()?.join("post_update.json"))
+    }
+
+    /// Сохранить маркер пост-апдейта (перед перезапуском приложения).
+    pub async fn save_post_update_marker(version: &str) -> Result<()> {
+        let path = Self::post_update_marker_path()?;
+        let marker = PostUpdateMarker {
+            version: version.to_string(),
+            created_at_ms: chrono::Utc::now().timestamp_millis(),
+        };
+        let json = serde_json::to_string_pretty(&marker)?;
+        Self::write_file_atomic(&path, &json).await?;
+        Ok(())
+    }
+
+    /// Прочитать и удалить маркер пост-апдейта (one-shot).
+    pub async fn take_post_update_marker() -> Result<Option<PostUpdateMarker>> {
+        let path = Self::post_update_marker_path()?;
+        if !path.exists() {
+            return Ok(None);
+        }
+
+        // Best-effort: если файл битый или не читается — всё равно удаляем,
+        // чтобы не зацикливаться на каждом старте.
+        let marker = match tokio::fs::read_to_string(&path).await {
+            Ok(json) => serde_json::from_str::<PostUpdateMarker>(&json).ok(),
+            Err(e) => {
+                log::warn!("Failed to read post-update marker: {}", e);
+                // Файл существует → считаем что апдейт был, даже если payload не удалось прочитать.
+                Some(PostUpdateMarker {
+                    version: "unknown".to_string(),
+                    created_at_ms: 0,
+                })
+            }
+        };
+
+        let _ = tokio::fs::remove_file(&path).await;
+        Ok(marker)
     }
 
     /// Сохранить UI-настройки (тема, локаль)
@@ -205,5 +284,19 @@ mod tests {
 
         assert!(stt_path.to_str().unwrap().contains("stt_config.json"));
         assert!(app_path.to_str().unwrap().contains("app_config.json"));
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn post_update_marker_is_one_shot() {
+        // Убедимся, что маркер можно поставить и снять.
+        ConfigStore::save_post_update_marker("9.9.9").await.unwrap();
+        let marker = ConfigStore::take_post_update_marker().await.unwrap();
+        assert!(marker.is_some());
+        assert_eq!(marker.unwrap().version, "9.9.9");
+
+        // Второй раз маркера уже быть не должно.
+        let marker2 = ConfigStore::take_post_update_marker().await.unwrap();
+        assert!(marker2.is_none());
     }
 }

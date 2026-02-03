@@ -9,9 +9,10 @@ import type { AppConfigData, SttConfigData } from '../../domain/types';
 import {
   CMD_GET_APP_CONFIG_SNAPSHOT,
   CMD_GET_STT_CONFIG_SNAPSHOT,
-  CMD_UPDATE_APP_CONFIG,
-  CMD_UPDATE_STT_CONFIG,
+  invokeUpdateAppConfig,
+  invokeUpdateSttConfig,
 } from '@/windowing/stateSync';
+import type { UpdateAppConfigInvokeArgs, UpdateSttConfigInvokeArgs } from '@/windowing/stateSync';
 import type { AppConfigSnapshotData, SttConfigSnapshotData, TauriSnapshotEnvelope } from '@/windowing/stateSync';
 
 // Payload события уровня громкости
@@ -30,13 +31,15 @@ class TauriSettingsService {
   }
 
   async updateSttConfig(config: SttConfigData): Promise<void> {
-    await invoke(CMD_UPDATE_STT_CONFIG, {
+    const args: UpdateSttConfigInvokeArgs = {
       provider: config.provider,
       language: config.language,
-      deepgram_api_key: config.deepgramApiKey,
-      assemblyai_api_key: config.assemblyaiApiKey,
+      deepgramApiKey: config.deepgramApiKey,
+      assemblyaiApiKey: config.assemblyaiApiKey,
       model: config.model,
-    });
+    };
+
+    await invokeUpdateSttConfig(args);
   }
 
   // App конфигурация
@@ -51,7 +54,7 @@ class TauriSettingsService {
   async updateAppConfig(config: Partial<AppConfigData>): Promise<void> {
     // Важно: не отправляем undefined в invoke — в разных рантаймах это может вести себя по-разному.
     // Шлём только реально заданные поля.
-    const args: Record<string, unknown> = {};
+    const args: UpdateAppConfigInvokeArgs = {};
 
     // В Tauri args для команд ожидаются в camelCase.
     // Rust параметры при этом остаются в snake_case (Tauri сам мапит имена).
@@ -71,7 +74,7 @@ class TauriSettingsService {
       args.selectedAudioDevice = config.selected_audio_device;
     }
 
-    await invoke(CMD_UPDATE_APP_CONFIG, args);
+    await invokeUpdateAppConfig(args);
   }
 
   // Аудио устройства

@@ -7,6 +7,8 @@ use std::{
 use tauri::{AppHandle, Emitter, Runtime};
 use tauri_plugin_updater::UpdaterExt;
 
+use crate::infrastructure::ConfigStore;
+
 /// Защита от двойного старта установки.
 ///
 /// В Tauri окна — это отдельные webview'ы, и пользователь теоретически может нажать "Обновить"
@@ -202,6 +204,14 @@ pub async fn check_and_install_update<R: Runtime>(
                 .map_err(|e| format!("Failed to download/install update: {}", e))?;
 
             log::info!("Update installed successfully, restarting...");
+
+            // На Windows приложение стартует скрытым (без taskbar), поэтому после апдейта
+            // пользователь может подумать, что "ничего не запустилось".
+            // Ставим one-shot marker, чтобы на следующем запуске один раз показать окно.
+            #[cfg(target_os = "windows")]
+            if let Err(e) = ConfigStore::save_post_update_marker(&version).await {
+                log::warn!("Failed to save post-update marker: {}", e);
+            }
 
             // Перезапускаем приложение
             app.restart();

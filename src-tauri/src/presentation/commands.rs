@@ -924,6 +924,18 @@ pub async fn update_app_config(
     log::info!("Command: update_app_config - sensitivity: {:?}, hotkey: {:?}, auto_copy: {:?}, auto_paste: {:?}, device: {:?}",
         microphone_sensitivity, recording_hotkey, auto_copy_to_clipboard, auto_paste_text, selected_audio_device);
 
+    // Защита от "тихих" провалов: если фронт случайно отправил snake_case ключи,
+    // Tauri не сматчит аргументы, и сюда придут одни None.
+    // Тогда лучше вернуть явную ошибку, чем сделать вид что всё ок.
+    if microphone_sensitivity.is_none()
+        && recording_hotkey.is_none()
+        && auto_copy_to_clipboard.is_none()
+        && auto_paste_text.is_none()
+        && selected_audio_device.is_none()
+    {
+        return Err("update_app_config: не получены поля для обновления. Проверьте, что фронтенд отправляет args в camelCase (например microphoneSensitivity, recordingHotkey, autoCopyToClipboard, autoPasteText, selectedAudioDevice).".to_string());
+    }
+
     let mut config = state.config.write().await;
     let mut hotkey_changed = false;
     let mut any_changed = false;

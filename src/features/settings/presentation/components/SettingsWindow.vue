@@ -49,6 +49,7 @@ onMounted(async () => {
     // Если пользователь быстро закрыл настройки после изменения чувствительности,
     // debounce/flush мог не успеть примениться до refresh(). В таком случае refresh подтянет старое (95)
     // и перетрёт UI. Поэтому сначала "дожимаем" pending значение, и только потом делаем refresh + loadConfig.
+    await settingsStore.flushSttLanguagePersist();
     await settingsStore.flushMicrophoneSensitivityPersist();
     // Подтягиваем свежий конфиг через per-topic handles, дожидаемся завершения
     await Promise.all([appConfigStore.refresh(), sttConfigStore.refresh()]);
@@ -66,6 +67,7 @@ onUnmounted(() => {
 
 async function handleClose(): Promise<void> {
   showUpdateDialog.value = false;
+  void settingsStore.flushSttLanguagePersist();
   // Не блокируем закрытие окна: flush может занять время (I/O), а закрытие должно быть мгновенным.
   void settingsStore.flushMicrophoneSensitivityPersist();
   try {

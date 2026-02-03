@@ -21,6 +21,9 @@ export {
   type StateSyncInvalidationEventPayload,
 } from './tauri';
 
+export { invokeUpdateAppConfig, type UpdateAppConfigInvokeArgs } from './appConfigWrite';
+export { invokeUpdateSttConfig, type UpdateSttConfigInvokeArgs } from './sttConfigWrite';
+
 export {
   UI_PREFS_THEME_KEY,
   UI_PREFS_LOCALE_KEY,
