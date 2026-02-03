@@ -64,6 +64,9 @@
     "sectionTitle": "See it in action",
     "sectionSubtitle": "Explore the sleek interface designed for productivity and comfort.",
     "main": "Main screen",
+    "mainDark": "Main interface",
+    "recordDark": "Recording",
+    "settingsDark": "Settings",
     "dark": "Dark theme",
     "light": "Light theme",
     "settings": "Settings",
@@ -96,7 +99,9 @@
     "openSourceDescription": "Explore the open-source code behind VoicetextAI on GitHub."
   },
   "languages": {
-    "supported": "Supported languages:"
+    "badge": "Languages",
+    "title": "50+ Supported Languages",
+    "subtitle": "Accurate speech recognition across dozens of languages and dialects worldwide."
   },
   "error": {
     "notFoundTitle": "Page not found",

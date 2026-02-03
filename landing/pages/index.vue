@@ -9,6 +9,7 @@ const sectionComponents: Record<string, Component> = {
   hero: resolveComponent("HeroSection"),
   features: resolveComponent("FeaturesSection"),
   providers: resolveComponent("ProvidersSection"),
+  languages: resolveComponent("SupportedLanguages"),
   screenshots: resolveComponent("ScreenshotsSection"),
   pricing: resolveComponent("PricingSection"),
   download: resolveComponent("DownloadSection"),

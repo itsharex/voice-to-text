@@ -2,7 +2,6 @@
   <v-app class="app-layout">
     <AppHeader />
     <v-main class="app-layout__main">
-      <SupportedLanguages />
       <div>
         <slot />
       </div>

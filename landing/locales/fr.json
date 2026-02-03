@@ -64,6 +64,9 @@
     "sectionTitle": "Voyez-le en action",
     "sectionSubtitle": "Découvrez l'interface élégante conçue pour la productivité et le confort.",
     "main": "Écran principal",
+    "mainDark": "Interface principale",
+    "recordDark": "Enregistrement",
+    "settingsDark": "Paramètres",
     "dark": "Thème sombre",
     "light": "Thème clair",
     "settings": "Paramètres",
@@ -96,7 +99,9 @@
     "openSourceDescription": "Explorez le code open source de VoicetextAI sur GitHub."
   },
   "languages": {
-    "supported": "Langues prises en charge :"
+    "badge": "Langues",
+    "title": "50+ langues prises en charge",
+    "subtitle": "Reconnaissance vocale précise dans des dizaines de langues et dialectes à travers le monde."
   },
   "error": {
     "notFoundTitle": "Page introuvable",

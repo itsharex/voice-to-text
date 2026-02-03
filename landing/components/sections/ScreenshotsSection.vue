@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, onMounted, onUnmounted } from "vue";
 import { screenshots } from "~/data/screenshots";
 
 const { t } = useI18n();
 
-// Local screenshot theme toggle (does NOT affect site theme)
 const screenshotTheme = ref<"light" | "dark">("dark");
 const isScreenshotDark = computed(() => screenshotTheme.value === "dark");
 
@@ -44,6 +43,48 @@ function onTouchEnd(e: TouchEvent) {
     else prev();
   }
 }
+
+// Lightbox state
+const lightboxOpen = ref(false);
+const lightboxIndex = ref(0);
+
+function openLightbox(index: number) {
+  lightboxIndex.value = index;
+  lightboxOpen.value = true;
+  document.body.style.overflow = "hidden";
+}
+
+function closeLightbox() {
+  lightboxOpen.value = false;
+  document.body.style.overflow = "";
+}
+
+function lightboxPrev() {
+  lightboxIndex.value = (lightboxIndex.value - 1 + totalSlides) % totalSlides;
+}
+
+function lightboxNext() {
+  lightboxIndex.value = (lightboxIndex.value + 1) % totalSlides;
+}
+
+const currentLightboxScreenshot = computed(() => screenshots[lightboxIndex.value]);
+
+// Keyboard navigation for lightbox
+function handleKeydown(e: KeyboardEvent) {
+  if (!lightboxOpen.value) return;
+  if (e.key === "Escape") closeLightbox();
+  if (e.key === "ArrowLeft") lightboxPrev();
+  if (e.key === "ArrowRight") lightboxNext();
+}
+
+onMounted(() => {
+  window.addEventListener("keydown", handleKeydown);
+});
+
+onUnmounted(() => {
+  window.removeEventListener("keydown", handleKeydown);
+  document.body.style.overflow = "";
+});
 </script>
 
 <template>
@@ -128,15 +169,12 @@ function onTouchEnd(e: TouchEvent) {
             :class="{
               'screenshots-section__slide--active': activeIndex === index,
             }"
-            @click="goTo(index)"
+            @click="openLightbox(index)"
           >
             <div class="screenshots-section__card">
               <div class="screenshots-section__card-glow" />
               <div class="screenshots-section__card-inner">
                 <div class="screenshots-section__card-header">
-                  <div class="screenshots-section__card-dots">
-                    <span /><span /><span />
-                  </div>
                   <span class="screenshots-section__card-label">{{ t(shot.labelKey) }}</span>
                 </div>
                 <Transition name="screenshot-fade" mode="out-in">
@@ -169,6 +207,88 @@ function onTouchEnd(e: TouchEvent) {
         />
       </div>
     </div>
+
+    <!-- Lightbox Modal -->
+    <Teleport to="body">
+      <Transition name="lightbox-fade">
+        <div
+          v-if="lightboxOpen"
+          class="lightbox"
+          @click.self="closeLightbox"
+        >
+          <div class="lightbox__content">
+            <!-- Close button -->
+            <button
+              class="lightbox__close"
+              aria-label="Close lightbox"
+              @click="closeLightbox"
+            >
+              <v-icon size="28" icon="mdi-close" />
+            </button>
+
+            <!-- Navigation arrows -->
+            <button
+              class="lightbox__nav lightbox__nav--prev"
+              aria-label="Previous screenshot"
+              @click="lightboxPrev"
+            >
+              <v-icon size="32" icon="mdi-chevron-left" />
+            </button>
+            <button
+              class="lightbox__nav lightbox__nav--next"
+              aria-label="Next screenshot"
+              @click="lightboxNext"
+            >
+              <v-icon size="32" icon="mdi-chevron-right" />
+            </button>
+
+            <!-- Image container -->
+            <div class="lightbox__image-wrapper">
+              <!-- Theme toggle in lightbox -->
+              <div class="lightbox__toggle">
+                <span
+                  class="lightbox__toggle-label"
+                  :class="{ 'lightbox__toggle-label--active': !isScreenshotDark }"
+                >
+                  <v-icon size="16" icon="mdi-weather-sunny" />
+                </span>
+                <button
+                  class="lightbox__switch"
+                  :class="{ 'lightbox__switch--dark': isScreenshotDark }"
+                  role="switch"
+                  :aria-checked="isScreenshotDark"
+                  :aria-label="t('screenshots.toggleTheme')"
+                  @click="toggleScreenshotTheme"
+                >
+                  <span class="lightbox__switch-thumb" />
+                </button>
+                <span
+                  class="lightbox__toggle-label"
+                  :class="{ 'lightbox__toggle-label--active': isScreenshotDark }"
+                >
+                  <v-icon size="16" icon="mdi-weather-night" />
+                </span>
+              </div>
+
+              <Transition name="screenshot-fade" mode="out-in">
+                <img
+                  :key="`lightbox-${currentLightboxScreenshot.id}-${screenshotTheme}`"
+                  class="lightbox__image"
+                  :src="isScreenshotDark ? currentLightboxScreenshot.darkSrc : currentLightboxScreenshot.lightSrc"
+                  :alt="t(currentLightboxScreenshot.labelKey)"
+                />
+              </Transition>
+
+              <!-- Caption -->
+              <div class="lightbox__caption">
+                <span class="lightbox__label">{{ t(currentLightboxScreenshot.labelKey) }}</span>
+                <span class="lightbox__counter">{{ lightboxIndex + 1 }} / {{ totalSlides }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </Transition>
+    </Teleport>
   </section>
 </template>
 
@@ -445,30 +565,6 @@ function onTouchEnd(e: TouchEvent) {
   background: rgba(255, 255, 255, 0.4);
 }
 
-.screenshots-section__card-dots {
-  display: flex;
-  gap: 6px;
-}
-
-.screenshots-section__card-dots span {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.1);
-}
-
-.screenshots-section__card-dots span:nth-child(1) {
-  background: #ff5f57;
-}
-
-.screenshots-section__card-dots span:nth-child(2) {
-  background: #febc2e;
-}
-
-.screenshots-section__card-dots span:nth-child(3) {
-  background: #28c840;
-}
-
 .screenshots-section__card-label {
   font-size: 0.72rem;
   font-weight: 600;
@@ -604,18 +700,6 @@ function onTouchEnd(e: TouchEvent) {
 .v-theme--dark .screenshots-section__card-header {
   border-bottom-color: rgba(255, 255, 255, 0.06);
   background: rgba(255, 255, 255, 0.03);
-}
-
-.v-theme--dark .screenshots-section__card-dots span:nth-child(1) {
-  background: #ff6b6b;
-}
-
-.v-theme--dark .screenshots-section__card-dots span:nth-child(2) {
-  background: #ffd93d;
-}
-
-.v-theme--dark .screenshots-section__card-dots span:nth-child(3) {
-  background: #6bcb77;
 }
 
 .v-theme--dark .screenshots-section__card-label {
@@ -766,6 +850,244 @@ function onTouchEnd(e: TouchEvent) {
   .screenshots-section__nav-btn {
     width: 32px;
     height: 32px;
+  }
+}
+</style>
+
+<style>
+/* ─── Lightbox (non-scoped for Teleport) ─── */
+.lightbox {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.9);
+  backdrop-filter: blur(8px);
+  padding: 20px;
+}
+
+.lightbox__content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lightbox__close {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.lightbox__close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.lightbox__nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.lightbox__nav:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.lightbox__nav--prev {
+  left: 10px;
+}
+
+.lightbox__nav--next {
+  right: 10px;
+}
+
+.lightbox__image-wrapper {
+  position: relative;
+  max-width: 90vw;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.lightbox__toggle {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.lightbox__toggle-label {
+  display: inline-flex;
+  align-items: center;
+  color: rgba(255, 255, 255, 0.4);
+  transition: color 0.3s ease;
+}
+
+.lightbox__toggle-label--active {
+  color: #f97316;
+}
+
+.lightbox__switch {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  border-radius: 100px;
+  border: none;
+  background: linear-gradient(135deg, #fbbf24, #f97316);
+  cursor: pointer;
+  transition: background 0.3s ease;
+  padding: 0;
+}
+
+.lightbox__switch--dark {
+  background: linear-gradient(135deg, #6366f1, #3b82f6);
+}
+
+.lightbox__switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.lightbox__switch--dark .lightbox__switch-thumb {
+  transform: translateX(16px);
+}
+
+.lightbox__image {
+  max-width: 100%;
+  max-height: 75vh;
+  object-fit: contain;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.lightbox__caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  width: 100%;
+  max-width: 400px;
+  margin-top: 16px;
+  padding: 10px 20px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 100px;
+  backdrop-filter: blur(8px);
+}
+
+.lightbox__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.lightbox__counter {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.5);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ─── Lightbox Transitions ─── */
+.lightbox-fade-enter-active,
+.lightbox-fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.lightbox-fade-enter-from,
+.lightbox-fade-leave-to {
+  opacity: 0;
+}
+
+/* ─── Lightbox Responsive ─── */
+@media (max-width: 680px) {
+  .lightbox {
+    padding: 10px;
+  }
+
+  .lightbox__close {
+    top: 5px;
+    right: 5px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .lightbox__nav {
+    width: 40px;
+    height: 40px;
+  }
+
+  .lightbox__nav--prev {
+    left: 5px;
+  }
+
+  .lightbox__nav--next {
+    right: 5px;
+  }
+
+  .lightbox__toggle {
+    top: -45px;
+    padding: 4px 10px;
+    gap: 6px;
+  }
+
+  .lightbox__image {
+    max-height: 60vh;
+    border-radius: 8px;
+  }
+
+  .lightbox__caption {
+    padding: 8px 16px;
+    margin-top: 12px;
+  }
+
+  .lightbox__label {
+    font-size: 0.78rem;
   }
 }
 </style>

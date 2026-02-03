@@ -64,6 +64,9 @@
     "sectionTitle": "Erlebe es in Aktion",
     "sectionSubtitle": "Entdecke die elegante Oberfläche für Produktivität und Komfort.",
     "main": "Hauptbildschirm",
+    "mainDark": "Hauptoberfläche",
+    "recordDark": "Aufnahme",
+    "settingsDark": "Einstellungen",
     "dark": "Dunkles Design",
     "light": "Helles Design",
     "settings": "Einstellungen",
@@ -96,7 +99,9 @@
     "openSourceDescription": "Entdecke den Open-Source-Code von VoicetextAI auf GitHub."
   },
   "languages": {
-    "supported": "Unterstützte Sprachen:"
+    "badge": "Sprachen",
+    "title": "50+ unterstützte Sprachen",
+    "subtitle": "Präzise Spracherkennung in Dutzenden von Sprachen und Dialekten weltweit."
   },
   "error": {
     "notFoundTitle": "Seite nicht gefunden",

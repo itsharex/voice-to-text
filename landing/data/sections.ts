@@ -2,6 +2,7 @@ export const sectionOrder = [
   "hero",
   "features",
   "providers",
+  "languages",
   "screenshots",
   "pricing",
   "download",
