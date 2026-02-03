@@ -114,6 +114,7 @@ const waveformHeights = Array.from({ length: 32 }, (_, i) => {
           </div>
         </v-col>
       </v-row>
+
     </v-container>
   </section>
 </template>

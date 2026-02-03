@@ -1,7 +1,9 @@
-import darkMain from "~/assets/images/screenshots/dark.svg";
-import lightMain from "~/assets/images/screenshots/light.svg";
-import settings from "~/assets/images/screenshots/settings.svg";
-import recording from "~/assets/images/screenshots/recording.svg";
+import mainLight from "~/assets/images/screenshots/main_light.png";
+import mainDark from "~/assets/images/screenshots/main_dark.png";
+import recordLight from "~/assets/images/screenshots/record_light.png";
+import recordDark from "~/assets/images/screenshots/record_dark.png";
+import settingsLight from "~/assets/images/screenshots/settings_light.png";
+import settingsDark from "~/assets/images/screenshots/settings_dark.png";
 
 export interface Screenshot {
   id: string;
@@ -16,25 +18,25 @@ export const screenshots: Screenshot[] = [
   {
     id: "main",
     labelKey: "screenshots.main",
-    lightSrc: lightMain,
-    darkSrc: darkMain,
-    width: 1200,
-    height: 750
-  },
-  {
-    id: "settings",
-    labelKey: "screenshots.settings",
-    lightSrc: settings,
-    darkSrc: settings,
-    width: 1200,
-    height: 750
+    lightSrc: mainLight,
+    darkSrc: mainDark,
+    width: 640,
+    height: 400
   },
   {
     id: "recording",
     labelKey: "screenshots.recording",
-    lightSrc: recording,
-    darkSrc: recording,
-    width: 1200,
-    height: 750
+    lightSrc: recordLight,
+    darkSrc: recordDark,
+    width: 640,
+    height: 400
+  },
+  {
+    id: "settings",
+    labelKey: "screenshots.settings",
+    lightSrc: settingsLight,
+    darkSrc: settingsDark,
+    width: 640,
+    height: 400
   }
 ];
