@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.7.2] — 2026-02-03
+
+### Added
+- Paddle integration for subscription payments
+- Enhanced settings management and update handling
+
+---
+
 ## [0.7.1] — 2026-02-03
 
 ### Improved
@@ -108,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+[0.7.2]: https://github.com/777genius/voice-to-text/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/777genius/voice-to-text/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/777genius/voice-to-text/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/777genius/voice-to-text/compare/v0.5.1...v0.6.0
