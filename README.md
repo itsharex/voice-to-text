@@ -35,19 +35,23 @@ src-tauri/src/
 │   └── ports/           # Interfaces (Traits)
 │
 ├── application/         # Application Layer — Use Cases
-│   └── services/
-│       └── transcription_service.rs
+│   └── services/        # Transcription orchestration
 │
 ├── infrastructure/      # Infrastructure Layer — Implementations
-│   ├── stt/             # STT Providers (Deepgram, AssemblyAI)
+│   ├── stt/             # STT Providers (Deepgram, AssemblyAI, Whisper)
 │   ├── audio/           # Audio Capture (cpal)
+│   ├── licensing/       # License validation (Paddle)
+│   ├── config_store.rs  # Persistent configuration
+│   ├── clipboard.rs     # Clipboard integration
+│   ├── auto_paste.rs    # Auto-paste functionality
 │   ├── updater.rs       # Auto-update logic
 │   └── factory.rs       # Provider Factory (DI)
 │
 └── presentation/        # Presentation Layer — Tauri API
     ├── commands.rs      # Tauri commands
     ├── events.rs        # Event definitions
-    └── state.rs         # Global application state
+    ├── state.rs         # Global application state
+    └── tray.rs          # System tray integration
 ```
 
 ### Frontend (Vue 3 + TypeScript)
@@ -56,10 +60,11 @@ src-tauri/src/
 src/
 ├── features/            # Feature modules (DDD)
 │   ├── auth/            # Authentication (OAuth, sessions)
-│   │   ├── domain/
-│   │   ├── application/
+│   │   ├── domain/      # Auth entities & interfaces
+│   │   ├── application/ # DTOs, ports, services, use cases
 │   │   ├── infrastructure/
-│   │   └── presentation/
+│   │   ├── presentation/
+│   │   └── store/       # Auth Pinia store
 │   └── settings/        # Settings management
 │       ├── domain/
 │       ├── store/
@@ -75,10 +80,11 @@ src/
 │   └── stateSync/       # Cross-window state synchronization
 │
 ├── presentation/        # Shared UI components
-│   └── components/
+├── composables/         # Vue composables
+├── utils/               # Utility functions
 │
-├── i18n.ts              # Internationalization (6 locales)
-├── i18n.locales.ts      # Locale & STT language definitions
+├── i18n.ts              # Internationalization (6 UI locales)
+├── i18n.locales.ts      # STT languages (45+) & locale definitions
 └── App.vue
 ```
 
@@ -86,11 +92,15 @@ src/
 
 ```
 landing/
-├── components/          # Vue components
-├── pages/               # Routes (index, terms, privacy, refund)
+├── components/          # Vue components (sections, layout, ui)
+├── pages/               # Routes (index, download, terms, privacy, refund-policy)
 ├── locales/             # i18n translations (6 languages)
-├── content/             # Page content per locale
-└── server/              # API routes (downloads, sitemap)
+├── content/             # Page content per locale (features, FAQ, pricing)
+├── composables/         # Vue composables
+├── layouts/             # Page layouts
+├── server/              # API routes (downloads, sitemap)
+├── api/                 # External API integrations
+└── stores/              # Pinia stores
 ```
 
 ## Getting Started
@@ -164,13 +174,14 @@ sudo dnf install webkit2gtk4.1-devel openssl-devel curl wget file \
 ## Scripts
 
 ```bash
-pnpm dev           # Vite dev server (frontend only)
-pnpm build         # Build frontend
-pnpm tauri:dev     # Full Tauri development
-pnpm tauri:build   # Production build
-pnpm test          # Run Vitest tests
-pnpm lint          # ESLint check
-pnpm format        # Prettier formatting
+pnpm dev              # Vite dev server (frontend only)
+pnpm build            # Build frontend
+pnpm tauri:dev        # Full Tauri development
+pnpm tauri:build      # Production build
+pnpm test             # Run Vitest tests (watch mode)
+pnpm test:run         # Run Vitest tests (single run)
+pnpm test:coverage    # Run tests with coverage
+pnpm typecheck        # TypeScript type checking
 ```
 
 ## License
