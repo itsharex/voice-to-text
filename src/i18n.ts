@@ -273,6 +273,16 @@ const messages = {
       usageDetail: '{used} / {total} min used',
       logout: 'Sign out',
       loggingOut: 'Signing out...',
+      claim: {
+        title: 'Activate license',
+        hint: 'Paste the license key from the email to activate your plan on this account.',
+        inputLabel: 'License key',
+        cta: 'Activate',
+        errors: {
+          empty: 'License key cannot be empty',
+          generic: 'Failed to activate license. Please try again.',
+        },
+      },
       plans: {
         free: 'Free',
         starter: 'Starter',
@@ -565,6 +575,16 @@ const messages = {
       usageDetail: '{used} / {total} мин. использовано',
       logout: 'Выйти',
       loggingOut: 'Выход...',
+      claim: {
+        title: 'Активировать лицензию',
+        hint: 'Вставьте ключ лицензии из письма, чтобы активировать план на этом аккаунте.',
+        inputLabel: 'Ключ лицензии',
+        cta: 'Активировать',
+        errors: {
+          empty: 'Ключ лицензии не может быть пустым',
+          generic: 'Не удалось активировать лицензию. Попробуйте ещё раз.',
+        },
+      },
       plans: {
         free: 'Бесплатный',
         starter: 'Starter',
@@ -857,6 +877,16 @@ const messages = {
       usageDetail: '{used} / {total} min usados',
       logout: 'Cerrar sesión',
       loggingOut: 'Cerrando sesión...',
+      claim: {
+        title: 'Activar licencia',
+        hint: 'Pega la clave de licencia del correo para activar tu plan en esta cuenta.',
+        inputLabel: 'Clave de licencia',
+        cta: 'Activar',
+        errors: {
+          empty: 'La clave de licencia no puede estar vacía',
+          generic: 'No se pudo activar la licencia. Inténtalo de nuevo.',
+        },
+      },
       plans: {
         free: 'Gratuito',
         starter: 'Starter',
@@ -1149,6 +1179,16 @@ const messages = {
       usageDetail: '{used} / {total} min utilisées',
       logout: 'Déconnexion',
       loggingOut: 'Déconnexion...',
+      claim: {
+        title: 'Activer la licence',
+        hint: 'Collez la clé de licence reçue par email pour activer votre plan sur ce compte.',
+        inputLabel: 'Clé de licence',
+        cta: 'Activer',
+        errors: {
+          empty: 'La clé de licence ne peut pas être vide',
+          generic: "Impossible d'activer la licence. Veuillez réessayer.",
+        },
+      },
       plans: {
         free: 'Gratuit',
         starter: 'Starter',
@@ -1441,6 +1481,16 @@ const messages = {
       usageDetail: '{used} / {total} Min. verbraucht',
       logout: 'Abmelden',
       loggingOut: 'Abmelden...',
+      claim: {
+        title: 'Lizenz aktivieren',
+        hint: 'Füge den Lizenzschlüssel aus der E‑Mail ein, um deinen Plan für dieses Konto zu aktivieren.',
+        inputLabel: 'Lizenzschlüssel',
+        cta: 'Aktivieren',
+        errors: {
+          empty: 'Der Lizenzschlüssel darf nicht leer sein',
+          generic: 'Lizenz konnte nicht aktiviert werden. Bitte versuche es erneut.',
+        },
+      },
       plans: {
         free: 'Kostenlos',
         starter: 'Starter',
@@ -1733,6 +1783,16 @@ const messages = {
       usageDetail: '{used} / {total} хв. використано',
       logout: 'Вийти',
       loggingOut: 'Вихід...',
+      claim: {
+        title: 'Активувати ліцензію',
+        hint: 'Вставте ключ ліцензії з листа, щоб активувати план на цьому акаунті.',
+        inputLabel: 'Ключ ліцензії',
+        cta: 'Активувати',
+        errors: {
+          empty: 'Ключ ліцензії не може бути порожнім',
+          generic: 'Не вдалося активувати ліцензію. Спробуйте ще раз.',
+        },
+      },
       plans: {
         free: 'Безкоштовний',
         starter: 'Starter',

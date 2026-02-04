@@ -85,6 +85,10 @@
     }
   },
   "meta": {
+    "checkoutSuccessTitle": "Оплату успішно отримано — VoicetextAI",
+    "checkoutSuccessDescription": "Дякуємо! Ми отримали оплату. Доступ надається через захищені Paddle webhooks і може зайняти трохи часу.",
+    "payTitle": "Безпечна оплата — VoicetextAI",
+    "payDescription": "Сторінка входу в secure checkout, яку використовують Paddle payment links та посилання для оновлення платіжного методу.",
     "homeTitle": "VoicetextAI — безкоштовний, простий, швидкий голос-у-текст у реальному часі",
     "homeDescription": "Сучасний кросплатформний десктопний застосунок на базі ШІ. 50 мов. Безкоштовно.",
     "downloadTitle": "Завантажити VoicetextAI",

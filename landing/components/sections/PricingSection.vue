@@ -3,7 +3,7 @@ import { useI18n } from 'vue-i18n'
 import { useLandingContent } from '~/composables/useLandingContent'
 
 const { content } = useLandingContent()
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const cfg = useRuntimeConfig()
 const { $paddle } = useNuxtApp()
 
@@ -55,11 +55,20 @@ function openCheckout() {
   const email = checkoutEmail.value.trim()
   if (!email) return
 
+  const localePrefix = locale.value === "en" ? "" : `/${locale.value}`
+  const successUrl = `${window.location.origin}${localePrefix}/checkout-success`
+
   ;($paddle as any).Checkout.open({
     // В доке рекомендуют открывать overlay через settings.displayMode
     settings: {
       displayMode: "overlay",
-      variant: "multi-page"
+      variant: "multi-page",
+      // Важно: мы используем email как ключевой идентификатор для доставки license key.
+      // Если дать пользователю поменять email в самом checkout, то `customData.voicetext_customer_email`
+      // может разъехаться с фактическим email в Paddle — и мы отправим ключ не туда.
+      allowLogout: false,
+      // По оф. доке можно редиректить на свою success page. Это UX-сигнал, не “истина”.
+      successUrl
     },
     items: [{ priceId, quantity: 1 }],
     // Prefill email to speed up checkout (and makes it deterministic for our webhooks).

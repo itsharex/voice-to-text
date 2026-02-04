@@ -37,6 +37,10 @@ const license = ref<LicenseInfo | null>(null);
 const licenseLoading = ref(false);
 const linkedProviders = ref<LinkedProvider[]>([]);
 
+const licenseKeyInput = ref('');
+const isClaiming = ref(false);
+const claimError = ref<string | null>(null);
+
 // Пробуем получить email из разных источников
 const userEmail = computed(() => {
   if (authStore.userEmail) {
@@ -104,6 +108,28 @@ async function fetchLicense() {
     console.error('Не удалось загрузить лицензию:', err);
   } finally {
     licenseLoading.value = false;
+  }
+}
+
+async function claimLicense() {
+  const key = licenseKeyInput.value.trim();
+  if (!key) {
+    claimError.value = t('profile.claim.errors.empty');
+    return;
+  }
+
+  isClaiming.value = true;
+  claimError.value = null;
+  try {
+    await api.post('/api/v1/account/licenses/claim', { license_key: key });
+    licenseKeyInput.value = '';
+    await fetchLicense();
+  } catch (err: any) {
+    // apiClient пробрасывает AuthError с human-friendly message
+    const msg = String(err?.message || '');
+    claimError.value = msg.trim() ? msg : t('profile.claim.errors.generic');
+  } finally {
+    isClaiming.value = false;
   }
 }
 
@@ -200,6 +226,35 @@ onMounted(() => {
               {{ t('profile.noPlan') }}
             </v-list-item-subtitle>
           </v-list-item>
+
+          <v-divider class="my-1" />
+          <v-list-subheader>{{ t('profile.claim.title') }}</v-list-subheader>
+          <div class="px-4 pb-2">
+            <div class="text-body-2 text-medium-emphasis mb-2">
+              {{ t('profile.claim.hint') }}
+            </div>
+            <v-text-field
+              v-model="licenseKeyInput"
+              :label="t('profile.claim.inputLabel')"
+              density="comfortable"
+              variant="outlined"
+              hide-details
+              autocomplete="off"
+            />
+            <div v-if="claimError" class="text-caption text-error mt-2">
+              {{ claimError }}
+            </div>
+            <v-btn
+              class="mt-3"
+              color="primary"
+              block
+              :loading="isClaiming"
+              :disabled="isClaiming"
+              @click="claimLicense"
+            >
+              {{ t('profile.claim.cta') }}
+            </v-btn>
+          </div>
 
           <v-list-item v-if="license && usageInfo">
             <template #prepend>

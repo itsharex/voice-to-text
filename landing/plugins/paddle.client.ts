@@ -42,6 +42,18 @@ export default defineNuxtPlugin(async () => {
     return;
   }
 
+  // Paddle.Initialize можно вызывать только один раз на страницу (это прямо сказано в оф. доке).
+  // В dev/HMR или при необычной инициализации Nuxt плагин теоретически может выполниться повторно,
+  // поэтому делаем инициализацию идемпотентной.
+  const w = window as any;
+  if (w.__VOICETEXT_PADDLE_INITIALIZED) {
+    return {
+      provide: {
+        paddle: Paddle,
+      },
+    };
+  }
+
   // Важно: sandbox нужно выставить ДО Initialize
   if (paddleCfg.environment === "sandbox") {
     Paddle.Environment.set("sandbox");
@@ -57,6 +69,8 @@ export default defineNuxtPlugin(async () => {
       }
     },
   });
+
+  w.__VOICETEXT_PADDLE_INITIALIZED = true;
 
   return {
     provide: {

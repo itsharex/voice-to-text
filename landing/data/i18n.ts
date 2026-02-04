@@ -17,7 +17,9 @@ export const pages = [
   "/privacy",
   "/privacy-policy",
   "/terms",
-  "/refund-policy"
+  "/refund-policy",
+  "/checkout-success",
+  "/pay"
 ] as const;
 
 export const generateI18nRoutes = (): string[] => {

@@ -85,6 +85,10 @@
     }
   },
   "meta": {
+    "checkoutSuccessTitle": "Payment successful — VoicetextAI",
+    "checkoutSuccessDescription": "Thank you. We received your payment. Provisioning is handled via Paddle webhooks and may take a short moment.",
+    "payTitle": "Secure checkout — VoicetextAI",
+    "payDescription": "Secure checkout entry point used by Paddle payment links and payment method update flows.",
     "homeTitle": "VoicetextAI — free, easy, fast, real-time voice-to-text",
     "homeDescription": "Modern cross-platform desktop app using AI. 50 languages. Free.",
     "downloadTitle": "Download VoicetextAI",

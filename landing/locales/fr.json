@@ -85,6 +85,10 @@
     }
   },
   "meta": {
+    "checkoutSuccessTitle": "Paiement réussi — VoicetextAI",
+    "checkoutSuccessDescription": "Merci. Nous avons reçu votre paiement. L’accès est provisionné via des webhooks Paddle sécurisés et peut prendre un moment.",
+    "payTitle": "Paiement sécurisé — VoicetextAI",
+    "payDescription": "Page d’entrée du checkout sécurisé utilisée par les liens de paiement Paddle et les liens de mise à jour du moyen de paiement.",
     "homeTitle": "VoicetextAI — voix en texte gratuit, simple, rapide et en temps réel",
     "homeDescription": "Application de bureau multiplateforme avec IA. 50 langues. Gratuit.",
     "downloadTitle": "Télécharger VoicetextAI",
