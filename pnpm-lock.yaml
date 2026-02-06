@@ -13,10 +13,10 @@ dependencies:
     version: file:../state-sync/packages/core
   '@statesync/pinia':
     specifier: file:../state-sync/packages/pinia
-    version: file:../state-sync/packages/pinia(@statesync/core@0.1.0)
+    version: file:../state-sync/packages/pinia(@statesync/core@0.2.0)
   '@statesync/tauri':
     specifier: file:../state-sync/packages/tauri
-    version: file:../state-sync/packages/tauri(@statesync/core@0.1.0)(@tauri-apps/api@2.9.1)
+    version: file:../state-sync/packages/tauri(@statesync/core@0.2.0)(@tauri-apps/api@2.9.1)
   pinia:
     specifier: ^2.1.0
     version: 2.3.1(typescript@5.9.3)(vue@3.5.22)
@@ -5013,7 +5013,7 @@ packages:
     engines: {node: '>=18'}
     dev: false
 
-  file:../state-sync/packages/pinia(@statesync/core@0.1.0):
+  file:../state-sync/packages/pinia(@statesync/core@0.2.0):
     resolution: {directory: ../state-sync/packages/pinia, type: directory}
     id: file:../state-sync/packages/pinia
     name: '@statesync/pinia'
@@ -5024,7 +5024,7 @@ packages:
       '@statesync/core': file:../state-sync/packages/core
     dev: false
 
-  file:../state-sync/packages/tauri(@statesync/core@0.1.0)(@tauri-apps/api@2.9.1):
+  file:../state-sync/packages/tauri(@statesync/core@0.2.0)(@tauri-apps/api@2.9.1):
     resolution: {directory: ../state-sync/packages/tauri, type: directory}
     id: file:../state-sync/packages/tauri
     name: '@statesync/tauri'

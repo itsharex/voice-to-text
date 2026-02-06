@@ -16,7 +16,7 @@
     "preview": "Produktvorschau",
     "trust": {
       "realtime": "Echtzeit",
-      "multilingual": "50+ Sprachen",
+      "multilingual": "40+ Sprachen",
       "crossPlatform": "Plattformübergreifend"
     },
     "transcription": {
@@ -90,7 +90,7 @@
     "payTitle": "Sicherer Checkout — VoicetextAI",
     "payDescription": "Einstiegsseite für sicheren Checkout, genutzt von Paddle-Zahlungslinks und Links zur Aktualisierung der Zahlungsmethode.",
     "homeTitle": "VoicetextAI — kostenlose, einfache, schnelle Sprache-zu-Text in Echtzeit",
-    "homeDescription": "Moderne plattformübergreifende Desktop-App mit KI. 50 Sprachen. Kostenlos.",
+    "homeDescription": "Moderne plattformübergreifende Desktop-App mit KI. 40 Sprachen. Kostenlos.",
     "downloadTitle": "VoicetextAI herunterladen",
     "downloadDescription": "Builds für macOS, Windows und Linux.",
     "privacyTitle": "Datenschutz bei VoicetextAI",
@@ -106,7 +106,7 @@
   },
   "languages": {
     "badge": "Sprachen",
-    "title": "50+ unterstützte Sprachen",
+    "title": "40+ unterstützte Sprachen",
     "subtitle": "Präzise Spracherkennung in Dutzenden von Sprachen und Dialekten weltweit."
   },
   "error": {

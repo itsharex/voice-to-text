@@ -16,7 +16,7 @@
     "preview": "Product preview",
     "trust": {
       "realtime": "Real-time",
-      "multilingual": "50+ languages",
+      "multilingual": "40+ languages",
       "crossPlatform": "Cross-platform"
     },
     "transcription": {
@@ -90,7 +90,7 @@
     "payTitle": "Secure checkout — VoicetextAI",
     "payDescription": "Secure checkout entry point used by Paddle payment links and payment method update flows.",
     "homeTitle": "VoicetextAI — free, easy, fast, real-time voice-to-text",
-    "homeDescription": "Modern cross-platform desktop app using AI. 50 languages. Free.",
+    "homeDescription": "Modern cross-platform desktop app using AI. 40 languages. Free.",
     "downloadTitle": "Download VoicetextAI",
     "downloadDescription": "Get the latest builds for macOS, Windows, and Linux.",
     "privacyTitle": "Privacy at VoicetextAI",
@@ -106,7 +106,7 @@
   },
   "languages": {
     "badge": "Languages",
-    "title": "50+ Supported Languages",
+    "title": "40+ Supported Languages",
     "subtitle": "Accurate speech recognition across dozens of languages and dialects worldwide."
   },
   "error": {

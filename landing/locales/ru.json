@@ -16,7 +16,7 @@
     "preview": "Превью продукта",
     "trust": {
       "realtime": "В реальном времени",
-      "multilingual": "50+ языков",
+      "multilingual": "40+ языков",
       "crossPlatform": "Кроссплатформенность"
     },
     "transcription": {
@@ -90,7 +90,7 @@
     "payTitle": "Безопасная оплата — VoicetextAI",
     "payDescription": "Точка входа в secure checkout для Paddle payment links и обновления платёжных данных.",
     "homeTitle": "VoicetextAI — бесплатный, простой, быстрый голос-в-текст в реальном времени",
-    "homeDescription": "Современное кроссплатформенное десктопное приложение на базе ИИ. 50 языков. Бесплатно.",
+    "homeDescription": "Современное кроссплатформенное десктопное приложение на базе ИИ. 40 языков. Бесплатно.",
     "downloadTitle": "Скачать VoicetextAI",
     "downloadDescription": "Сборки для macOS, Windows и Linux.",
     "privacyTitle": "Приватность VoicetextAI",
@@ -106,7 +106,7 @@
   },
   "languages": {
     "badge": "Языки",
-    "title": "50+ поддерживаемых языков",
+    "title": "40+ поддерживаемых языков",
     "subtitle": "Точное распознавание речи на десятках языков и диалектов по всему миру."
   },
   "error": {

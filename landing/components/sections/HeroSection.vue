@@ -1,6 +1,17 @@
 <script setup lang="ts">
 const { content } = useLandingContent();
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const { data: releaseData } = useReleaseDownloads();
+
+const releaseVersion = computed(() => releaseData.value?.version || null);
+const releaseDate = computed(() => {
+  if (!releaseData.value?.pubDate) return '';
+  return new Date(releaseData.value.pubDate).toLocaleDateString(locale.value, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+});
 
 // Deterministic waveform heights for SSR consistency
 const waveformHeights = Array.from({ length: 32 }, (_, i) => {
@@ -44,6 +55,10 @@ const waveformHeights = Array.from({ length: 32 }, (_, i) => {
               {{ t('hero.ctaSecondary') }}
             </v-btn>
           </div>
+
+          <p v-if="releaseVersion" class="hero-section__release-info">
+            v{{ releaseVersion }} · {{ releaseDate }}
+          </p>
 
           <!-- Trust indicators -->
           <div class="hero-section__trust">
@@ -286,6 +301,15 @@ const waveformHeights = Array.from({ length: 32 }, (_, i) => {
 .hero-section__btn-secondary:hover {
   border-color: rgba(99, 102, 241, 0.5) !important;
   background: rgba(99, 102, 241, 0.06) !important;
+}
+
+/* ─── Release info ─── */
+.hero-section__release-info {
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.4;
+  margin: -24px 0 32px;
+  letter-spacing: 0.01em;
 }
 
 /* ─── Trust indicators ─── */
@@ -553,6 +577,10 @@ const waveformHeights = Array.from({ length: 32 }, (_, i) => {
   opacity: 0.8;
 }
 
+.v-theme--dark .hero-section__release-info {
+  color: #64748b;
+}
+
 .v-theme--dark .hero-section__btn-secondary {
   border-color: rgba(165, 180, 252, 0.3) !important;
   color: #a5b4fc !important;
@@ -622,6 +650,10 @@ const waveformHeights = Array.from({ length: 32 }, (_, i) => {
 
 .v-theme--light .hero-section__subtitle {
   color: #475569;
+}
+
+.v-theme--light .hero-section__release-info {
+  color: #94a3b8;
 }
 
 .v-theme--light .hero-section__preview-inner {

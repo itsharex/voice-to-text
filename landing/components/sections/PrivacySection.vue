@@ -1,6 +1,17 @@
 <script setup lang="ts">
 const { content } = useLandingContent();
-const { t } = useI18n();
+const { t, locale } = useI18n();
+const { data: releaseData } = useReleaseDownloads();
+
+const releaseVersion = computed(() => releaseData.value?.version || null);
+const releaseDate = computed(() => {
+  if (!releaseData.value?.pubDate) return '';
+  return new Date(releaseData.value.pubDate).toLocaleDateString(locale.value, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+});
 
 const openSourceIcons = [
   'mdi-source-branch',
@@ -24,6 +35,10 @@ const openSourceIcons = [
         <div class="opensource-section__header">
           <h2 class="opensource-section__title">{{ content.openSource.title }}</h2>
           <p class="opensource-section__note">{{ content.openSource.note }}</p>
+
+          <p v-if="releaseVersion" class="opensource-section__release-info">
+            v{{ releaseVersion }} · {{ releaseDate }}
+          </p>
 
           <v-btn
             href="https://github.com/777genius/voice-to-text"
@@ -151,6 +166,14 @@ const openSourceIcons = [
   line-height: 1.7;
   margin: 0;
   max-width: 400px;
+}
+
+.opensource-section__release-info {
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.4;
+  margin-top: 12px;
+  letter-spacing: 0.01em;
 }
 
 .opensource-section__btn {
@@ -353,6 +376,10 @@ const openSourceIcons = [
   opacity: 0.8;
 }
 
+.v-theme--dark .opensource-section__release-info {
+  color: #64748b;
+}
+
 .v-theme--dark .opensource-section__visual-inner {
   background: linear-gradient(135deg, rgba(167, 139, 250, 0.12), rgba(129, 140, 248, 0.1));
   border-color: rgba(167, 139, 250, 0.2);
@@ -419,6 +446,10 @@ const openSourceIcons = [
 
 .v-theme--light .opensource-section__note {
   color: #475569;
+}
+
+.v-theme--light .opensource-section__release-info {
+  color: #94a3b8;
 }
 
 /* --- Responsive --- */

@@ -3,9 +3,9 @@ import { downloadAssets } from "~/data/downloads";
 import type { DownloadArch } from "~/data/downloads";
 
 const { content } = useLandingContent();
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const downloadStore = useDownloadStore();
-const { resolve } = useReleaseDownloads();
+const { data: releaseData, resolve } = useReleaseDownloads();
 
 onMounted(() => downloadStore.init());
 
@@ -37,6 +37,24 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
   return resolve(asset.os, asset.arch)?.version || null;
 };
 
+const releaseVersion = computed(() => releaseData.value?.version || null);
+const releaseDate = computed(() => {
+  if (!releaseData.value?.pubDate) return '';
+  return new Date(releaseData.value.pubDate).toLocaleDateString(locale.value, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+});
+
+// Сортируем так, чтобы выбранная платформа всегда была по центру (index 1)
+const sortedAssets = computed(() => {
+  const activeIdx = downloadAssets.findIndex(a => a.id === downloadStore.selectedId);
+  if (activeIdx === -1 || activeIdx === 1) return [...downloadAssets];
+  const result = [...downloadAssets];
+  [result[1], result[activeIdx]] = [result[activeIdx], result[1]];
+  return result;
+});
 </script>
 
 <template>
@@ -60,7 +78,7 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
       <!-- Platform cards -->
       <div class="download-section__cards">
         <div
-          v-for="(asset, index) in downloadAssets"
+          v-for="(asset, index) in sortedAssets"
           :key="asset.id"
           class="download-section__card"
           :class="{ 'download-section__card--active': downloadStore.selectedId === asset.id }"
@@ -109,6 +127,10 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
           </div>
         </div>
       </div>
+
+      <p v-if="releaseVersion" class="download-section__release-info">
+        v{{ releaseVersion }} · {{ releaseDate }}
+      </p>
     </v-container>
   </section>
 </template>
@@ -219,6 +241,10 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
   z-index: 1;
   max-width: 840px;
   margin: 0 auto;
+  /* Чтобы scale не обрезался */
+  overflow: visible;
+  padding: 12px 0;
+  align-items: center;
 }
 
 /* ─── Card ─── */
@@ -257,9 +283,12 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
   box-shadow:
     0 8px 32px rgba(34, 197, 94, 0.12),
     0 0 0 2px rgba(34, 197, 94, 0.2);
+  transform: scale(1.06);
+  z-index: 2;
 }
 
 .download-section__card--active:hover {
+  transform: scale(1.08);
   border-color: rgba(34, 197, 94, 0.5);
   box-shadow:
     0 20px 60px rgba(34, 197, 94, 0.18),
@@ -397,6 +426,18 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
   opacity: 0.9;
 }
 
+/* ─── Release info ─── */
+.download-section__release-info {
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 500;
+  opacity: 0.4;
+  margin-top: 24px;
+  letter-spacing: 0.01em;
+  position: relative;
+  z-index: 1;
+}
+
 @keyframes downloadFadeUp {
   from {
     opacity: 0;
@@ -450,6 +491,10 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
   opacity: 0.8;
 }
 
+.v-theme--dark .download-section__release-info {
+  color: #64748b;
+}
+
 .v-theme--dark .download-section__card {
   background: rgba(255, 255, 255, 0.04);
   border-color: rgba(167, 139, 250, 0.08);
@@ -472,6 +517,7 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
 }
 
 .v-theme--dark .download-section__card--active:hover {
+  transform: scale(1.08);
   border-color: rgba(74, 222, 128, 0.45);
   box-shadow:
     0 20px 60px rgba(0, 0, 0, 0.45),
@@ -538,6 +584,10 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
   color: #475569;
 }
 
+.v-theme--light .download-section__release-info {
+  color: #94a3b8;
+}
+
 .v-theme--light .download-section__card-indicator {
   color: #16a34a;
 }
@@ -555,6 +605,16 @@ const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
     text-align: left;
     padding: 24px 28px;
     gap: 20px;
+  }
+
+  /* На мобильном active первая в списке — scale чуть меньше, чтобы не обрезалось */
+  .download-section__card--active {
+    transform: scale(1.03);
+    order: -1;
+  }
+
+  .download-section__card--active:hover {
+    transform: scale(1.04);
   }
 
   .download-section__card-icon-wrap {

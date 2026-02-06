@@ -16,7 +16,7 @@
     "preview": "Aperçu du produit",
     "trust": {
       "realtime": "Temps réel",
-      "multilingual": "50+ langues",
+      "multilingual": "40+ langues",
       "crossPlatform": "Multiplateforme"
     },
     "transcription": {
@@ -90,7 +90,7 @@
     "payTitle": "Paiement sécurisé — VoicetextAI",
     "payDescription": "Page d’entrée du checkout sécurisé utilisée par les liens de paiement Paddle et les liens de mise à jour du moyen de paiement.",
     "homeTitle": "VoicetextAI — voix en texte gratuit, simple, rapide et en temps réel",
-    "homeDescription": "Application de bureau multiplateforme avec IA. 50 langues. Gratuit.",
+    "homeDescription": "Application de bureau multiplateforme avec IA. 40 langues. Gratuit.",
     "downloadTitle": "Télécharger VoicetextAI",
     "downloadDescription": "Versions pour macOS, Windows et Linux.",
     "privacyTitle": "Confidentialité VoicetextAI",
@@ -106,7 +106,7 @@
   },
   "languages": {
     "badge": "Langues",
-    "title": "50+ langues prises en charge",
+    "title": "40+ langues prises en charge",
     "subtitle": "Reconnaissance vocale précise dans des dizaines de langues et dialectes à travers le monde."
   },
   "error": {
