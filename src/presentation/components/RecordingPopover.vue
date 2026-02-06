@@ -15,7 +15,7 @@ import ProfilePopover from './ProfilePopover.vue';
 import UpdateIndicator from './UpdateIndicator.vue';
 import UpdateDialog from './UpdateDialog.vue';
 import AudioVisualizer from './AudioVisualizer.vue';
-import { playShowSound, playDoneSound } from '../../utils/sound';
+import { playShowSound, playDoneSound, preloadUiSounds } from '../../utils/sound';
 import { isTauriAvailable } from '../../utils/tauri';
 import { EVENT_RECORDING_WINDOW_SHOWN } from '@/types';
 
@@ -126,6 +126,9 @@ onMounted(async () => {
   try {
     appVersion.value = await getVersion();
   } catch {}
+
+  // Прогреваем звуки заранее, чтобы "done" был надёжным даже при быстром auto-hide окна.
+  void preloadUiSounds();
 
   await store.initialize();
   await appConfigStore.startSync();

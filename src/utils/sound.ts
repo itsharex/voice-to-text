@@ -18,7 +18,8 @@ const SOUND_CONFIG: Record<SoundName, SoundConfig> = {
 };
 
 let audioContext: AudioContext | null = null;
-const decodedBuffers = new Map<string, Promise<AudioBuffer>>();
+const decodedBuffers = new Map<string, AudioBuffer>();
+const inflightDecodes = new Map<string, Promise<AudioBuffer>>();
 
 function getAudioContext(): AudioContext | null {
   try {
@@ -29,6 +30,11 @@ function getAudioContext(): AudioContext | null {
       // не становились "Now Playing" в macOS и не перехватывали системные media keys.
       audioContext = new Ctor({ latencyHint: 'interactive' });
     }
+    // WKWebView (и некоторые WebKit-сценарии) могут "закрыть" контекст после сна/ресурсов.
+    // Тогда его нельзя реанимировать — надо пересоздать.
+    if (audioContext.state === 'closed') {
+      audioContext = new Ctor({ latencyHint: 'interactive' });
+    }
     return audioContext;
   } catch (err) {
     console.warn('[Sound] Failed to create AudioContext:', err);
@@ -37,10 +43,13 @@ function getAudioContext(): AudioContext | null {
 }
 
 async function decodeBuffer(url: string): Promise<AudioBuffer> {
-  const cached = decodedBuffers.get(url);
-  if (cached) return cached;
+  const decoded = decodedBuffers.get(url);
+  if (decoded) return decoded;
 
-  const promise = (async () => {
+  const inflight = inflightDecodes.get(url);
+  if (inflight) return inflight;
+
+  const promise = (async (): Promise<AudioBuffer> => {
     const ctx = getAudioContext();
     if (!ctx) {
       throw new Error('AudioContext is not available');
@@ -51,11 +60,19 @@ async function decodeBuffer(url: string): Promise<AudioBuffer> {
       throw new Error(`Failed to fetch sound: ${res.status} ${res.statusText}`);
     }
     const arr = await res.arrayBuffer();
-    return await ctx.decodeAudioData(arr);
+    const buffer = await ctx.decodeAudioData(arr);
+    decodedBuffers.set(url, buffer);
+    return buffer;
   })();
 
-  decodedBuffers.set(url, promise);
-  return promise;
+  // Важно: НЕ кешируем "rejected" промисы навсегда.
+  // Иначе редкий временный фейл декодинга превращается в "звук больше никогда не играет".
+  inflightDecodes.set(url, promise);
+  try {
+    return await promise;
+  } finally {
+    inflightDecodes.delete(url);
+  }
 }
 
 function fallbackPlayWithHtmlAudio(url: string, volume: number): void {
@@ -82,14 +99,11 @@ function fallbackPlayWithHtmlAudio(url: string, volume: number): void {
   }
 }
 
-async function playUiSound(name: SoundName): Promise<void> {
+async function tryPlayWithWebAudio(name: SoundName): Promise<boolean> {
   const { url, volume } = SOUND_CONFIG[name];
 
   const ctx = getAudioContext();
-  if (!ctx) {
-    fallbackPlayWithHtmlAudio(url, volume);
-    return;
-  }
+  if (!ctx) return false;
 
   try {
     if (ctx.state === 'suspended') {
@@ -107,10 +121,57 @@ async function playUiSound(name: SoundName): Promise<void> {
     source.connect(gain);
     gain.connect(ctx.destination);
 
+    source.addEventListener(
+      'ended',
+      () => {
+        try {
+          source.disconnect();
+          gain.disconnect();
+        } catch {
+          // ignore
+        }
+      },
+      { once: true },
+    );
+
     source.start(0);
+    return true;
   } catch (err) {
-    console.warn(`[Sound] Failed to play "${name}" sound:`, err);
+    console.warn(`[Sound] Failed to play "${name}" sound via WebAudio (ctx.state=${ctx.state}):`, err);
+    // На случай странного состояния WebAudio — не держим испорченный контекст.
+    // Следующая попытка пересоздаст AudioContext.
+    audioContext = null;
+    return false;
   }
+}
+
+async function playUiSound(name: SoundName): Promise<void> {
+  const { url, volume } = SOUND_CONFIG[name];
+  const ok = await tryPlayWithWebAudio(name);
+  if (!ok) {
+    fallbackPlayWithHtmlAudio(url, volume);
+  }
+}
+
+/**
+ * Прогревает декодирование UI-звуков заранее.
+ * Это важно для "done": его часто триггерим в момент auto-hide окна, и редкие фейлы декодинга
+ * не должны "ломать звук навсегда" из-за кеша.
+ */
+export async function preloadUiSounds(): Promise<void> {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    // decodeAudioData не требует running state, но в некоторых WebKit сценариях ctx может быть suspended.
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+  } catch {
+    // ignore - прогрев best-effort
+  }
+
+  await Promise.allSettled(Object.values(SOUND_CONFIG).map(({ url }) => decodeBuffer(url)));
 }
 
 /**

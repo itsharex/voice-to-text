@@ -57,6 +57,32 @@ function openCheckout() {
 
   const localePrefix = locale.value === "en" ? "" : `/${locale.value}`
   const successUrl = `${window.location.origin}${localePrefix}/checkout-success`
+  // Paddle recommends passing chosen locale if you have a language selector.
+  // We pass only locales Paddle Checkout lists as supported; otherwise it falls back to browser locale.
+  // Source: Paddle.Checkout.open() docs → settings.locale allowed values.
+  const paddleLocale = ([
+    "ar",
+    "zh-Hans",
+    "zh-TW",
+    "da",
+    "nl",
+    "en",
+    "fr",
+    "de",
+    "it",
+    "ja",
+    "ko",
+    "no",
+    "pl",
+    "pt",
+    "pt-BR",
+    "tr",
+    "ru",
+    "es",
+    "sv"
+  ] as const).includes(locale.value as any)
+    ? (locale.value as string)
+    : undefined
 
   ;($paddle as any).Checkout.open({
     // В доке рекомендуют открывать overlay через settings.displayMode
@@ -67,6 +93,7 @@ function openCheckout() {
       // Если дать пользователю поменять email в самом checkout, то `customData.voicetext_customer_email`
       // может разъехаться с фактическим email в Paddle — и мы отправим ключ не туда.
       allowLogout: false,
+      ...(paddleLocale ? { locale: paddleLocale } : {}),
       // По оф. доке можно редиректить на свою success page. Это UX-сигнал, не “истина”.
       successUrl
     },

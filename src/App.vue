@@ -9,7 +9,7 @@ import { listen } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useUpdater } from './composables/useUpdater';
 import { getWindowMode, type AppWindowLabel } from './windowing/windowMode';
-import { SettingsWindow } from './features/settings';
+import { SettingsWindow, useSettingsStore } from './features/settings';
 import {
   bumpUiPrefsRevision,
   UI_PREFS_LOCALE_KEY,
@@ -32,6 +32,23 @@ const { setupUpdateListener, cleanupUpdateListener } = useUpdater();
 const userThemePref = ref<UiTheme>(normalizeUiTheme(localStorage.getItem(UI_PREFS_THEME_KEY)));
 const useSystemThemePref = ref<boolean>(readUiPreferencesFromStorage().useSystemTheme);
 const systemTheme = ref<UiTheme>('dark');
+
+const settingsStore = useSettingsStore();
+
+// Синхронизация store → локальные refs (для переключения темы из настроек)
+watch(
+  () => settingsStore.useSystemTheme,
+  (value) => {
+    useSystemThemePref.value = value;
+  },
+);
+
+watch(
+  () => settingsStore.theme,
+  (value) => {
+    userThemePref.value = normalizeUiTheme(value) as UiTheme;
+  },
+);
 
 // Флаг завершения инициализации (чтобы не мелькал AuthScreen)
 const isInitialized = ref(false);

@@ -122,6 +122,7 @@ const messages = {
         label: 'Theme',
         dark: 'Dark',
         light: 'Light',
+        auto: 'Auto',
         useSystem: 'Use system theme',
         systemNow: 'Now: {theme} (system)',
       },
@@ -283,6 +284,17 @@ const messages = {
           generic: 'Failed to activate license. Please try again.',
         },
       },
+      gift: {
+        title: 'Redeem gift',
+        hint: 'Enter the gift code to add bonus minutes to your account.',
+        inputLabel: 'Gift code',
+        cta: 'Redeem',
+        success: '{minutes} bonus minutes added!',
+        errors: {
+          empty: 'Gift code cannot be empty',
+          generic: 'Failed to redeem gift code',
+        },
+      },
       plans: {
         free: 'Free',
         starter: 'Starter',
@@ -424,6 +436,7 @@ const messages = {
         label: 'Тема',
         dark: 'Темная',
         light: 'Светлая',
+        auto: 'Авто',
         useSystem: 'Использовать системную тему',
         systemNow: 'Сейчас: {theme} (система)',
       },
@@ -585,6 +598,17 @@ const messages = {
           generic: 'Не удалось активировать лицензию. Попробуйте ещё раз.',
         },
       },
+      gift: {
+        title: 'Активировать подарок',
+        hint: 'Введите код подарка, чтобы получить бонусные минуты на аккаунт.',
+        inputLabel: 'Код подарка',
+        cta: 'Активировать',
+        success: '{minutes} бонусных минут добавлено!',
+        errors: {
+          empty: 'Код подарка не может быть пустым',
+          generic: 'Не удалось активировать подарок',
+        },
+      },
       plans: {
         free: 'Бесплатный',
         starter: 'Starter',
@@ -726,6 +750,7 @@ const messages = {
         label: 'Tema',
         dark: 'Oscuro',
         light: 'Claro',
+        auto: 'Auto',
         useSystem: 'Usar el tema del sistema',
         systemNow: 'Ahora: {theme} (sistema)',
       },
@@ -887,6 +912,17 @@ const messages = {
           generic: 'No se pudo activar la licencia. Inténtalo de nuevo.',
         },
       },
+      gift: {
+        title: 'Canjear regalo',
+        hint: 'Introduce el código de regalo para añadir minutos de bonificación a tu cuenta.',
+        inputLabel: 'Código de regalo',
+        cta: 'Canjear',
+        success: '¡{minutes} minutos de bonificación añadidos!',
+        errors: {
+          empty: 'El código de regalo no puede estar vacío',
+          generic: 'No se pudo canjear el código de regalo',
+        },
+      },
       plans: {
         free: 'Gratuito',
         starter: 'Starter',
@@ -1028,6 +1064,7 @@ const messages = {
         label: 'Thème',
         dark: 'Sombre',
         light: 'Clair',
+        auto: 'Auto',
         useSystem: 'Utiliser le thème du système',
         systemNow: 'Maintenant : {theme} (système)',
       },
@@ -1189,6 +1226,17 @@ const messages = {
           generic: "Impossible d'activer la licence. Veuillez réessayer.",
         },
       },
+      gift: {
+        title: 'Utiliser un cadeau',
+        hint: 'Entrez le code cadeau pour ajouter des minutes bonus à votre compte.',
+        inputLabel: 'Code cadeau',
+        cta: 'Utiliser',
+        success: '{minutes} minutes bonus ajoutées !',
+        errors: {
+          empty: 'Le code cadeau ne peut pas être vide',
+          generic: "Impossible d'utiliser le code cadeau",
+        },
+      },
       plans: {
         free: 'Gratuit',
         starter: 'Starter',
@@ -1330,6 +1378,7 @@ const messages = {
         label: 'Design',
         dark: 'Dunkel',
         light: 'Hell',
+        auto: 'Auto',
         useSystem: 'Systemdesign verwenden',
         systemNow: 'Jetzt: {theme} (System)',
       },
@@ -1491,6 +1540,17 @@ const messages = {
           generic: 'Lizenz konnte nicht aktiviert werden. Bitte versuche es erneut.',
         },
       },
+      gift: {
+        title: 'Geschenk einlösen',
+        hint: 'Gib den Geschenkcode ein, um Bonusminuten zu deinem Konto hinzuzufügen.',
+        inputLabel: 'Geschenkcode',
+        cta: 'Einlösen',
+        success: '{minutes} Bonusminuten hinzugefügt!',
+        errors: {
+          empty: 'Der Geschenkcode darf nicht leer sein',
+          generic: 'Geschenkcode konnte nicht eingelöst werden',
+        },
+      },
       plans: {
         free: 'Kostenlos',
         starter: 'Starter',
@@ -1632,6 +1692,7 @@ const messages = {
         label: 'Тема',
         dark: 'Темна',
         light: 'Світла',
+        auto: 'Авто',
         useSystem: 'Використовувати системну тему',
         systemNow: 'Зараз: {theme} (система)',
       },
@@ -1791,6 +1852,17 @@ const messages = {
         errors: {
           empty: 'Ключ ліцензії не може бути порожнім',
           generic: 'Не вдалося активувати ліцензію. Спробуйте ще раз.',
+        },
+      },
+      gift: {
+        title: 'Активувати подарунок',
+        hint: 'Введіть код подарунка, щоб отримати бонусні хвилини на акаунт.',
+        inputLabel: 'Код подарунка',
+        cta: 'Активувати',
+        success: '{minutes} бонусних хвилин додано!',
+        errors: {
+          empty: 'Код подарунка не може бути порожнім',
+          generic: 'Не вдалося активувати подарунок',
         },
       },
       plans: {

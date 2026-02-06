@@ -17,6 +17,12 @@ interface LicenseInfo {
   claimed_at: string;
 }
 
+interface GiftRedeemResult {
+  redeemed: boolean;
+  seconds_added: number;
+  bonus_seconds_balance: number;
+}
+
 interface LinkedProvider {
   provider: string;
   provider_email: string | null;
@@ -40,6 +46,15 @@ const linkedProviders = ref<LinkedProvider[]>([]);
 const licenseKeyInput = ref('');
 const isClaiming = ref(false);
 const claimError = ref<string | null>(null);
+
+// Аккордеон: какая секция сейчас раскрыта
+const activeSection = ref<'none' | 'license' | 'gift'>('none');
+
+// Стейт для активации подарка
+const giftCodeInput = ref('');
+const isRedeemingGift = ref(false);
+const giftError = ref<string | null>(null);
+const giftSuccessMessage = ref<string | null>(null);
 
 // Пробуем получить email из разных источников
 const userEmail = computed(() => {
@@ -80,7 +95,8 @@ const usageInfo = computed(() => {
   const totalMin = Math.round(license.value.seconds_limit / 60);
   const usedMin = Math.round(license.value.seconds_used / 60);
   const remainMin = Math.max(0, totalMin - usedMin);
-  return { used: usedMin, total: totalMin, remaining: remainMin };
+  const percent = totalMin > 0 ? Math.round((usedMin / totalMin) * 100) : 0;
+  return { used: usedMin, total: totalMin, remaining: remainMin, percent };
 });
 
 // Иконка провайдера
@@ -111,6 +127,18 @@ async function fetchLicense() {
   }
 }
 
+function toggleSection(section: 'license' | 'gift') {
+  if (activeSection.value === section) {
+    activeSection.value = 'none';
+  } else {
+    activeSection.value = section;
+    // Сбрасываем ошибки при переключении
+    claimError.value = null;
+    giftError.value = null;
+    giftSuccessMessage.value = null;
+  }
+}
+
 async function claimLicense() {
   const key = licenseKeyInput.value.trim();
   if (!key) {
@@ -123,13 +151,37 @@ async function claimLicense() {
   try {
     await api.post('/api/v1/account/licenses/claim', { license_key: key });
     licenseKeyInput.value = '';
+    activeSection.value = 'none';
     await fetchLicense();
   } catch (err: any) {
-    // apiClient пробрасывает AuthError с human-friendly message
     const msg = String(err?.message || '');
     claimError.value = msg.trim() ? msg : t('profile.claim.errors.generic');
   } finally {
     isClaiming.value = false;
+  }
+}
+
+async function redeemGift() {
+  const code = giftCodeInput.value.trim();
+  if (!code) {
+    giftError.value = t('profile.gift.errors.empty');
+    return;
+  }
+
+  isRedeemingGift.value = true;
+  giftError.value = null;
+  giftSuccessMessage.value = null;
+  try {
+    const data = await api.post<GiftRedeemResult>('/api/v1/gifts/redeem', { code });
+    const minutes = Math.round(data.seconds_added / 60);
+    giftSuccessMessage.value = t('profile.gift.success', { minutes });
+    giftCodeInput.value = '';
+    await fetchLicense();
+  } catch (err: any) {
+    const msg = String(err?.message || '');
+    giftError.value = msg.trim() ? msg : t('profile.gift.errors.generic');
+  } finally {
+    isRedeemingGift.value = false;
   }
 }
 
@@ -228,33 +280,88 @@ onMounted(() => {
           </v-list-item>
 
           <v-divider class="my-1" />
-          <v-list-subheader>{{ t('profile.claim.title') }}</v-list-subheader>
-          <div class="px-4 pb-2">
-            <div class="text-body-2 text-medium-emphasis mb-2">
-              {{ t('profile.claim.hint') }}
-            </div>
-            <v-text-field
-              v-model="licenseKeyInput"
-              :label="t('profile.claim.inputLabel')"
-              density="comfortable"
-              variant="outlined"
-              hide-details
-              autocomplete="off"
-            />
-            <div v-if="claimError" class="text-caption text-error mt-2">
-              {{ claimError }}
-            </div>
+
+          <div class="d-flex flex-column align-center ga-2 px-4 py-2">
             <v-btn
-              class="mt-3"
-              color="primary"
-              block
-              :loading="isClaiming"
-              :disabled="isClaiming"
-              @click="claimLicense"
+              variant="tonal"
+              size="small"
+              :color="activeSection === 'license' ? 'primary' : undefined"
+              prepend-icon="mdi-key-variant"
+              @click="toggleSection('license')"
             >
-              {{ t('profile.claim.cta') }}
+              {{ t('profile.claim.title') }}
+            </v-btn>
+            <v-btn
+              variant="tonal"
+              size="small"
+              :color="activeSection === 'gift' ? 'primary' : undefined"
+              prepend-icon="mdi-gift-outline"
+              @click="toggleSection('gift')"
+            >
+              {{ t('profile.gift.title') }}
             </v-btn>
           </div>
+
+          <v-expand-transition>
+            <div v-show="activeSection === 'license'" class="px-4 pb-2">
+              <div class="text-body-2 text-medium-emphasis mb-2">
+                {{ t('profile.claim.hint') }}
+              </div>
+              <v-text-field
+                v-model="licenseKeyInput"
+                :label="t('profile.claim.inputLabel')"
+                density="comfortable"
+                variant="outlined"
+                hide-details
+                autocomplete="off"
+              />
+              <div v-if="claimError" class="text-caption text-error mt-2">
+                {{ claimError }}
+              </div>
+              <v-btn
+                class="mt-3"
+                color="primary"
+                block
+                :loading="isClaiming"
+                :disabled="isClaiming"
+                @click="claimLicense"
+              >
+                {{ t('profile.claim.cta') }}
+              </v-btn>
+            </div>
+          </v-expand-transition>
+
+          <v-expand-transition>
+            <div v-show="activeSection === 'gift'" class="px-4 pb-2">
+              <div class="text-body-2 text-medium-emphasis mb-2">
+                {{ t('profile.gift.hint') }}
+              </div>
+              <v-text-field
+                v-model="giftCodeInput"
+                :label="t('profile.gift.inputLabel')"
+                density="comfortable"
+                variant="outlined"
+                hide-details
+                autocomplete="off"
+              />
+              <div v-if="giftError" class="text-caption text-error mt-2">
+                {{ giftError }}
+              </div>
+              <div v-if="giftSuccessMessage" class="text-caption text-success mt-2">
+                {{ giftSuccessMessage }}
+              </div>
+              <v-btn
+                class="mt-3"
+                color="primary"
+                block
+                :loading="isRedeemingGift"
+                :disabled="isRedeemingGift"
+                @click="redeemGift"
+              >
+                {{ t('profile.gift.cta') }}
+              </v-btn>
+            </div>
+          </v-expand-transition>
 
           <v-list-item v-if="license && usageInfo">
             <template #prepend>
@@ -266,6 +373,13 @@ onMounted(() => {
             <v-list-item-subtitle class="text-body-1">
               {{ t('profile.usageDetail', { used: usageInfo.used, total: usageInfo.total }) }}
             </v-list-item-subtitle>
+            <v-progress-linear
+              class="mt-2 rounded"
+              :model-value="usageInfo.percent"
+              :color="usageInfo.percent >= 90 ? 'error' : usageInfo.percent >= 70 ? 'warning' : 'primary'"
+              height="6"
+              rounded
+            />
           </v-list-item>
 
           <template v-if="linkedProviders.length > 0">
