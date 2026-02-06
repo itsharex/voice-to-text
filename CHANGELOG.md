@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.8.0] — 2026-02-06
+
+### Added
+- Checkout success and payment pages with localization (6 languages)
+- License activation — claim a license key from email to activate a plan
+- Gift code redemption — redeem gift codes for bonus minutes
+- Usage progress bar in profile popover
+- Landing favicon and app logo in header
+- Latest release version and date displayed in hero, download, and open source sections
+- Sound preloading for reliable playback on recording window show
+
+### Changed
+- Theme selector redesigned: replaced switch + checkbox with a segmented control (Light / Dark / Auto)
+- Landing features section: 4 columns per row instead of 3
+- Landing download section: detected platform card centered and visually highlighted (scale)
+- Updated language count from 50+ to 40+ across all locales
+- Regenerated all app icons from new logo for macOS, Windows, Linux, iOS, Android
+- Theme toggle button: proper icon button with tooltip and accessibility
+- Improved sound playback reliability: AudioContext recreation on close, separate inflight/decoded caches, disconnect on ended
+- Updated landing screenshots
+- Updated README with current features and architecture
+
+### Fixed
+- Theme sync from settings: store watches now propagate to App.vue refs
+- Sound decoding errors no longer permanently break playback (rejected promise cache issue)
+
+---
+
 ## [0.7.2] — 2026-02-03
 
 ### Added
@@ -116,6 +144,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+[0.8.0]: https://github.com/777genius/voice-to-text/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/777genius/voice-to-text/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/777genius/voice-to-text/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/777genius/voice-to-text/compare/v0.6.0...v0.7.0
