@@ -442,7 +442,7 @@ const minimizeWindow = async () => {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   width: 100%;
   height: 100%;
   display: flex;
@@ -454,7 +454,7 @@ const minimizeWindow = async () => {
 }
 
 :global(.theme-light) .popover {
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
 }
 
 :global(.theme-light) .popover-container {
@@ -462,11 +462,11 @@ const minimizeWindow = async () => {
 }
 
 :global(.os-macos) .popover {
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
 }
 
 :global(.os-windows) .popover {
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
 }
 
 .popover-content {
