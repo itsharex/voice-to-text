@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 
+// ─── Версия из GitHub releases ───
+const { data: releaseData } = useReleaseDownloads();
+const appVersion = computed(() => releaseData.value?.version ?? '');
+
 // ─── Constants ───
 const BAR_COUNT = 48;
 
@@ -70,17 +74,18 @@ function generateFakeData() {
   const t = performance.now() / 1000;
   for (let i = 0; i < BAR_COUNT; i++) {
     if (isRecordingViz) {
-      // Smooth ramp-up over ~2 seconds after recording starts
       const elapsed = (performance.now() - recordingStartTime) / 1000;
-      const ramp = Math.min(1, elapsed / 2); // 0→1 over 2s
+      const ramp = Math.min(1, elapsed / 1.5);
 
-      // Simulate speech: center bars louder, with variation
+      // Центр громче, края тише — как в реальном спектре речи
       const center = BAR_COUNT / 2;
       const dist = Math.abs(i - center) / center;
-      const base = 0.15 + (1 - dist) * 0.3;
-      const wave = Math.sin(t * 1.2 + barPhases[i]) * 0.2
-                 + Math.sin(t * 0.7 + barPhases[i] * 2.3) * 0.12
-                 + Math.sin(t * 2.1 + barPhases[i] * 0.7) * 0.08;
+      const centerBoost = Math.pow(1 - dist, 1.3);
+      const base = 0.12 + centerBoost * 0.55;
+      const wave = Math.sin(t * 1.8 + barPhases[i]) * 0.22
+                 + Math.sin(t * 0.9 + barPhases[i] * 2.3) * 0.15
+                 + Math.sin(t * 3.0 + barPhases[i] * 0.7) * 0.10
+                 + Math.sin(t * 0.4 + barPhases[i] * 1.1) * 0.08;
       targetBars[i] = Math.max(0, Math.min(1, (base + wave) * ramp));
     } else {
       // Idle: subtle breathing
@@ -92,9 +97,9 @@ function generateFakeData() {
     const current = fakeBars[i];
     const target = targetBars[i];
     if (target > current) {
-      fakeBars[i] = current * 0.92 + target * 0.08; // attack — slower rise
+      fakeBars[i] = current * 0.85 + target * 0.15; // attack — как в десктопе
     } else {
-      fakeBars[i] = current * 0.97 + target * 0.03; // release — slower fall
+      fakeBars[i] = current * 0.95 + target * 0.05; // release
     }
   }
 }
@@ -149,7 +154,7 @@ function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
 
-  const maxBarHeight = height * 0.50;
+  const maxBarHeight = height * 0.98;
   const baseY = height;
   const base = 0.02;
   const noiseAmp = 0.04;
@@ -344,14 +349,15 @@ onUnmounted(() => {
     </div>
 
     <div class="hero-demo__content">
-      <!-- Header (from RecordingPopover.vue) -->
+      <!-- Header -->
       <div class="hero-demo__header">
         <div class="hero-demo__title-row">
           <span class="hero-demo__title">VoicetextAI</span>
-          <span class="hero-demo__version">v0.8.0</span>
+          <span v-if="appVersion" class="hero-demo__version">{{ appVersion }}</span>
         </div>
         <div class="hero-demo__header-icons">
           <span class="mdi mdi-window-minimize" />
+          <span class="mdi mdi-account-circle-outline" />
           <span class="mdi mdi-cog-outline" />
         </div>
       </div>
@@ -454,7 +460,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: rgba(255, 255, 255, 0.5);
+  color: #ffffff;
   font-size: 22px;
 }
 
@@ -462,6 +468,7 @@ onUnmounted(() => {
   padding: 2px 6px;
   border-radius: 4px;
   opacity: 0.8;
+  transition: opacity 0.2s ease;
 }
 
 /* ─── Transcription ─── */
