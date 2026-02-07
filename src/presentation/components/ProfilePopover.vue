@@ -230,7 +230,7 @@ onMounted(() => {
         />
       </v-card-title>
 
-      <v-card-text>
+      <v-card-text class="pt-0">
         <v-list>
           <v-list-item>
             <template #prepend>
@@ -427,6 +427,23 @@ onMounted(() => {
 .profile-card {
   min-height: calc(100vh - 24px);
   max-height: calc(100vh - 24px);
-  overflow-y: auto;
+  overflow-y: scroll;
+}
+
+.profile-card::-webkit-scrollbar {
+  width: 6px;
+}
+
+.profile-card::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.profile-card::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.profile-card::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 </style>

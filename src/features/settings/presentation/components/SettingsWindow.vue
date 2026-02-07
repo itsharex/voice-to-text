@@ -214,8 +214,25 @@ async function handleSave(): Promise<void> {
 
 .settings-body {
   flex: 1;
-  overflow-y: auto;
+  overflow-y: scroll;
   padding: var(--spacing-md);
+}
+
+.settings-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.settings-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.settings-body::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+.settings-body::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
 }
 
 .settings-footer {
