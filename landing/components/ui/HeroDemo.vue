@@ -80,8 +80,8 @@ function generateFakeData() {
       // Центр громче, края тише — как в реальном спектре речи
       const center = BAR_COUNT / 2;
       const dist = Math.abs(i - center) / center;
-      const centerBoost = Math.pow(1 - dist, 1.8);
-      const base = 0.08 + centerBoost * 0.65;
+      const centerBoost = Math.pow(1 - dist, 3.0);
+      const base = 0.03 + centerBoost * 0.85;
       const wave = Math.sin(t * 1.8 + barPhases[i]) * 0.22
                  + Math.sin(t * 0.9 + barPhases[i] * 2.3) * 0.15
                  + Math.sin(t * 3.0 + barPhases[i] * 0.7) * 0.10
@@ -154,7 +154,7 @@ function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
 
-  const maxBarHeight = height * 0.82;
+  const maxBarHeight = height * 0.97;
   const baseY = height;
   const base = 0.02;
   const noiseAmp = 0.04;
@@ -168,8 +168,10 @@ function render() {
   const totalWidth = BAR_COUNT * barW + (BAR_COUNT - 1) * gap;
   const offsetX = (width - totalWidth) / 2;
 
-  const minAlpha = 0.08;
-  const maxAlpha = 0.55;
+  // В десктопе 0.08/0.55, но там визуализатор за стеклянным фоном (glass-bg 0.9),
+  // а тут полосы и текст на одном слое — снижаем, чтобы текст легко читался
+  const minAlpha = 0.05;
+  const maxAlpha = 0.30;
   const radius = 3;
 
   generateFakeData();
@@ -178,8 +180,8 @@ function render() {
   // AGC — from AudioVisualizer.vue
   let maxV = 0;
   for (let i = 0; i < BAR_COUNT; i++) maxV = Math.max(maxV, visualBars[i]);
-  const desiredGain = maxV > 0 ? 0.85 / maxV : 1;
-  gain = gain * 0.96 + clamp(desiredGain, 0.85, 3.2) * 0.04;
+  const desiredGain = maxV > 0 ? 0.95 / maxV : 1;
+  gain = gain * 0.97 + clamp(desiredGain, 0.9, 2.0) * 0.03;
 
   for (let i = 0; i < BAR_COUNT; i++) {
     const v = (visualBars[i] ?? 0) * gain;
