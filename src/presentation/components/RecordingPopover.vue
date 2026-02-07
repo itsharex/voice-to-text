@@ -451,7 +451,7 @@ const minimizeWindow = async () => {
 }
 
 :global(.theme-light) .popover {
-  box-shadow: none;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
 }
 
 :global(.theme-light) .popover-container {
@@ -459,11 +459,11 @@ const minimizeWindow = async () => {
 }
 
 :global(.os-macos) .popover {
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
 
 :global(.os-windows) .popover {
-  box-shadow: none;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
 
 .popover-content {
