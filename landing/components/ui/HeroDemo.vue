@@ -81,12 +81,14 @@ function generateFakeData() {
       const center = BAR_COUNT / 2;
       const dist = Math.abs(i - center) / center;
       const centerBoost = Math.pow(1 - dist, 3.0);
-      const base = 0.03 + centerBoost * 0.85;
-      const wave = Math.sin(t * 1.8 + barPhases[i]) * 0.22
-                 + Math.sin(t * 0.9 + barPhases[i] * 2.3) * 0.15
-                 + Math.sin(t * 3.0 + barPhases[i] * 0.7) * 0.10
-                 + Math.sin(t * 0.4 + barPhases[i] * 1.1) * 0.08;
-      targetBars[i] = Math.max(0, Math.min(1, (base + wave) * ramp));
+      const base = 0.03 + centerBoost * 0.55;
+      const wave = Math.sin(t * 1.8 + barPhases[i]) * 0.15
+                 + Math.sin(t * 0.9 + barPhases[i] * 2.3) * 0.10
+                 + Math.sin(t * 3.0 + barPhases[i] * 0.7) * 0.07
+                 + Math.sin(t * 0.4 + barPhases[i] * 1.1) * 0.05;
+      // Мягкий потолок — единичные пики могут пробить ~0.75, но большинство ниже
+      const raw = (base + wave) * ramp;
+      targetBars[i] = Math.max(0, Math.min(1, raw > 0.65 ? 0.65 + (raw - 0.65) * 0.3 : raw));
     } else {
       // Idle: subtle breathing
       targetBars[i] = 0;
@@ -154,7 +156,7 @@ function render() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, width, height);
 
-  const maxBarHeight = height * 0.97;
+  const maxBarHeight = height * 0.85;
   const baseY = height;
   const base = 0.02;
   const noiseAmp = 0.04;
