@@ -68,10 +68,14 @@ let unlistenWindowShown: UnlistenFn | null = null;
 const transcriptionTextRef = ref<HTMLElement | null>(null);
 
 // Динамическая высота окна при росте текста
-const BASE_WINDOW_HEIGHT = 330;
-const TEXT_THRESHOLD_PX = 128; // ~5 строк (line-height 1.5 × font-size 17px)
-const MAX_WINDOW_HEIGHT = 700;
-const NON_TEXT_HEIGHT = 200; // header + controls + footer + отступы
+// Padding контейнера: 8px top + 20px bottom = 28px вертикально, 12px × 2 = 24px горизонтально
+const SHADOW_PADDING_X = 24;
+const SHADOW_PADDING_Y = 28;
+const WINDOW_WIDTH = 460 + SHADOW_PADDING_X; // 484
+const BASE_WINDOW_HEIGHT = 330 + SHADOW_PADDING_Y; // 358
+const TEXT_THRESHOLD_PX = 128;
+const MAX_WINDOW_HEIGHT = 700 + SHADOW_PADDING_Y; // 728
+const NON_TEXT_HEIGHT = 200;
 
 function adjustWindowHeight() {
   const el = transcriptionTextRef.value;
@@ -83,7 +87,7 @@ function adjustWindowHeight() {
     return;
   }
 
-  const needed = Math.min(NON_TEXT_HEIGHT + textHeight + 16, MAX_WINDOW_HEIGHT);
+  const needed = Math.min(NON_TEXT_HEIGHT + textHeight + 16 + SHADOW_PADDING_Y, MAX_WINDOW_HEIGHT);
   setWindowHeight(needed);
 }
 
@@ -94,7 +98,7 @@ async function setWindowHeight(height: number) {
     const targetHeight = Math.round(height * (window.devicePixelRatio || 1));
     // Не дёргаем resize если разница меньше 5px
     if (Math.abs(currentSize.height - targetHeight) < 5) return;
-    await win.setSize(new LogicalSize(460, height));
+    await win.setSize(new LogicalSize(WINDOW_WIDTH, height));
   } catch {}
 }
 
@@ -420,25 +424,24 @@ const minimizeWindow = async () => {
 
 <style scoped>
 .popover-container {
-  display: block;  
+  display: block;
   inset: 0;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   background: transparent;
-  border-radius: inherit;
+  padding: 8px 12px 20px;
 }
 
 :global(.os-windows) .popover-container {
-  left: -2px;
-  width: calc(100% + 2px);
+  padding: 8px 12px 20px;
 }
 
 .popover {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
-  border-radius: inherit;
+  border-radius: var(--radius-xl);
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
   width: 100%;
   height: 100%;
