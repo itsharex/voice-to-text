@@ -68,13 +68,13 @@ let unlistenWindowShown: UnlistenFn | null = null;
 const transcriptionTextRef = ref<HTMLElement | null>(null);
 
 // Динамическая высота окна при росте текста
-// Padding контейнера: 6px top + 14px bottom = 20px вертикально, 8px × 2 = 16px горизонтально
-const SHADOW_PADDING_X = 16;
-const SHADOW_PADDING_Y = 20;
-const WINDOW_WIDTH = 460 + SHADOW_PADDING_X; // 476
-const BASE_WINDOW_HEIGHT = 330 + SHADOW_PADDING_Y; // 350
+// Padding контейнера: 18px top + 42px bottom = 60px вертикально, 24px × 2 = 48px горизонтально
+const SHADOW_PADDING_X = 48;
+const SHADOW_PADDING_Y = 60;
+const WINDOW_WIDTH = 460 + SHADOW_PADDING_X; // 508
+const BASE_WINDOW_HEIGHT = 330 + SHADOW_PADDING_Y; // 390
 const TEXT_THRESHOLD_PX = 128;
-const MAX_WINDOW_HEIGHT = 700 + SHADOW_PADDING_Y; // 720
+const MAX_WINDOW_HEIGHT = 700 + SHADOW_PADDING_Y; // 760
 const NON_TEXT_HEIGHT = 200;
 
 function adjustWindowHeight() {
@@ -431,18 +431,18 @@ const minimizeWindow = async () => {
   box-sizing: border-box;
   overflow: visible;
   background: transparent;
-  padding: 6px 8px 14px;
+  padding: 18px 24px 42px;
 }
 
 :global(.os-windows) .popover-container {
-  padding: 6px 8px 14px;
+  padding: 18px 24px 42px;
 }
 
 .popover {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
   width: 100%;
   height: 100%;
   display: flex;
@@ -454,7 +454,7 @@ const minimizeWindow = async () => {
 }
 
 :global(.theme-light) .popover {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
 }
 
 :global(.theme-light) .popover-container {
@@ -462,11 +462,11 @@ const minimizeWindow = async () => {
 }
 
 :global(.os-macos) .popover {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
 
 :global(.os-windows) .popover {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
 
 .popover-content {
