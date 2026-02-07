@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.8.1] — 2026-02-07
+
+### Added
+- GA4 analytics events for landing page (nav clicks, downloads, theme/language switches, section views, FAQ expand)
+- Always-visible scrollbar in Profile and Settings windows
+- Border and box-shadow on recording popover for visual depth
+
+### Changed
+- Landing visualizer: stronger center-weighted bar distribution, dimmer bars for better text readability
+- Profile dialog now fills available window height
+
+### Fixed
+- GA4 not detected on voicetext.site (missing env var in Render config)
+- Dark scrim overlay removed from profile dialog
+- Reduced padding gap between profile dialog header and content
+
+---
+
 ## [0.8.0] — 2026-02-06
 
 ### Added
