@@ -58,6 +58,10 @@ export const useTranscriptionStore = defineStore('transcription', () => {
   // STT auth ошибки чаще всего означают "access token протух" (TTL ~15 минут).
   // Это НЕ должно выкидывать пользователя из аккаунта — сначала пробуем тихо обновить токен.
   let suppressNextErrorStatus = false;
+
+  // Счётчик auto-retry при 429 (rate limit). Не даём ретраить бесконечно — максимум 2 раза подряд.
+  let rateLimitRetryCount = 0;
+  const RATE_LIMIT_MAX_RETRIES = 2;
   let isForcingLogout = false;
   let isRefreshingAuthForStt = false;
 
@@ -835,12 +839,52 @@ export const useTranscriptionStore = defineStore('transcription', () => {
             // Если мы не в цикле подключения (например, ошибка пришла "фоном"),
             // попробуем тихо обновить токен. Если не получилось — тогда уже разлогиниваем.
             if (!isConnecting.value) {
+              const wasStarting = status.value === RecordingStatus.Starting;
               const ok = await tryRefreshAuthForStt();
               if (!ok) {
                 void forceLogoutFromSttAuthError();
+              } else if (wasStarting) {
+                // Запись была инициирована (хоткей/кнопка), но токен протух.
+                // Токен обновлён — перезапускаем автоматически.
+                void startRecording();
               } else {
                 status.value = RecordingStatus.Idle;
               }
+            }
+            return;
+          }
+
+          // 429: слишком много сессий или rate limit от сервера.
+          // Если запись только стартовала — пробуем один auto-retry с задержкой.
+          const isRateLimited = event.payload.error_details?.category === 'rate_limited'
+            || event.payload.error_details?.httpStatus === 429;
+
+          if (isRateLimited && !isConnecting.value) {
+            const wasStarting = status.value === RecordingStatus.Starting;
+            const serverCode = event.payload.error_details?.serverCode;
+
+            if (wasStarting && rateLimitRetryCount < RATE_LIMIT_MAX_RETRIES) {
+              rateLimitRetryCount++;
+              const delaySec = serverCode === 'TOO_MANY_SESSIONS' ? 2 : 5;
+              console.warn(`[STT] 429 (${serverCode ?? 'unknown'}), auto-retry #${rateLimitRetryCount} через ${delaySec}с`);
+              suppressNextErrorStatus = true;
+              status.value = RecordingStatus.Starting;
+              setTimeout(() => {
+                if (status.value === RecordingStatus.Starting) {
+                  // Важно: вызываем напрямую startRecordingWithRetry, а не startRecording,
+                  // чтобы не сбросить rateLimitRetryCount (он нужен для защиты от бесконечных ретраев).
+                  void startRecordingWithRetry(3);
+                }
+              }, delaySec * 1000);
+            } else {
+              // Исчерпали лимит ретраев или не в Starting — показываем ошибку
+              if (rateLimitRetryCount >= RATE_LIMIT_MAX_RETRIES) {
+                console.warn(`[STT] 429 retry limit reached (${RATE_LIMIT_MAX_RETRIES}), showing error`);
+              }
+              rateLimitRetryCount = 0;
+              error.value = mapErrorMessage('connection', event.payload.error, event.payload.error_details);
+              errorType.value = 'connection';
+              status.value = RecordingStatus.Error;
             }
             return;
           }
@@ -970,6 +1014,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
       if (category === 'dns') return i18n.global.t('errors.connectionDns');
       if (category === 'tls') return i18n.global.t('errors.connectionTls');
       if (category === 'timeout') return i18n.global.t('errors.timeout');
+      if (category === 'rate_limited') return i18n.global.t('errors.rateLimited');
       if (category === 'http') {
         return details?.httpStatus
           ? i18n.global.t('errors.connectionHttp', { status: details.httpStatus })
@@ -1202,30 +1247,30 @@ export const useTranscriptionStore = defineStore('transcription', () => {
   }
 
   function resetTextStateBeforeStart(): void {
-      // Очищаем весь предыдущий текст перед новой записью
-      error.value = null;
+    // Очищаем весь предыдущий текст перед новой записью
+    error.value = null;
     errorType.value = null;
-      partialText.value = '';
-      accumulatedText.value = '';
-      finalText.value = '';
-      lastFinalizedText.value = '';
-      currentUtteranceStart.value = -1;
+    partialText.value = '';
+    accumulatedText.value = '';
+    finalText.value = '';
+    lastFinalizedText.value = '';
+    currentUtteranceStart.value = -1;
 
-      // Сбрасываем флаг auto-paste
-      lastPastedFinalText.value = '';
+    // Сбрасываем флаг auto-paste
+    lastPastedFinalText.value = '';
 
-      // Очищаем анимированный текст
-      animatedPartialText.value = '';
-      animatedAccumulatedText.value = '';
+    // Очищаем анимированный текст
+    animatedPartialText.value = '';
+    animatedAccumulatedText.value = '';
 
-      // Очищаем таймеры анимации
-      if (partialAnimationTimer) {
-        clearInterval(partialAnimationTimer);
-        partialAnimationTimer = null;
-      }
-      if (accumulatedAnimationTimer) {
-        clearInterval(accumulatedAnimationTimer);
-        accumulatedAnimationTimer = null;
+    // Очищаем таймеры анимации
+    if (partialAnimationTimer) {
+      clearInterval(partialAnimationTimer);
+      partialAnimationTimer = null;
+    }
+    if (accumulatedAnimationTimer) {
+      clearInterval(accumulatedAnimationTimer);
+      accumulatedAnimationTimer = null;
     }
   }
 
@@ -1288,6 +1333,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
           await waitForConnectOutcome(12_000);
 
           console.log('[ConnectRetry] Connected successfully');
+          rateLimitRetryCount = 0;
           return;
     } catch (err) {
           // ВАЖНО: err может быть либо "типом" (timeout/connection/...) из waitForConnectOutcome,
@@ -1348,11 +1394,14 @@ export const useTranscriptionStore = defineStore('transcription', () => {
   }
 
   async function startRecording(): Promise<void> {
-    // Ретраим подключение "из коробки" — это ровно тот сценарий, который часто фейлится на первой попытке.
+    // Пользовательский вызов — сбрасываем счётчик rate limit,
+    // чтобы прошлые авто-ретраи не блокировали новый запуск.
+    rateLimitRetryCount = 0;
     await startRecordingWithRetry(3);
   }
 
   async function reconnect(): Promise<void> {
+    rateLimitRetryCount = 0;
     await startRecordingWithRetry(3);
   }
 

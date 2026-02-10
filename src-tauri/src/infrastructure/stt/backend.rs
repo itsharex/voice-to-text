@@ -355,6 +355,35 @@ impl SttProvider for BackendProvider {
                     );
                 }
 
+                if status == http::StatusCode::TOO_MANY_REQUESTS {
+                    // Парсим body от сервера для точной причины (rate_limit vs too_many_sessions)
+                    let (server_message, server_code) = resp.body()
+                        .as_ref()
+                        .and_then(|body| {
+                            let text = std::str::from_utf8(body).ok()?;
+                            let json: serde_json::Value = serde_json::from_str(text).ok()?;
+                            let msg = json.get("message")?.as_str()?.to_string();
+                            let code = json.get("code")?.as_str()?.to_string();
+                            Some((msg, code))
+                        })
+                        .unzip();
+
+                    let display_message = match &server_message {
+                        Some(msg) => format!("WS connection failed: 429 — {}", msg),
+                        None => format!("WS connection failed: HTTP error: {}", status),
+                    };
+
+                    return SttError::Connection(SttConnectionError {
+                        message: display_message,
+                        details: SttConnectionDetails {
+                            category: Some(SttConnectionCategory::RateLimited),
+                            http_status: Some(429),
+                            server_code,
+                            ..Default::default()
+                        },
+                    });
+                }
+
                 {
                     let status_u16 = status.as_u16();
                     let category = if matches!(status_u16, 502 | 503 | 504) {
@@ -591,7 +620,7 @@ impl SttProvider for BackendProvider {
                                         if let Some(cb) = cb {
                                             let category = match code.as_str() {
                                                 "timeout" => Some(SttConnectionCategory::Timeout),
-                                                "rate_limit" => Some(SttConnectionCategory::ServerUnavailable),
+                                                "rate_limit" | "too_many_sessions" => Some(SttConnectionCategory::RateLimited),
                                                 _ => Some(SttConnectionCategory::Unknown),
                                             };
                                             cb(SttError::Connection(SttConnectionError {

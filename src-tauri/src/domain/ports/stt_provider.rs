@@ -55,6 +55,7 @@ pub enum SttConnectionCategory {
     Reset,
     Timeout,
     Http,
+    RateLimited,
     ServerUnavailable,
     Closed,
     Unknown,
