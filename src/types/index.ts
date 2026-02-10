@@ -47,7 +47,7 @@ export interface ErrorPayload {
 export interface TranscriptionErrorPayload {
   session_id: number;
   error: string;
-  error_type: 'connection' | 'configuration' | 'processing' | 'timeout' | 'authentication';
+  error_type: 'connection' | 'configuration' | 'processing' | 'timeout' | 'authentication' | 'limit_exceeded';
   error_details?: TranscriptionErrorDetailsPayload;
 }
 
@@ -62,6 +62,8 @@ export interface TranscriptionErrorDetailsPayload {
     | 'http'
     | 'server_unavailable'
     | 'closed'
+    | 'rate_limited'
+    | 'limit_exceeded'
     | 'unknown';
   httpStatus?: number;
   wsCloseCode?: number;

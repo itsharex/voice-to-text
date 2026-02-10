@@ -1,3 +1,4 @@
+import { resolve } from 'node:path';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import vuetify from 'vite-plugin-vuetify';
@@ -57,5 +58,12 @@ export default defineConfig({
     minify: !process.env.TAURI_DEBUG ? 'esbuild' : false,
     // produce sourcemaps for debug builds
     sourcemap: !!process.env.TAURI_DEBUG,
+    // Multi-page: основное приложение + демо окно
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, 'index.html'),
+        demo: resolve(__dirname, 'demo.html'),
+      },
+    },
   },
 });

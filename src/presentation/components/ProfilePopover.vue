@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useAuth } from '../../features/auth/presentation/composables/useAuth';
 import { useAuthStore } from '../../features/auth/store/authStore';
@@ -30,6 +30,12 @@ interface LinkedProvider {
   linked_at: string;
 }
 
+const props = withDefaults(defineProps<{
+  initialSection?: 'none' | 'license' | 'gift';
+}>(), {
+  initialSection: 'none',
+});
+
 const emit = defineEmits<{
   close: []
 }>();
@@ -44,6 +50,7 @@ const licenseLoading = ref(false);
 const linkedProviders = ref<LinkedProvider[]>([]);
 
 const licenseKeyInput = ref('');
+const licenseKeyRef = ref<{ focus: () => void } | null>(null);
 const isClaiming = ref(false);
 const claimError = ref<string | null>(null);
 
@@ -204,9 +211,19 @@ async function handleLogout() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   fetchLicense();
   fetchLinkedProviders();
+
+  // Если попросили открыть конкретную секцию (например, лицензию из ошибки limit_exceeded)
+  if (props.initialSection !== 'none') {
+    activeSection.value = props.initialSection;
+    if (props.initialSection === 'license') {
+      await nextTick();
+      // Ждём анимацию раскрытия v-expand-transition
+      setTimeout(() => licenseKeyRef.value?.focus(), 300);
+    }
+  }
 });
 </script>
 
@@ -309,6 +326,7 @@ onMounted(() => {
                 {{ t('profile.claim.hint') }}
               </div>
               <v-text-field
+                ref="licenseKeyRef"
                 v-model="licenseKeyInput"
                 :label="t('profile.claim.inputLabel')"
                 density="comfortable"

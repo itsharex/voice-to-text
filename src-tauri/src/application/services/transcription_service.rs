@@ -364,7 +364,9 @@ impl TranscriptionService {
                                 SttError::Authentication(_) => ("authentication", true),
                                 SttError::Configuration(_) => ("configuration", true),
                                 SttError::Connection(conn) => {
-                                    if conn.details.category == Some(crate::domain::SttConnectionCategory::Timeout) {
+                                    if conn.details.category == Some(crate::domain::SttConnectionCategory::LimitExceeded) {
+                                        ("limit_exceeded", true)
+                                    } else if conn.details.category == Some(crate::domain::SttConnectionCategory::Timeout) {
                                         ("timeout", false)
                                     } else {
                                         ("connection", false)

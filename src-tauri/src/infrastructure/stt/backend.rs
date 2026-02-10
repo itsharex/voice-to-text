@@ -6,7 +6,7 @@
 use async_trait::async_trait;
 use futures_util::{SinkExt, StreamExt};
 use http::Request;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::Arc;
 use tokio::sync::Mutex;
 use tokio::task::JoinHandle;
@@ -91,6 +91,11 @@ pub struct BackendProvider {
     /// Используется для предотвращения race condition при закрытии WebSocket
     is_closed: Arc<AtomicBool>,
 
+    /// Последний известный остаток секунд (из UsageUpdate), хранится как f32 bits.
+    /// Доступен и из receiver task, и из send_audio() — нужен чтобы при закрытии
+    /// отличать limit_exceeded от обычного обрыва.
+    last_remaining_secs: Arc<AtomicU32>,
+
     // Callbacks: active/pending (для keep-alive режима).
     //
     // Важно: receiver task живёт дольше одной "записи" (мы держим WS живым между старт/стопами).
@@ -143,6 +148,7 @@ impl BackendProvider {
             receiver_task: None,
             keepalive_task: None,
             is_closed: Arc::new(AtomicBool::new(true)), // Изначально закрыто
+            last_remaining_secs: Arc::new(AtomicU32::new(f32::MAX.to_bits())),
             callbacks: Arc::new(Mutex::new(CallbackState::default())),
             on_usage_update_callback: None,
             sent_chunks_count: 0,
@@ -485,9 +491,15 @@ impl SttProvider for BackendProvider {
         let callbacks_state = self.callbacks.clone();
         let on_usage_cb = self.on_usage_update_callback.clone();
         let is_closed_flag = self.is_closed.clone();
+        let shared_remaining = self.last_remaining_secs.clone();
+
+        // Сбрасываем remaining на старте нового соединения
+        shared_remaining.store(f32::MAX.to_bits(), Ordering::SeqCst);
 
         let receiver_task = tokio::spawn(async move {
             log::debug!("Backend receiver task started");
+
+            const LIMIT_REMAINING_THRESHOLD: f32 = 5.0;
 
             while let Some(msg_result) = read.next().await {
                 match msg_result {
@@ -580,6 +592,7 @@ impl SttProvider for BackendProvider {
                                     } => {
                                         let remaining = seconds_remaining_total
                                             .unwrap_or(seconds_remaining_plan);
+                                        shared_remaining.store(remaining.to_bits(), Ordering::SeqCst);
                                         log::debug!(
                                             "Usage: used={:.1}s, remaining={:.1}s",
                                             seconds_used,
@@ -621,6 +634,7 @@ impl SttProvider for BackendProvider {
                                             let category = match code.as_str() {
                                                 "timeout" => Some(SttConnectionCategory::Timeout),
                                                 "rate_limit" | "too_many_sessions" => Some(SttConnectionCategory::RateLimited),
+                                                "LIMIT_EXCEEDED" => Some(SttConnectionCategory::LimitExceeded),
                                                 _ => Some(SttConnectionCategory::Unknown),
                                             };
                                             cb(SttError::Connection(SttConnectionError {
@@ -654,11 +668,28 @@ impl SttProvider for BackendProvider {
                         };
                         if let Some(cb) = cb {
                             let code_u16 = frame.as_ref().map(|f| u16::from(f.code));
-                            let category = match code_u16 {
+                            let mut category = match code_u16 {
+                                Some(1008) => SttConnectionCategory::LimitExceeded,
                                 Some(1012) | Some(1013) | Some(1014) => SttConnectionCategory::ServerUnavailable,
                                 Some(1000) => SttConnectionCategory::Closed,
                                 _ => SttConnectionCategory::ServerUnavailable,
                             };
+
+                            // Fallback: сервер может закрыть WS без кода 1008 (race condition между
+                            // отправкой LIMIT_EXCEEDED и close frame). Если последний UsageUpdate
+                            // показывал почти нулевой остаток — это лимит, а не обрыв связи.
+                            let remaining = f32::from_bits(shared_remaining.load(Ordering::SeqCst));
+                            if category != SttConnectionCategory::LimitExceeded
+                                && remaining < LIMIT_REMAINING_THRESHOLD
+                            {
+                                log::warn!(
+                                    "Close frame without 1008, but last remaining={:.1}s < {:.0}s → treating as limit_exceeded",
+                                    remaining,
+                                    LIMIT_REMAINING_THRESHOLD
+                                );
+                                category = SttConnectionCategory::LimitExceeded;
+                            }
+
                             cb(SttError::Connection(SttConnectionError {
                                 message: "WebSocket closed by server".to_string(),
                                 details: SttConnectionDetails {
@@ -693,7 +724,7 @@ impl SttProvider for BackendProvider {
                             state.active.as_ref().map(|c| c.on_error.clone())
                         };
                         if let Some(cb) = cb {
-                            let details = match &e {
+                            let mut details = match &e {
                                 tokio_tungstenite::tungstenite::Error::Io(ioe) => {
                                     let kind = ioe.kind();
                                     let kind_str = format!("{:?}", kind);
@@ -730,6 +761,21 @@ impl SttProvider for BackendProvider {
                                     ..Default::default()
                                 },
                             };
+
+                            // Fallback: обрыв соединения (reset/closed) при почти нулевом остатке
+                            // — скорее всего сервер закрыл из-за лимита без нормального close frame.
+                            let remaining = f32::from_bits(shared_remaining.load(Ordering::SeqCst));
+                            if details.category != Some(SttConnectionCategory::LimitExceeded)
+                                && remaining < LIMIT_REMAINING_THRESHOLD
+                            {
+                                log::warn!(
+                                    "WS error with last remaining={:.1}s < {:.0}s → treating as limit_exceeded",
+                                    remaining,
+                                    LIMIT_REMAINING_THRESHOLD
+                                );
+                                details.category = Some(SttConnectionCategory::LimitExceeded);
+                            }
+
                             cb(SttError::Connection(SttConnectionError {
                                 message: e.to_string(),
                                 details,
@@ -793,9 +839,18 @@ impl SttProvider for BackendProvider {
     async fn send_audio(&mut self, chunk: &AudioChunk) -> SttResult<()> {
         // Быстрая проверка атомарного флага (без async lock)
         if self.is_closed.load(Ordering::SeqCst) {
+            // Если соединение закрыто И остаток был < порога — это лимит, а не обрыв.
+            // Без этого audio processor loop будет 10 раз ретраить "connection" ошибку,
+            // перезатирая корректный limit_exceeded с receiver task.
+            let remaining = f32::from_bits(self.last_remaining_secs.load(Ordering::SeqCst));
+            let category = if remaining < 5.0 {
+                SttConnectionCategory::LimitExceeded
+            } else {
+                SttConnectionCategory::Closed
+            };
             return Err(SttError::Connection(SttConnectionError::with_category(
                 "Connection closed".to_string(),
-                SttConnectionCategory::Closed,
+                category,
             )));
         }
 

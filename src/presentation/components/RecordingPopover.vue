@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick, type Ref } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
@@ -68,13 +68,10 @@ let unlistenWindowShown: UnlistenFn | null = null;
 const transcriptionTextRef = ref<HTMLElement | null>(null);
 
 // Динамическая высота окна при росте текста
-// Padding контейнера: 36px top + 84px bottom = 120px вертикально, 48px × 2 = 96px горизонтально
-const SHADOW_PADDING_X = 96;
-const SHADOW_PADDING_Y = 120;
-const WINDOW_WIDTH = 460 + SHADOW_PADDING_X; // 556
-const BASE_WINDOW_HEIGHT = 330 + SHADOW_PADDING_Y; // 450
+const WINDOW_WIDTH = 460;
+const BASE_WINDOW_HEIGHT = 330;
 const TEXT_THRESHOLD_PX = 128;
-const MAX_WINDOW_HEIGHT = 700 + SHADOW_PADDING_Y; // 820
+const MAX_WINDOW_HEIGHT = 700;
 const NON_TEXT_HEIGHT = 200;
 
 function adjustWindowHeight() {
@@ -87,7 +84,7 @@ function adjustWindowHeight() {
     return;
   }
 
-  const needed = Math.min(NON_TEXT_HEIGHT + textHeight + 16 + SHADOW_PADDING_Y, MAX_WINDOW_HEIGHT);
+  const needed = Math.min(NON_TEXT_HEIGHT + textHeight + 16, MAX_WINDOW_HEIGHT);
   setWindowHeight(needed);
 }
 
@@ -278,13 +275,29 @@ const openSettings = () => {
   showSettings.value = true;
 };
 
+const profileInitialSection: Ref<'none' | 'license' | 'gift'> = ref('none');
+
 const openProfile = () => {
+  profileInitialSection.value = 'none';
+  showProfile.value = true;
+};
+
+const openProfileWithLicense = () => {
+  profileInitialSection.value = 'license';
   showProfile.value = true;
 };
 
 const closeProfile = () => {
   showProfile.value = false;
 };
+
+// Если store запросил открытие формы лицензии (например, через кнопку в ошибке)
+watch(() => store.wantsLicenseActivation, (val) => {
+  if (val) {
+    store.wantsLicenseActivation = false;
+    openProfileWithLicense();
+  }
+});
 
 const closeSettings = async () => {
   showSettings.value = false;
@@ -380,6 +393,14 @@ const minimizeWindow = async () => {
           >
             {{ t('errors.actions.reconnect') }}
           </button>
+
+          <button
+            v-if="store.canActivateLicense"
+            class="error-action-button no-drag"
+            @click="openProfileWithLicense"
+          >
+            {{ t('errors.actions.activateLicense') }}
+          </button>
         </div>
       </div>
 
@@ -415,7 +436,7 @@ const minimizeWindow = async () => {
     <SettingsPanel v-if="showSettings" @close="closeSettings" />
 
     <!-- Profile Modal -->
-    <ProfilePopover v-if="showProfile" @close="closeProfile" />
+    <ProfilePopover v-if="showProfile" :initial-section="profileInitialSection" @close="closeProfile" />
 
     <!-- Update Dialog -->
     <UpdateDialog v-model="showUpdateDialog" />
@@ -431,18 +452,13 @@ const minimizeWindow = async () => {
   box-sizing: border-box;
   overflow: visible;
   background: transparent;
-  padding: 36px 48px 84px;
-}
-
-:global(.os-windows) .popover-container {
-  padding: 36px 48px 84px;
+  padding: 0;
 }
 
 .popover {
   background: var(--glass-bg);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-xl);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
   width: 100%;
   height: 100%;
   display: flex;
@@ -453,20 +469,8 @@ const minimizeWindow = async () => {
   position: relative;
 }
 
-:global(.theme-light) .popover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12);
-}
-
 :global(.theme-light) .popover-container {
   background: transparent;
-}
-
-:global(.os-macos) .popover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
-}
-
-:global(.os-windows) .popover {
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
 }
 
 .popover-content {

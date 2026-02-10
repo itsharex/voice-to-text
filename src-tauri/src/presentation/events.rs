@@ -162,6 +162,7 @@ fn stt_category_to_string(cat: SttConnectionCategory) -> String {
         SttConnectionCategory::Timeout => "timeout",
         SttConnectionCategory::Http => "http",
         SttConnectionCategory::RateLimited => "rate_limited",
+        SttConnectionCategory::LimitExceeded => "limit_exceeded",
         SttConnectionCategory::ServerUnavailable => "server_unavailable",
         SttConnectionCategory::Closed => "closed",
         SttConnectionCategory::Unknown => "unknown",

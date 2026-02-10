@@ -4,6 +4,8 @@ pub mod application;
 pub mod infrastructure;
 mod presentation;
 
+mod demo;
+
 use presentation::commands;
 use presentation::state::AppState;
 use tauri::{Emitter, Manager};
@@ -92,6 +94,7 @@ pub fn run() {
                 .build(),
         )
         .manage(AppState::default())
+        .manage(demo::DemoAppState::default())
         .invoke_handler(tauri::generate_handler![
             commands::start_recording,
             commands::stop_recording,
@@ -125,6 +128,8 @@ pub fn run() {
             commands::show_recording_window,
             commands::show_settings_window,
             commands::set_authenticated,
+            demo::get_demo_snapshot,
+            demo::update_demo_state,
         ])
         .setup(|app| {
             #[cfg(debug_assertions)]
@@ -147,6 +152,30 @@ pub fn run() {
                 tauri::async_runtime::block_on(async {
                     *state.is_authenticated.write().await = true;
                 });
+            }
+
+            // Demo режим: два окна рядом для демонстрации state-sync.
+            // Запуск: DEMO=1 pnpm tauri dev
+            #[cfg(debug_assertions)]
+            {
+                let is_demo = std::env::var("DEMO").ok().as_deref() == Some("1");
+                if is_demo {
+                    log::info!("DEMO mode: opening demo windows for state-sync showcase");
+
+                    // Уничтожаем стандартные окна из tauri.conf.json — они не нужны в demo
+                    for label in &["main", "auth", "settings"] {
+                        if let Some(w) = app.get_webview_window(label) {
+                            let _ = w.destroy();
+                        }
+                    }
+
+                    if let Err(e) = demo::open_demo_windows(app.handle()) {
+                        log::error!("Failed to open demo windows: {}", e);
+                    }
+
+                    // Пропускаем всю остальную инициализацию — демо не нуждается в tray, hotkeys и т.д.
+                    return Ok(());
+                }
             }
 
             // ЗАПАСНОЙ ВАРИАНТ: Если NSPanel с StyleMask не работает поверх fullscreen,

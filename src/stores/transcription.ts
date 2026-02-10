@@ -4,6 +4,7 @@ import { invoke } from '@tauri-apps/api/core';
 import { listen } from '@tauri-apps/api/event';
 import { isTauriAvailable } from '../utils/tauri';
 import { i18n } from '../i18n';
+import { api } from '../features/auth/infrastructure/api/apiClient';
 import { useAuthStore } from '../features/auth/store/authStore';
 import { useAppConfigStore } from './appConfig';
 import { getTokenRepository } from '../features/auth/infrastructure/repositories/TokenRepository';
@@ -127,15 +128,23 @@ export const useTranscriptionStore = defineStore('transcription', () => {
       }
 
       if (backendStatus !== status.value) {
-        console.warn('[STT] Reconcile status:', {
-          reason,
-          backendStatus,
-          uiStatus: status.value,
-          uiSessionId: sessionId.value,
-          closedFloor: closedSessionIdFloor.value,
-          lastSeenSessionId: lastSeenSessionId.value,
-        });
-        status.value = backendStatus;
+        // Не откатываем Starting → Idle: запись могла быть только что запрошена,
+        // бэкенд ещё обрабатывает команду (race condition: window_shown эмитится
+        // ДО start_recording в toggle_recording_with_window_internal).
+        // Пропускаем только перезапись status, cleanup ниже выполняется всегда.
+        if (status.value === RecordingStatus.Starting && backendStatus === RecordingStatus.Idle) {
+          console.warn('[STT] Reconcile: keeping Starting (backend reports Idle, likely race with start_recording)');
+        } else {
+          console.warn('[STT] Reconcile status:', {
+            reason,
+            backendStatus,
+            uiStatus: status.value,
+            uiSessionId: sessionId.value,
+            closedFloor: closedSessionIdFloor.value,
+            lastSeenSessionId: lastSeenSessionId.value,
+          });
+          status.value = backendStatus;
+        }
       }
 
       // Если backend idle, но UI почему-то держит активную сессию — сбрасываем.
@@ -166,6 +175,19 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     if (status.value !== RecordingStatus.Error) return false;
     return errorType.value === 'connection' || errorType.value === 'timeout';
   });
+
+  // Показываем кнопку "Активировать лицензию" при исчерпании лимита
+  const canActivateLicense = computed(() => {
+    if (status.value !== RecordingStatus.Error) return false;
+    return errorType.value === 'limit_exceeded';
+  });
+
+  // Флаг: RecordingPopover подхватит и откроет ProfilePopover с секцией лицензии
+  const wantsLicenseActivation = ref(false);
+
+  function openLicenseActivation() {
+    wantsLicenseActivation.value = true;
+  }
 
   const visibleAccumulatedText = computed(() => {
     return animatedAccumulatedText.value || accumulatedText.value;
@@ -768,9 +790,10 @@ export const useTranscriptionStore = defineStore('transcription', () => {
 
           // Если прилетает Error после auth-ошибки, не показываем это пользователю.
           // В commands.rs сначала эмитится transcription:error, потом recording:status=Error.
+          // Не меняем status — retry loop или auth handler сами определят следующее состояние.
+          // (Раньше ставили Idle, что вызывало мигание "Подключение → Нажмите кнопку → Подключение".)
           if (nextStatus === RecordingStatus.Error && suppressNextErrorStatus) {
             suppressNextErrorStatus = false;
-            status.value = RecordingStatus.Idle;
             return;
           }
 
@@ -859,6 +882,34 @@ export const useTranscriptionStore = defineStore('transcription', () => {
           const isRateLimited = event.payload.error_details?.category === 'rate_limited'
             || event.payload.error_details?.httpStatus === 429;
 
+          // Лимит подписки исчерпан — показываем сразу, без retry
+          const isLimitExceeded = event.payload.error_type === 'limit_exceeded'
+            || event.payload.error_details?.category === 'limit_exceeded';
+
+          if (isLimitExceeded) {
+            // Уже обработали — не дёргаем API повторно
+            if (errorType.value === 'limit_exceeded') return;
+            // Пробуем получить детальную информацию об использовании для наглядного сообщения
+            let usageMessage = mapErrorMessage('limit_exceeded', event.payload.error, event.payload.error_details);
+            try {
+              const data = await api.get<{ licenses: Array<{ status: string; plan: string; seconds_used: number; seconds_limit: number }> }>('/api/v1/account/licenses');
+              const lic = data.licenses.find(l => l.status === 'active') ?? data.licenses[0];
+              if (lic) {
+                const usedMin = Math.round(lic.seconds_used / 60);
+                const totalMin = Math.round(lic.seconds_limit / 60);
+                const planKey = `profile.plans.${lic.plan}`;
+                const planName = i18n.global.t(planKey) !== planKey
+                  ? i18n.global.t(planKey)
+                  : lic.plan;
+                usageMessage = i18n.global.t('errors.limitExceededDetailed', { plan: planName, used: usedMin, total: totalMin });
+              }
+            } catch {}
+            error.value = usageMessage;
+            errorType.value = 'limit_exceeded';
+            status.value = RecordingStatus.Error;
+            return;
+          }
+
           if (isRateLimited && !isConnecting.value) {
             const wasStarting = status.value === RecordingStatus.Starting;
             const serverCode = event.payload.error_details?.serverCode;
@@ -902,6 +953,33 @@ export const useTranscriptionStore = defineStore('transcription', () => {
           // Во время подключения подавляем показ ошибки и даём retry-циклу принять решение.
           // Это убирает "Проблема с подключением" на первой же неудачной попытке.
           if (isConnecting.value) {
+            // Лимит подписки — нет смысла ретраить, прерываем цикл и показываем ошибку сразу
+            const connectIsLimitExceeded = event.payload.error_type === 'limit_exceeded'
+              || event.payload.error_details?.category === 'limit_exceeded';
+            if (connectIsLimitExceeded) {
+              // Уже обработали — не дёргаем API повторно
+              if (errorType.value === 'limit_exceeded') return;
+              isConnecting.value = false;
+              let usageMessage = mapErrorMessage('limit_exceeded', event.payload.error, event.payload.error_details);
+              try {
+                const data = await api.get<{ licenses: Array<{ status: string; plan: string; seconds_used: number; seconds_limit: number }> }>('/api/v1/account/licenses');
+                const lic = data.licenses.find(l => l.status === 'active') ?? data.licenses[0];
+                if (lic) {
+                  const usedMin = Math.round(lic.seconds_used / 60);
+                  const totalMin = Math.round(lic.seconds_limit / 60);
+                  const planKey = `profile.plans.${lic.plan}`;
+                  const planName = i18n.global.t(planKey) !== planKey
+                    ? i18n.global.t(planKey)
+                    : lic.plan;
+                  usageMessage = i18n.global.t('errors.limitExceededDetailed', { plan: planName, used: usedMin, total: totalMin });
+                }
+              } catch {}
+              error.value = usageMessage;
+              errorType.value = 'limit_exceeded';
+              status.value = RecordingStatus.Error;
+              return;
+            }
+
             // error_type может быть любым (backend иногда присылает PROVIDER_ERROR и т.п.)
             // Нормализуем к нашим типам, иначе retry-цикл может не понять, что произошло.
             lastConnectFailure.value =
@@ -919,6 +997,14 @@ export const useTranscriptionStore = defineStore('transcription', () => {
             asKnownErrorType(event.payload.error_type) ??
             detectErrorTypeFromRaw(event.payload.error) ??
             'connection';
+
+          // Защита от даунгрейда: если уже показали limit_exceeded, не перезаписываем
+          // менее конкретной ошибкой (send_audio() шлёт "connection" пока audio loop
+          // добивает retry-цикл после закрытия WS сервером).
+          if (errorType.value === 'limit_exceeded' && normalizedType !== 'limit_exceeded') {
+            console.warn('[STT] Skipping error downgrade from limit_exceeded to', normalizedType);
+            return;
+          }
 
           error.value = mapErrorMessage(normalizedType, event.payload.error, event.payload.error_details);
           errorType.value = normalizedType;
@@ -967,6 +1053,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
       return 'authentication';
     }
     if (lower.includes('timeout') || lower.includes('timed out')) return 'timeout';
+    if (lower.includes('limit_exceeded') || lower.includes('limit exceeded') || lower.includes('usage limit')) return 'limit_exceeded';
     if (lower.includes('connection error') || lower.includes('websocket')) return 'connection';
     if (lower.includes('configuration error')) return 'configuration';
     if (lower.includes('processing error')) return 'processing';
@@ -979,6 +1066,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     if (value === 'configuration') return 'configuration';
     if (value === 'processing') return 'processing';
     if (value === 'authentication') return 'authentication';
+    if (value === 'limit_exceeded') return 'limit_exceeded';
     return null;
   }
 
@@ -1014,6 +1102,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
       if (category === 'dns') return i18n.global.t('errors.connectionDns');
       if (category === 'tls') return i18n.global.t('errors.connectionTls');
       if (category === 'timeout') return i18n.global.t('errors.timeout');
+      if (category === 'limit_exceeded') return i18n.global.t('errors.limitExceeded');
       if (category === 'rate_limited') return i18n.global.t('errors.rateLimited');
       if (category === 'http') {
         return details?.httpStatus
@@ -1102,6 +1191,8 @@ export const useTranscriptionStore = defineStore('transcription', () => {
         return i18n.global.t('errors.timeout');
       case 'connection':
         return mapConnectionErrorMessage(raw, details);
+      case 'limit_exceeded':
+        return i18n.global.t('errors.limitExceeded');
       case 'processing':
         return i18n.global.t('errors.processing');
       case 'authentication':
@@ -1485,6 +1576,8 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     hasError,
     hasConnectionIssue,
     canReconnect,
+    canActivateLicense,
+    wantsLicenseActivation,
     isConnecting,
     connectAttempt,
     connectMaxAttempts,
@@ -1497,6 +1590,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     initialize,
     startRecording,
     reconnect,
+    openLicenseActivation,
     stopRecording,
     clearText,
     toggleRecording,

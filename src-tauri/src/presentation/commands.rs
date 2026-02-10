@@ -18,6 +18,8 @@ fn classify_transcription_error_type_from_stt(err: &SttError) -> String {
         SttError::Connection(conn) => {
             if conn.details.category == Some(SttConnectionCategory::Timeout) {
                 "timeout".to_string()
+            } else if conn.details.category == Some(SttConnectionCategory::LimitExceeded) {
+                "limit_exceeded".to_string()
             } else {
                 "connection".to_string()
             }
