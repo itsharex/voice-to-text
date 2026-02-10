@@ -1592,6 +1592,13 @@ pub async fn show_auth_window(app_handle: AppHandle) -> Result<(), String> {
         }
     }
 
+    // Скрываем profile окно (если было открыто)
+    if let Some(profile) = app_handle.get_webview_window("profile") {
+        if let Err(e) = profile.hide() {
+            log::warn!("Failed to hide profile window: {}", e);
+        }
+    }
+
     // Показываем auth окно
     if let Some(auth) = app_handle.get_webview_window("auth") {
         // Центрируем и показываем на активном мониторе, чтобы окно точно было видно
@@ -1618,6 +1625,13 @@ pub async fn show_recording_window(app_handle: AppHandle) -> Result<(), String> 
     if let Some(settings) = app_handle.get_webview_window("settings") {
         if let Err(e) = settings.hide() {
             log::warn!("Failed to hide settings window: {}", e);
+        }
+    }
+
+    // Скрываем profile окно
+    if let Some(profile) = app_handle.get_webview_window("profile") {
+        if let Err(e) = profile.hide() {
+            log::warn!("Failed to hide profile window: {}", e);
         }
     }
 
@@ -1667,11 +1681,57 @@ pub async fn show_settings_window(
         }
     }
 
+    // Скрываем profile окно
+    if let Some(profile) = app_handle.get_webview_window("profile") {
+        if let Err(e) = profile.hide() {
+            log::warn!("Failed to hide profile window: {}", e);
+        }
+    }
+
     // Показываем settings окно
     if let Some(settings) = app_handle.get_webview_window("settings") {
         show_webview_window_on_active_monitor(&settings)?;
         settings.set_focus().map_err(|e| e.to_string())?;
         let _ = settings.emit("settings-window-opened", true);
+    }
+
+    Ok(())
+}
+
+/// Показывает profile окно и скрывает остальные
+#[tauri::command]
+pub async fn show_profile_window(
+    state: State<'_, AppState>,
+    app_handle: AppHandle,
+    initial_section: Option<String>,
+) -> Result<(), String> {
+    log::info!("Command: show_profile_window");
+
+    if !*state.is_authenticated.read().await {
+        log::info!("show_profile_window: not authenticated -> redirect to auth");
+        show_auth_window(app_handle).await?;
+        return Err("Not authenticated".to_string());
+    }
+
+    // Скрываем все окна
+    if let Some(main) = app_handle.get_webview_window("main") {
+        let _ = main.set_always_on_top(false);
+        let _ = main.hide();
+    }
+    if let Some(auth) = app_handle.get_webview_window("auth") {
+        let _ = auth.hide();
+    }
+    if let Some(settings) = app_handle.get_webview_window("settings") {
+        let _ = settings.hide();
+    }
+
+    // Показываем profile
+    if let Some(profile) = app_handle.get_webview_window("profile") {
+        show_webview_window_on_active_monitor(&profile)?;
+        profile.set_focus().map_err(|e| e.to_string())?;
+        let _ = profile.emit("profile-window-opened", serde_json::json!({
+            "initialSection": initial_section.unwrap_or_else(|| "none".to_string())
+        }));
     }
 
     Ok(())

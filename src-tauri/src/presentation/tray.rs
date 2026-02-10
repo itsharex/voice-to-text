@@ -12,6 +12,7 @@ pub fn create_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     // Создаем элементы меню
     let show_item = MenuItem::with_id(app, "show", "Открыть", true, None::<&str>)?;
     let settings_item = MenuItem::with_id(app, "settings", "Настройки", true, None::<&str>)?;
+    let profile_item = MenuItem::with_id(app, "profile", "Профиль", true, None::<&str>)?;
     let check_updates_item =
         MenuItem::with_id(app, "check_updates", "Проверить обновления", true, None::<&str>)?;
     let separator = tauri::menu::PredefinedMenuItem::separator(app)?;
@@ -23,6 +24,7 @@ pub fn create_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         &[
             &show_item,
             &settings_item,
+            &profile_item,
             &check_updates_item,
             &separator,
             &quit_item,
@@ -38,6 +40,13 @@ pub fn create_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
             // Обрабатываем клики по меню
             match event.id.as_ref() {
                 "show" => {
+                    // Скрываем profile/settings окна — показываем основное
+                    if let Some(profile) = app.get_webview_window("profile") {
+                        let _ = profile.hide();
+                    }
+                    if let Some(settings) = app.get_webview_window("settings") {
+                        let _ = settings.hide();
+                    }
                     if let Some(window) = app.get_webview_window("main") {
                         if let Err(e) = show_webview_window_on_active_monitor(&window) {
                             log::error!("Failed to show window: {}", e);
@@ -60,6 +69,36 @@ pub fn create_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
                             log::error!("Failed to emit settings event: {}", e);
                         }
                     }
+                }
+                "profile" => {
+                    log::info!("Opening profile window from tray");
+                    let app_clone = app.clone();
+                    tauri::async_runtime::spawn(async move {
+                        if let Some(state) = app_clone.try_state::<crate::presentation::state::AppState>() {
+                            let is_authenticated = *state.is_authenticated.read().await;
+                            if !is_authenticated {
+                                if let Some(auth) = app_clone.get_webview_window("auth") {
+                                    let _ = crate::presentation::commands::show_webview_window_on_active_monitor(&auth);
+                                    let _ = auth.set_focus();
+                                }
+                                return;
+                            }
+                        }
+                        if let Some(profile) = app_clone.get_webview_window("profile") {
+                            if let Some(main) = app_clone.get_webview_window("main") {
+                                let _ = main.set_always_on_top(false);
+                                let _ = main.hide();
+                            }
+                            if let Some(settings) = app_clone.get_webview_window("settings") {
+                                let _ = settings.hide();
+                            }
+                            let _ = crate::presentation::commands::show_webview_window_on_active_monitor(&profile);
+                            let _ = profile.set_focus();
+                            let _ = profile.emit("profile-window-opened", serde_json::json!({
+                                "initialSection": "none"
+                            }));
+                        }
+                    });
                 }
                 "check_updates" => {
                     log::info!("Manual update check requested from tray menu");

@@ -278,11 +278,19 @@ const openSettings = () => {
 const profileInitialSection: Ref<'none' | 'license' | 'gift'> = ref('none');
 
 const openProfile = () => {
+  if (isTauriAvailable()) {
+    invoke('show_profile_window', { initialSection: 'none' });
+    return;
+  }
   profileInitialSection.value = 'none';
   showProfile.value = true;
 };
 
 const openProfileWithLicense = () => {
+  if (isTauriAvailable()) {
+    invoke('show_profile_window', { initialSection: 'license' });
+    return;
+  }
   profileInitialSection.value = 'license';
   showProfile.value = true;
 };

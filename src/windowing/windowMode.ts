@@ -1,6 +1,6 @@
-export type AppWindowLabel = 'main' | 'auth' | 'settings' | 'unknown';
+export type AppWindowLabel = 'main' | 'auth' | 'settings' | 'profile' | 'unknown';
 
-export type AppRenderMode = 'loading' | 'main' | 'auth' | 'settings' | 'none';
+export type AppRenderMode = 'loading' | 'main' | 'auth' | 'settings' | 'profile' | 'none';
 
 export type DesiredWindow = 'main' | 'auth' | null;
 
@@ -39,6 +39,11 @@ export function getWindowMode(input: WindowModeInput): WindowModeOutput {
       // Если пользователь не залогинен, окно должно быть скрыто, а UI — переехать в auth.
       return input.isAuthenticated
         ? { render: 'settings', desiredWindow: null }
+        : { render: 'none', desiredWindow: 'auth' };
+
+    case 'profile':
+      return input.isAuthenticated
+        ? { render: 'profile', desiredWindow: null }
         : { render: 'none', desiredWindow: 'auth' };
 
     default:

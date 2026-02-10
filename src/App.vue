@@ -10,6 +10,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useUpdater } from './composables/useUpdater';
 import { getWindowMode, type AppWindowLabel } from './windowing/windowMode';
 import { SettingsWindow, useSettingsStore } from './features/settings';
+import { ProfileWindow } from './features/profile';
 import {
   bumpUiPrefsRevision,
   UI_PREFS_LOCALE_KEY,
@@ -87,6 +88,7 @@ const showLoading = computed(() => mode.value.render === 'loading');
 const showAuth = computed(() => mode.value.render === 'auth');
 const showApp = computed(() => mode.value.render === 'main');
 const showSettings = computed(() => mode.value.render === 'settings');
+const showProfile = computed(() => mode.value.render === 'profile');
 
 // Если окно по правилам не должно показывать UI — прячем его, чтобы не оставалось "невидимого стекла".
 watch(
@@ -99,9 +101,9 @@ watch(
       if (render === 'none') {
       await getCurrentWindow().hide();
       } else {
-        // Settings окно контролируется командами backend (show_settings_window/show_recording_window),
-        // поэтому НЕ показываем его автоматически на старте.
-        if (windowLabel.value !== 'settings') {
+        // Settings/Profile окна контролируются командами backend,
+        // поэтому НЕ показываем их автоматически на старте.
+        if (windowLabel.value !== 'settings' && windowLabel.value !== 'profile') {
           await getCurrentWindow().show();
         }
       }
@@ -229,6 +231,11 @@ watch(() => authState.isAuthenticated.value, async (isAuth) => {
         await getCurrentWindow().hide();
       } catch {}
       await invoke('show_auth_window');
+    } else if (windowLabel.value === 'profile' && !isAuth) {
+      try {
+        await getCurrentWindow().hide();
+      } catch {}
+      await invoke('show_auth_window');
     }
   } catch (e) {
     console.warn('Failed to switch windows:', e);
@@ -247,7 +254,7 @@ onMounted(async () => {
     try {
       const label = String(getCurrentWindow().label);
       windowLabel.value =
-        label === 'main' || label === 'auth' || label === 'settings'
+        label === 'main' || label === 'auth' || label === 'settings' || label === 'profile'
           ? label
           : 'unknown';
     } catch {
@@ -365,6 +372,8 @@ if (import.meta.hot) {
     <AuthScreen v-else-if="showAuth" />
 
     <SettingsWindow v-else-if="showSettings" />
+
+    <ProfileWindow v-else-if="showProfile" />
 
     <div v-else-if="showApp" class="app">
       <RecordingPopover />

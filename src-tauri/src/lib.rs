@@ -127,6 +127,7 @@ pub fn run() {
             commands::show_auth_window,
             commands::show_recording_window,
             commands::show_settings_window,
+            commands::show_profile_window,
             commands::set_authenticated,
             demo::get_demo_snapshot,
             demo::update_demo_state,
@@ -163,7 +164,7 @@ pub fn run() {
                     log::info!("DEMO mode: opening demo windows for state-sync showcase");
 
                     // Уничтожаем стандартные окна из tauri.conf.json — они не нужны в demo
-                    for label in &["main", "auth", "settings"] {
+                    for label in &["main", "auth", "profile", "settings"] {
                         if let Some(w) = app.get_webview_window(label) {
                             let _ = w.destroy();
                         }
@@ -321,6 +322,22 @@ pub fn run() {
                 });
 
                 log::info!("Auth window configured (regular NSWindow for keyboard input)");
+            }
+
+            // Profile окно — обычное NSWindow для ввода текста (лицензия, gift-коды)
+            if let Some(profile_window) = app.get_webview_window("profile") {
+                let _ = profile_window.hide();
+
+                let profile_clone = profile_window.clone();
+                profile_window.on_window_event(move |event| {
+                    if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+                        api.prevent_close();
+                        let _ = profile_clone.hide();
+                        log::debug!("Profile window hidden instead of closed");
+                    }
+                });
+
+                log::info!("Profile window configured (regular NSWindow for keyboard input)");
             }
 
             // Загружаем сохраненные конфигурации

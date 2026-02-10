@@ -71,5 +71,25 @@ describe('getWindowMode', () => {
       })
     ).toEqual({ render: 'settings', desiredWindow: null });
   });
+
+  it('profile window: authenticated -> render profile', () => {
+    expect(
+      getWindowMode({
+        windowLabel: 'profile',
+        isInitialized: true,
+        isAuthenticated: true,
+      })
+    ).toEqual({ render: 'profile', desiredWindow: null });
+  });
+
+  it('profile window: unauthenticated -> render none, request auth window', () => {
+    expect(
+      getWindowMode({
+        windowLabel: 'profile',
+        isInitialized: true,
+        isAuthenticated: false,
+      })
+    ).toEqual({ render: 'none', desiredWindow: 'auth' });
+  });
 });
 
