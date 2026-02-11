@@ -13,10 +13,10 @@ dependencies:
     version: file:../state-sync/packages/core
   '@statesync/pinia':
     specifier: file:../state-sync/packages/pinia
-    version: file:../state-sync/packages/pinia(@statesync/core@0.2.0)
+    version: file:../state-sync/packages/pinia(@statesync/core@1.1.0)
   '@statesync/tauri':
     specifier: file:../state-sync/packages/tauri
-    version: file:../state-sync/packages/tauri(@statesync/core@0.2.0)(@tauri-apps/api@2.9.1)
+    version: file:../state-sync/packages/tauri(@statesync/core@1.1.0)(@tauri-apps/api@2.10.1)
   pinia:
     specifier: ^2.1.0
     version: 2.3.1(typescript@5.9.3)(vue@3.5.22)
@@ -35,8 +35,8 @@ dependencies:
 
 devDependencies:
   '@tauri-apps/api':
-    specifier: ^2.9.1
-    version: 2.9.1
+    specifier: ^2.10.1
+    version: 2.10.1
   '@tauri-apps/cli':
     specifier: ^2.0.0
     version: 2.8.4
@@ -59,8 +59,8 @@ devDependencies:
     specifier: ^2.4.2
     version: 2.4.2
   '@tauri-apps/plugin-updater':
-    specifier: ^2.0.0
-    version: 2.9.0
+    specifier: ^2.10.0
+    version: 2.10.0
   '@vitejs/plugin-vue':
     specifier: ^5.0.0
     version: 5.2.4(vite@5.4.20)(vue@3.5.22)
@@ -1182,8 +1182,8 @@ packages:
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
     dev: true
 
-  /@tauri-apps/api@2.9.1:
-    resolution: {integrity: sha512-IGlhP6EivjXHepbBic618GOmiWe4URJiIeZFlB7x3czM0yDHHYviH1Xvoiv4FefdkQtn6v7TuwWCRfOGdnVUGw==}
+  /@tauri-apps/api@2.10.1:
+    resolution: {integrity: sha512-hKL/jWf293UDSUN09rR69hrToyIXBb8CjGaWC7gfinvnQrBVvnLr08FeFi38gxtugAVyVcTa5/FD/Xnkb1siBw==}
 
   /@tauri-apps/cli-darwin-arm64@2.8.4:
     resolution: {integrity: sha512-BKu8HRkYV01SMTa7r4fLx+wjgtRK8Vep7lmBdHDioP6b8XH3q2KgsAyPWfEZaZIkZ2LY4SqqGARaE9oilNe0oA==}
@@ -1305,43 +1305,43 @@ packages:
   /@tauri-apps/plugin-clipboard-manager@2.3.0:
     resolution: {integrity: sha512-81NOBA2P+OTY8RLkBwyl9ZR/0CeggLub4F6zxcxUIfFOAqtky7J61+K/MkH2SC1FMxNBxrX0swDuKvkjkHadlA==}
     dependencies:
-      '@tauri-apps/api': 2.9.1
+      '@tauri-apps/api': 2.10.1
     dev: true
 
   /@tauri-apps/plugin-deep-link@2.4.6:
     resolution: {integrity: sha512-UUOSt0U5juK20uhO2MoHZX/IPblkrhUh+VPtIeu3RwtzI0R9Em3Auzfg/PwcZ9Pv8mLne3cQ4p9CFXD6WxqCZA==}
     dependencies:
-      '@tauri-apps/api': 2.9.1
+      '@tauri-apps/api': 2.10.1
     dev: true
 
   /@tauri-apps/plugin-dialog@2.4.0:
     resolution: {integrity: sha512-OvXkrEBfWwtd8tzVCEXIvRfNEX87qs2jv6SqmVPiHcJjBhSF/GUvjqUNIDmKByb5N8nvDqVUM7+g1sXwdC/S9w==}
     dependencies:
-      '@tauri-apps/api': 2.9.1
+      '@tauri-apps/api': 2.10.1
     dev: true
 
   /@tauri-apps/plugin-global-shortcut@2.3.0:
     resolution: {integrity: sha512-WbAz0ElhpP+0kzQZRScdCC7UQ7OPH8PAn//fsBNu7+ywihsnVSVOg1L9YhieAtLNtAlnmFI69Yl5AGaA3ge5IQ==}
     dependencies:
-      '@tauri-apps/api': 2.9.1
+      '@tauri-apps/api': 2.10.1
     dev: true
 
   /@tauri-apps/plugin-shell@2.3.4:
     resolution: {integrity: sha512-ktsRWf8wHLD17aZEyqE8c5x98eNAuTizR1FSX475zQ4TxaiJnhwksLygQz+AGwckJL5bfEP13nWrlTNQJUpKpA==}
     dependencies:
-      '@tauri-apps/api': 2.9.1
+      '@tauri-apps/api': 2.10.1
     dev: true
 
   /@tauri-apps/plugin-store@2.4.2:
     resolution: {integrity: sha512-0ClHS50Oq9HEvLPhNzTNFxbWVOqoAp3dRvtewQBeqfIQ0z5m3JRnOISIn2ZVPCrQC0MyGyhTS9DWhHjpigQE7A==}
     dependencies:
-      '@tauri-apps/api': 2.9.1
+      '@tauri-apps/api': 2.10.1
     dev: true
 
-  /@tauri-apps/plugin-updater@2.9.0:
-    resolution: {integrity: sha512-j++sgY8XpeDvzImTrzWA08OqqGqgkNyxczLD7FjNJJx/uXxMZFz5nDcfkyoI/rCjYuj2101Tci/r/HFmOmoxCg==}
+  /@tauri-apps/plugin-updater@2.10.0:
+    resolution: {integrity: sha512-ljN8jPlnT0aSn8ecYhuBib84alxfMx6Hc8vJSKMJyzGbTPFZAC44T2I1QNFZssgWKrAlofvJqCC6Rr472JWfkQ==}
     dependencies:
-      '@tauri-apps/api': 2.9.1
+      '@tauri-apps/api': 2.10.1
     dev: true
 
   /@tootallnate/quickjs-emscripten@0.23.0:
@@ -5013,29 +5013,29 @@ packages:
     engines: {node: '>=18'}
     dev: false
 
-  file:../state-sync/packages/pinia(@statesync/core@0.2.0):
+  file:../state-sync/packages/pinia(@statesync/core@1.1.0):
     resolution: {directory: ../state-sync/packages/pinia, type: directory}
     id: file:../state-sync/packages/pinia
     name: '@statesync/pinia'
     engines: {node: '>=18'}
     peerDependencies:
-      '@statesync/core': '*'
+      '@statesync/core': ^1.1.0
     dependencies:
       '@statesync/core': file:../state-sync/packages/core
     dev: false
 
-  file:../state-sync/packages/tauri(@statesync/core@0.2.0)(@tauri-apps/api@2.9.1):
+  file:../state-sync/packages/tauri(@statesync/core@1.1.0)(@tauri-apps/api@2.10.1):
     resolution: {directory: ../state-sync/packages/tauri, type: directory}
     id: file:../state-sync/packages/tauri
     name: '@statesync/tauri'
     engines: {node: '>=18'}
     peerDependencies:
-      '@statesync/core': '*'
+      '@statesync/core': ^1.1.0
       '@tauri-apps/api': '>=2'
     peerDependenciesMeta:
       '@tauri-apps/api':
         optional: true
     dependencies:
       '@statesync/core': file:../state-sync/packages/core
-      '@tauri-apps/api': 2.9.1
+      '@tauri-apps/api': 2.10.1
     dev: false
