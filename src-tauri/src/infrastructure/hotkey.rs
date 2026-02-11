@@ -22,7 +22,7 @@ pub fn normalize_recording_hotkey(raw: &str) -> Option<String> {
         return Some(s.to_string());
     }
 
-    // Tokenize and map known "code" tokens to characters.
+    // Tokenize and map to tokens accepted by the shortcut parser.
     let parts: Vec<&str> = s
         .split('+')
         .map(|p| p.trim())
@@ -33,7 +33,7 @@ pub fn normalize_recording_hotkey(raw: &str) -> Option<String> {
         return None;
     }
 
-    let mapped: Vec<String> = parts.into_iter().map(map_key_token).collect();
+    let mapped: Vec<String> = parts.into_iter().map(map_part_to_parser_token).collect();
     let candidate = mapped.join("+");
 
     if candidate.parse::<Shortcut>().is_ok() {
@@ -43,21 +43,35 @@ pub fn normalize_recording_hotkey(raw: &str) -> Option<String> {
     None
 }
 
-fn map_key_token(token: &str) -> String {
+fn map_part_to_parser_token(token: &str) -> String {
     match token {
-        // Common DOM `KeyboardEvent.code` tokens.
-        "Backquote" => "`".to_string(),
-        "Minus" => "-".to_string(),
-        "Equal" => "=".to_string(),
-        "BracketLeft" => "[".to_string(),
-        "BracketRight" => "]".to_string(),
-        "Backslash" => "\\".to_string(),
-        "IntlBackslash" => "\\".to_string(),
-        "Semicolon" => ";".to_string(),
-        "Quote" => "'".to_string(),
-        "Comma" => ",".to_string(),
-        "Period" => ".".to_string(),
-        "Slash" => "/".to_string(),
+        // Symbols (what UI might have stored) -> parser tokens.
+        "`" => "Backquote".to_string(),
+        "-" => "Minus".to_string(),
+        "=" => "Equal".to_string(),
+        "[" => "BracketLeft".to_string(),
+        "]" => "BracketRight".to_string(),
+        "\\" => "Backslash".to_string(),
+        ";" => "Semicolon".to_string(),
+        "'" => "Quote".to_string(),
+        "," => "Comma".to_string(),
+        "." => "Period".to_string(),
+        "/" => "Slash".to_string(),
+
+        // Already-token forms we support (keep as-is).
+        "Backquote"
+        | "Minus"
+        | "Equal"
+        | "BracketLeft"
+        | "BracketRight"
+        | "Backslash"
+        | "IntlBackslash"
+        | "Semicolon"
+        | "Quote"
+        | "Comma"
+        | "Period"
+        | "Slash" => token.to_string(),
+
         other => other.to_string(),
     }
 }
@@ -74,15 +88,21 @@ mod tests {
     }
 
     #[test]
-    fn normalize_converts_backquote_token() {
-        // We don't know which token form the parser accepts in every environment,
-        // but `normalize_recording_hotkey` must at least produce a parseable shortcut.
-        let out = normalize_recording_hotkey("CmdOrCtrl+Backquote").expect("must be valid after normalize");
+    fn normalize_bare_backquote_symbol_to_token() {
+        let out = normalize_recording_hotkey("`").expect("must be normalized");
+        assert!(out.parse::<Shortcut>().is_ok(), "normalized shortcut must parse: {}", out);
+        // В разных версиях/платформах парсер может принимать и "`", и "Backquote".
         assert!(
-            out == "CmdOrCtrl+`" || out == "CmdOrCtrl+Backquote",
-            "unexpected normalize result: {}",
+            out == "`" || out == "Backquote",
+            "unexpected normalized form: {}",
             out
         );
+    }
+
+    #[test]
+    fn normalize_converts_backquote_token_with_modifier() {
+        let out =
+            normalize_recording_hotkey("CmdOrCtrl+Backquote").expect("must be valid after normalize");
         assert!(out.parse::<Shortcut>().is_ok(), "normalized shortcut must parse: {}", out);
     }
 }

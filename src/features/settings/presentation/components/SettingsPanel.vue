@@ -84,8 +84,15 @@ function discardDraftChanges(): void {
   }
 }
 
-function handleClose(opts?: { discard?: boolean }): void {
-  const shouldDiscard = opts?.discard ?? true;
+function handleClose(arg?: unknown): void {
+  // Этот хендлер используется как:
+  // - @click (Vue передаёт MouseEvent)
+  // - handleClose({ discard: false })
+  // Поэтому принимаем unknown и различаем по форме.
+  const shouldDiscard =
+    typeof arg === 'object' && arg !== null && 'discard' in arg
+      ? Boolean((arg as { discard?: boolean }).discard ?? true)
+      : true;
   if (shouldDiscard) {
     discardDraftChanges();
   } else {

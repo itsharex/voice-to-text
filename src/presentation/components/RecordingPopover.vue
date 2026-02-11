@@ -50,9 +50,23 @@ const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
 // Для отображения заменяем CmdOrCtrl на понятное пользователю название
 const recordingHotkey = computed(() => {
-  const raw = appConfigStore.recordingHotkey;
-  if (!isMac) return raw.replace(/CmdOrCtrl/g, 'Ctrl');
-  return raw.replace(/CmdOrCtrl/g, 'Cmd');
+  const raw = String(appConfigStore.recordingHotkey ?? '');
+  const mapped = raw
+    .replace(/Backquote/g, '`')
+    .replace(/Minus/g, '-')
+    .replace(/Equal/g, '=')
+    .replace(/BracketLeft/g, '[')
+    .replace(/BracketRight/g, ']')
+    .replace(/Backslash/g, '\\')
+    .replace(/IntlBackslash/g, '\\')
+    .replace(/Semicolon/g, ';')
+    .replace(/Quote/g, "'")
+    .replace(/Comma/g, ',')
+    .replace(/Period/g, '.')
+    .replace(/Slash/g, '/');
+
+  if (!isMac) return mapped.replace(/CmdOrCtrl/g, 'Ctrl');
+  return mapped.replace(/CmdOrCtrl/g, 'Cmd');
 });
 
 // Debouncing для hotkey - блокирует повторные вызовы в течение 500ms

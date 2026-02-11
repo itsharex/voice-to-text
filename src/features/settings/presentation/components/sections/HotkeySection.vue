@@ -16,6 +16,8 @@ const { recordingHotkey } = useSettings();
 const isCapturing = ref(false);
 let windowKeydownListener: ((event: KeyboardEvent) => void) | null = null;
 
+const displayHotkey = computed(() => formatHotkeyForDisplay(recordingHotkey.value));
+
 const hotkeyPlaceholder = computed(() =>
   isCapturing.value
     ? t('settings.hotkey.capturePlaceholder')
@@ -86,18 +88,20 @@ function formatHotkeyFromKeyboardEvent(event: KeyboardEvent): string | null {
     key = /^\d$/.test(num) ? num : `Numpad${num}`;
   } else {
     const codeKeyMap: Record<string, string> = {
-      Backquote: '`',
-      Minus: '-',
-      Equal: '=',
-      BracketLeft: '[',
-      BracketRight: ']',
-      Backslash: '\\',
-      IntlBackslash: '\\',
-      Semicolon: ';',
-      Quote: "'",
-      Comma: ',',
-      Period: '.',
-      Slash: '/',
+      // ВАЖНО: сохраняем в формате, который понимает tauri_plugin_global_shortcut.
+      // Для спец-символов используем токены (Backquote/Minus/...), а не сам символ.
+      Backquote: 'Backquote',
+      Minus: 'Minus',
+      Equal: 'Equal',
+      BracketLeft: 'BracketLeft',
+      BracketRight: 'BracketRight',
+      Backslash: 'Backslash',
+      IntlBackslash: 'IntlBackslash',
+      Semicolon: 'Semicolon',
+      Quote: 'Quote',
+      Comma: 'Comma',
+      Period: 'Period',
+      Slash: 'Slash',
     };
 
     if (codeKeyMap[code]) {
@@ -143,7 +147,8 @@ function formatHotkeyFromKeyboardEvent(event: KeyboardEvent): string | null {
 
   if (!key) return null;
 
-  // Если пользователь нажал только "кнопку" без модификаторов — тоже позволяем (формат валидный).
+  // Если пользователь нажал только "кнопку" без модификаторов — сохраняем как одиночную клавишу.
+  // Пример: Backquote (гравис). Это исторически работало в приложении.
   return parts.length > 0 ? [...parts, key].join('+') : key;
 }
 
@@ -177,6 +182,26 @@ function cleanupWindowListener() {
   windowKeydownListener = null;
 }
 
+function formatHotkeyForDisplay(raw: string): string {
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const mapped = String(raw ?? '')
+    .replace(/Backquote/g, '`')
+    .replace(/Minus/g, '-')
+    .replace(/Equal/g, '=')
+    .replace(/BracketLeft/g, '[')
+    .replace(/BracketRight/g, ']')
+    .replace(/Backslash/g, '\\')
+    .replace(/IntlBackslash/g, '\\')
+    .replace(/Semicolon/g, ';')
+    .replace(/Quote/g, "'")
+    .replace(/Comma/g, ',')
+    .replace(/Period/g, '.')
+    .replace(/Slash/g, '/');
+
+  if (!mapped) return '';
+  return isMac ? mapped.replace(/CmdOrCtrl/g, 'Cmd') : mapped.replace(/CmdOrCtrl/g, 'Ctrl');
+}
+
 function startCapture() {
   isCapturing.value = true;
 }
@@ -189,7 +214,7 @@ function stopCapture() {
 <template>
   <SettingGroup :title="t('settings.hotkey.label')">
     <v-text-field
-      v-model="recordingHotkey"
+      :model-value="displayHotkey"
       :placeholder="hotkeyPlaceholder"
       density="comfortable"
       hide-details

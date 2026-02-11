@@ -1285,6 +1285,18 @@ pub async fn register_recording_hotkey(
                             log::warn!("Failed to persist fallback hotkey to app_config.json: {}", e);
                         }
 
+                        // Пинаем invalidation, чтобы UI получил реальный (рабочий) хоткей.
+                        let revision = AppState::bump_revision(&state.app_config_revision).await;
+                        let _ = app_handle.emit(
+                            EVENT_STATE_SYNC_INVALIDATION,
+                            crate::presentation::StateSyncInvalidationPayload {
+                                topic: "app-config".to_string(),
+                                revision,
+                                source_id: None,
+                                timestamp_ms: chrono::Utc::now().timestamp_millis(),
+                            },
+                        );
+
                         (fallback, sc)
                     }
                 }
@@ -1308,6 +1320,17 @@ pub async fn register_recording_hotkey(
                 if let Err(e) = crate::infrastructure::ConfigStore::save_app_config(&config_snapshot).await {
                     log::warn!("Failed to persist fallback hotkey to app_config.json: {}", e);
                 }
+
+                let revision = AppState::bump_revision(&state.app_config_revision).await;
+                let _ = app_handle.emit(
+                    EVENT_STATE_SYNC_INVALIDATION,
+                    crate::presentation::StateSyncInvalidationPayload {
+                        topic: "app-config".to_string(),
+                        revision,
+                        source_id: None,
+                        timestamp_ms: chrono::Utc::now().timestamp_millis(),
+                    },
+                );
 
                 (fallback, sc)
             }
