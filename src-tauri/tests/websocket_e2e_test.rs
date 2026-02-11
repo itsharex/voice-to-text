@@ -8,7 +8,7 @@ use app_lib::domain::{
 use app_lib::infrastructure::stt::{DeepgramProvider, AssemblyAIProvider};
 
 mod test_support;
-use test_support::{noop_connection_quality, SttConfigTestExt};
+use test_support::{classify_error_type, noop_connection_quality, stderr_error, SttConfigTestExt};
 
 /// Хелпер для получения API ключей из окружения
 fn get_deepgram_key() -> String {
@@ -52,9 +52,7 @@ async fn test_e2e_deepgram_websocket_connection() {
         println!("✅ Final: {}", t.text);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     // Подключаемся
     let result = provider
@@ -97,9 +95,7 @@ async fn test_e2e_assemblyai_websocket_connection() {
         println!("✅ Final: {}", t.text);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     // Подключаемся
     let result = provider
@@ -136,9 +132,7 @@ async fn test_e2e_deepgram_reconnect() {
     println!("🔌 Первое подключение...");
     let on_partial = Arc::new(|t: Transcription| println!("📝 {}", t.text));
     let on_final = Arc::new(|t: Transcription| println!("✅ {}", t.text));
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} ({})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(
@@ -196,9 +190,7 @@ async fn test_e2e_multiple_sequential_connections() {
 
         let on_partial = Arc::new(|_: Transcription| {});
         let on_final = Arc::new(|_: Transcription| {});
-        let on_error = Arc::new(|msg: String, err_type: String| {
-            eprintln!("❌ Error: {} ({})", msg, err_type);
-        });
+        let on_error = stderr_error();
 
         provider
             .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -236,9 +228,7 @@ async fn test_e2e_abort_during_active_connection() {
 
     let on_partial = Arc::new(|t: Transcription| println!("📝 {}", t.text));
     let on_final = Arc::new(|t: Transcription| println!("✅ {}", t.text));
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} ({})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -300,9 +290,7 @@ async fn test_e2e_deepgram_message_handling() {
         println!("✅ Final: {}", t.text);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} ({})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -369,8 +357,9 @@ async fn test_e2e_connection_error_invalid_key() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        println!("📌 Получена ожидаемая ошибка: {} ({})", msg, err_type);
+    let on_error = Arc::new(|err: app_lib::domain::SttError| {
+        let typ = classify_error_type(&err);
+        println!("📌 Получена ожидаемая ошибка: {} ({})", err, typ);
     });
 
     // Попытка подключиться должна вернуть ошибку
@@ -404,9 +393,10 @@ async fn test_e2e_connection_timeout_handling() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(move |msg: String, err_type: String| {
-        println!("📌 Error: {} ({})", msg, err_type);
-        if err_type == "timeout" {
+    let on_error = Arc::new(move |err: app_lib::domain::SttError| {
+        let typ = classify_error_type(&err);
+        println!("📌 Error: {} ({})", err, typ);
+        if typ == "timeout" {
             *timeout_clone.lock().unwrap() = true;
         }
     });
@@ -448,8 +438,9 @@ async fn test_e2e_server_initiated_close() {
 
     let on_partial = Arc::new(|t: Transcription| println!("📝 {}", t.text));
     let on_final = Arc::new(|t: Transcription| println!("✅ {}", t.text));
-    let on_error = Arc::new(move |msg: String, err_type: String| {
-        println!("📌 Close/Error: {} ({})", msg, err_type);
+    let on_error = Arc::new(move |err: app_lib::domain::SttError| {
+        let typ = classify_error_type(&err);
+        println!("📌 Close/Error: {} ({})", err, typ);
         *close_clone.lock().unwrap() = true;
     });
 
@@ -499,9 +490,7 @@ async fn test_e2e_slow_network_simulation() {
         println!("✅ Final: {}", t.text);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} ({})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -548,9 +537,7 @@ async fn test_e2e_batch_sending() {
 
     let on_partial = Arc::new(|t: Transcription| println!("📝 {}", t.text));
     let on_final = Arc::new(|t: Transcription| println!("✅ {}", t.text));
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} ({})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -600,9 +587,7 @@ async fn test_e2e_high_frequency_sending() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} ({})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -660,9 +645,7 @@ async fn test_e2e_keepalive_mechanism() {
 
     let on_partial = Arc::new(|t: Transcription| println!("📝 {}", t.text));
     let on_final = Arc::new(|t: Transcription| println!("✅ {}", t.text));
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} ({})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(
@@ -729,8 +712,9 @@ async fn test_e2e_recovery_after_connection_loss() {
 
     let on_partial = Arc::new(|t: Transcription| println!("📝 {}", t.text));
     let on_final = Arc::new(|t: Transcription| println!("✅ {}", t.text));
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        println!("📌 Error: {} ({})", msg, err_type);
+    let on_error = Arc::new(|err: app_lib::domain::SttError| {
+        let typ = classify_error_type(&err);
+        println!("📌 Error: {} ({})", err, typ);
     });
 
     // Первое соединение
@@ -805,9 +789,7 @@ async fn test_e2e_long_session_with_pauses() {
         println!("✅ Final: {}", t.text);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} ({})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(
@@ -887,7 +869,7 @@ async fn test_e2e_performance_comparison() {
 
     let on_p = Arc::new(|_: Transcription| {});
     let on_f = Arc::new(|_: Transcription| {});
-    let on_e = Arc::new(|_: String, _: String| {});
+    let on_e = stderr_error();
 
     deepgram
         .start_stream(on_p.clone(), on_f.clone(), on_e.clone(), noop_connection_quality())

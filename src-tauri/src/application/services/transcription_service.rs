@@ -841,7 +841,9 @@ mod tests {
         }
 
         async fn send_audio(&mut self, _chunk: &crate::domain::AudioChunk) -> SttResult<()> {
-            Err(SttError::Connection("simulated connection drop".to_string()))
+            Err(SttError::Connection(crate::domain::SttConnectionError::simple(
+                "simulated connection drop",
+            )))
         }
 
         async fn stop_stream(&mut self) -> SttResult<()> {
@@ -887,8 +889,21 @@ mod tests {
         let service = TranscriptionService::new(Box::new(audio_capture), factory);
 
         let (err_tx, mut err_rx) = tokio::sync::mpsc::unbounded_channel::<(String, String)>();
-        let on_error: ErrorCallback = Arc::new(move |msg, typ| {
-            let _ = err_tx.send((msg, typ));
+        let on_error: ErrorCallback = Arc::new(move |err: SttError| {
+            let typ = match &err {
+                SttError::Connection(conn) => {
+                    if conn.details.category == Some(crate::domain::SttConnectionCategory::Timeout) {
+                        "timeout"
+                    } else {
+                        "connection"
+                    }
+                }
+                SttError::Authentication(_) => "authentication",
+                SttError::Configuration(_) => "configuration",
+                SttError::Processing(_) | SttError::Internal(_) | SttError::Unsupported(_) => "processing",
+            }
+            .to_string();
+            let _ = err_tx.send((err.to_string(), typ));
         });
 
         let on_partial: TranscriptionCallback = Arc::new(|_t| {});
@@ -952,7 +967,7 @@ mod tests {
         let on_final: TranscriptionCallback = Arc::new(|_t| {});
         let on_audio_level: AudioLevelCallback = Arc::new(|_l| {});
         let on_audio_spectrum: AudioSpectrumCallback = Arc::new(|_b| {});
-        let on_error: ErrorCallback = Arc::new(|_m, _t| {});
+        let on_error: ErrorCallback = Arc::new(|_err: SttError| {});
         let on_quality: ConnectionQualityCallback = Arc::new(|_q, _r| {});
 
         let result = service
@@ -1030,7 +1045,7 @@ mod tests {
         let on_final: TranscriptionCallback = Arc::new(|_t| {});
         let on_audio_level: AudioLevelCallback = Arc::new(|_l| {});
         let on_audio_spectrum: AudioSpectrumCallback = Arc::new(|_b| {});
-        let on_error: ErrorCallback = Arc::new(|_m, _t| {});
+        let on_error: ErrorCallback = Arc::new(|_err: SttError| {});
         let on_quality: ConnectionQualityCallback = Arc::new(|_q, _r| {});
 
         service

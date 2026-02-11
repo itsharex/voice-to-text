@@ -1456,7 +1456,7 @@ mod tests {
 
         let on_partial = Arc::new(|_: Transcription| {});
         let on_final = Arc::new(|_: Transcription| {});
-        let on_error = Arc::new(|_: String, _: String| {});
+        let on_error: ErrorCallback = Arc::new(|_err: SttError| {});
         let on_connection_quality = Arc::new(|_: String, _: Option<String>| {});
 
         // Не streaming - ошибка

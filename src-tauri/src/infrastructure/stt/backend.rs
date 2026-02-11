@@ -362,27 +362,91 @@ impl SttProvider for BackendProvider {
                 }
 
                 if status == http::StatusCode::TOO_MANY_REQUESTS {
-                    // Парсим body от сервера для точной причины (rate_limit vs too_many_sessions)
-                    let (server_message, server_code) = resp.body()
-                        .as_ref()
-                        .and_then(|body| {
-                            let text = std::str::from_utf8(body).ok()?;
-                            let json: serde_json::Value = serde_json::from_str(text).ok()?;
-                            let msg = json.get("message")?.as_str()?.to_string();
-                            let code = json.get("code")?.as_str()?.to_string();
-                            Some((msg, code))
-                        })
-                        .unzip();
+                    // Парсим body от сервера для точной причины (rate_limit vs too_many_sessions).
+                    //
+                    // Важно: backend API ошибки имеют форму:
+                    // { success:false, error:{ code, message, details? } }
+                    // Но некоторые WS/proxy могут вернуть { code, message } без envelope.
+                    let mut server_message: Option<String> = None;
+                    let mut server_code: Option<String> = None;
+                    let mut retry_after_secs: Option<u64> = None;
 
-                    let display_message = match &server_message {
-                        Some(msg) => format!("WS connection failed: 429 — {}", msg),
-                        None => format!("WS connection failed: HTTP error: {}", status),
+                    if let Some(body) = resp.body().as_ref() {
+                        if let Ok(text) = std::str::from_utf8(body) {
+                            if let Ok(json) = serde_json::from_str::<serde_json::Value>(text) {
+                                // API envelope: { error: { code, message, details } }
+                                if let Some(err) = json.get("error") {
+                                    server_message = err
+                                        .get("message")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string());
+                                    server_code = err
+                                        .get("code")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string());
+                                    retry_after_secs = err
+                                        .get("details")
+                                        .and_then(|d| d.get("retry_after_seconds"))
+                                        .and_then(|v| v.as_u64());
+                                } else {
+                                    // Fallback: { code, message }
+                                    server_message = json
+                                        .get("message")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string());
+                                    server_code = json
+                                        .get("code")
+                                        .and_then(|v| v.as_str())
+                                        .map(|s| s.to_string());
+                                }
+                            }
+                        }
+                    }
+
+                    // Иногда retry-after приходит только хедером (например, глобальный rate limit middleware).
+                    if retry_after_secs.is_none() {
+                        retry_after_secs = resp
+                            .headers()
+                            .get("Retry-After")
+                            .and_then(|v| v.to_str().ok())
+                            .and_then(|s| s.parse::<u64>().ok());
+                    }
+
+                    let display_message = match (&server_message, &server_code, retry_after_secs) {
+                        (Some(msg), Some(code), Some(secs)) => {
+                            format!("WS connection failed: 429 ({}): {} (retry after {}s)", code, msg, secs)
+                        }
+                        (Some(msg), Some(code), None) => {
+                            format!("WS connection failed: 429 ({}): {}", code, msg)
+                        }
+                        (Some(msg), None, Some(secs)) => {
+                            format!("WS connection failed: 429 — {} (retry after {}s)", msg, secs)
+                        }
+                        (Some(msg), None, None) => format!("WS connection failed: 429 — {}", msg),
+                        (None, Some(code), Some(secs)) => {
+                            format!("WS connection failed: 429 ({}) (retry after {}s)", code, secs)
+                        }
+                        (None, Some(code), None) => format!("WS connection failed: 429 ({})", code),
+                        (None, None, Some(secs)) => {
+                            format!("WS connection failed: HTTP error: {} (retry after {}s)", status, secs)
+                        }
+                        (None, None, None) => format!("WS connection failed: HTTP error: {}", status),
+                    };
+
+                    let category = match server_code.as_deref() {
+                        // Важно: backend использует HTTP 429 и для limit_exceeded и для rate limiting,
+                        // поэтому определяем категорию по коду.
+                        Some("LIMIT_EXCEEDED") => SttConnectionCategory::LimitExceeded,
+                        Some("TOO_MANY_SESSIONS") | Some("RATE_LIMIT_EXCEEDED") => {
+                            SttConnectionCategory::RateLimited
+                        }
+                        _ => SttConnectionCategory::RateLimited,
                     };
 
                     return SttError::Connection(SttConnectionError {
                         message: display_message,
                         details: SttConnectionDetails {
-                            category: Some(SttConnectionCategory::RateLimited),
+                            category: Some(category),
                             http_status: Some(429),
                             server_code,
                             ..Default::default()

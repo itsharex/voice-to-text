@@ -172,7 +172,9 @@ impl SttProvider for MockSttProvider {
         }
 
         if !self.is_connection_alive() {
-            return Err(SttError::Connection("Connection not alive".to_string()));
+            return Err(SttError::Connection(app_lib::domain::SttConnectionError::simple(
+                "Connection not alive",
+            )));
         }
 
         *self.streaming.write().await = true;
@@ -303,7 +305,7 @@ async fn test_start_recording_prevents_double_start() {
     let on_final = Arc::new(|_: Transcription| {});
     let on_audio_level = Arc::new(|_: f32| {});
     let on_audio_spectrum = Arc::new(|_: [f32; 48]| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = Arc::new(|_err: SttError| {});
     let on_connection_quality = Arc::new(|_: String, _: Option<String>| {});
 
     // Первый старт должен пройти
@@ -363,7 +365,7 @@ async fn test_full_recording_lifecycle() {
     let on_final = Arc::new(|_: Transcription| {});
     let on_audio_level = Arc::new(|_: f32| {});
     let on_audio_spectrum = Arc::new(|_: [f32; 48]| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = Arc::new(|_err: SttError| {});
 
     // Проверяем статус Idle
     assert_eq!(service.get_status().await, RecordingStatus::Idle);
@@ -411,7 +413,7 @@ async fn test_keep_alive_mode() {
     let on_final = Arc::new(|_: Transcription| {});
     let on_audio_level = Arc::new(|_: f32| {});
     let on_audio_spectrum = Arc::new(|_: [f32; 48]| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = Arc::new(|_err: SttError| {});
 
     // Старт
     service.start_recording(
@@ -464,7 +466,7 @@ async fn test_recording_status_transitions() {
     let on_final = Arc::new(|_: Transcription| {});
     let on_audio_level = Arc::new(|_: f32| {});
     let on_audio_spectrum = Arc::new(|_: [f32; 48]| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = Arc::new(|_err: SttError| {});
 
     service.start_recording(
         on_partial,

@@ -7,8 +7,6 @@ use std::{
 use tauri::{AppHandle, Emitter, Runtime};
 use tauri_plugin_updater::UpdaterExt;
 
-use crate::infrastructure::ConfigStore;
-
 /// Защита от двойного старта установки.
 ///
 /// В Tauri окна — это отдельные webview'ы, и пользователь теоретически может нажать "Обновить"

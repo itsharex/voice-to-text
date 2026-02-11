@@ -8,7 +8,7 @@ use app_lib::domain::{
 use app_lib::infrastructure::stt::AssemblyAIProvider;
 
 mod test_support;
-use test_support::{noop_connection_quality, SttConfigTestExt};
+use test_support::{noop_connection_quality, stderr_error, SttConfigTestExt};
 
 /// Получаем API ключ из переменной окружения или используем дефолтный
 fn get_api_key() -> String {
@@ -351,9 +351,7 @@ async fn test_real_mp3_transcription_assemblyai() {
         *f_text.lock().unwrap() = t.text.clone();
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     println!("🔗 Подключаемся к AssemblyAI...");
     provider
@@ -474,9 +472,7 @@ async fn test_real_mp3_long_transcription_assemblyai() {
         f_texts.lock().unwrap().push(t.text.clone());
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     println!("🔗 Подключаемся к AssemblyAI...");
     provider

@@ -34,10 +34,9 @@ export default defineConfig({
     ],
   },
 
-  // Tauri expects a fixed port, fail if that port is not available
   server: {
     host: host || false,
-    port: 1420,
+    port: Number(process.env.PORT || 1420),
     strictPort: true,
     hmr: host
       ? {

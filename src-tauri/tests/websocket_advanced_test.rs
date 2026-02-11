@@ -8,7 +8,7 @@ use app_lib::domain::{
 use app_lib::infrastructure::stt::{DeepgramProvider, AssemblyAIProvider};
 
 mod test_support;
-use test_support::{noop_connection_quality, SttConfigTestExt};
+use test_support::{noop_connection_quality, noop_error, stderr_error, SttConfigTestExt};
 
 /// Хелпер для получения API ключей
 fn get_deepgram_key() -> String {
@@ -41,9 +41,7 @@ async fn test_websocket_ping_pong_mechanism() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        println!("⚠️  Error: {} ({})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -95,7 +93,7 @@ async fn test_websocket_message_types() {
     });
 
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -146,7 +144,7 @@ async fn test_websocket_graceful_vs_abrupt_close() {
 
     let on_p = Arc::new(|_: Transcription| {});
     let on_f = Arc::new(|_: Transcription| {});
-    let on_e = Arc::new(|_: String, _: String| {});
+    let on_e = noop_error();
 
     provider1
         .start_stream(on_p.clone(), on_f.clone(), on_e.clone(), noop_connection_quality())
@@ -224,7 +222,7 @@ async fn test_websocket_concurrent_sending() {
     });
 
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -305,7 +303,7 @@ async fn test_multiple_providers_simultaneously() {
             count.fetch_add(1, Ordering::SeqCst);
         });
         let on_final = Arc::new(|_: Transcription| {});
-        let on_error = Arc::new(|_: String, _: String| {});
+        let on_error = noop_error();
 
         provider
             .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -338,7 +336,7 @@ async fn test_multiple_providers_simultaneously() {
             count.fetch_add(1, Ordering::SeqCst);
         });
         let on_final = Arc::new(|_: Transcription| {});
-        let on_error = Arc::new(|_: String, _: String| {});
+        let on_error = noop_error();
 
         provider
             .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -386,7 +384,7 @@ async fn test_websocket_rapid_start_stop() {
 
     let on_p = Arc::new(|_: Transcription| {});
     let on_f = Arc::new(|_: Transcription| {});
-    let on_e = Arc::new(|_: String, _: String| {});
+    let on_e = noop_error();
 
     // Быстрые циклы start/stop
     for i in 1..=10 {
@@ -431,7 +429,7 @@ async fn test_websocket_empty_data() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -472,7 +470,7 @@ async fn test_websocket_tiny_chunks() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -525,7 +523,7 @@ async fn test_websocket_huge_chunks() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -568,7 +566,7 @@ async fn test_websocket_extreme_amplitude() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -623,7 +621,7 @@ async fn test_websocket_frequency_changes() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -674,7 +672,7 @@ async fn test_websocket_send_latency_measurement() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -744,7 +742,7 @@ async fn test_websocket_memory_usage() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -773,7 +771,7 @@ async fn test_websocket_memory_usage() {
     // Создаем новые callbacks для второго использования
     let on_partial2 = Arc::new(|_: Transcription| {});
     let on_final2 = Arc::new(|_: Transcription| {});
-    let on_error2 = Arc::new(|_: String, _: String| {});
+    let on_error2 = noop_error();
 
     provider
         .start_stream(on_partial2, on_final2, on_error2, noop_connection_quality())
@@ -815,7 +813,7 @@ async fn test_websocket_transcription_rate() {
         times_final.lock().unwrap().push((Instant::now(), t.text.clone(), true));
     });
 
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -881,7 +879,7 @@ async fn test_websocket_throughput() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_: String, _: String| {});
+    let on_error = noop_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())

@@ -8,7 +8,7 @@ use app_lib::domain::{
 use app_lib::infrastructure::stt::DeepgramProvider;
 
 mod test_support;
-use test_support::{noop_connection_quality, SttConfigTestExt};
+use test_support::{noop_connection_quality, noop_error, stderr_error, SttConfigTestExt};
 
 /// Получаем API ключ из переменной окружения
 ///
@@ -282,9 +282,7 @@ async fn test_deepgram_full_lifecycle() {
         transcriptions_final.lock().unwrap().push(t);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     // Запускаем stream
     let result = provider
@@ -339,9 +337,7 @@ async fn test_deepgram_websocket_connection() {
         println!("Final: {}", t.text);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     // Подключаемся
     let result = provider
@@ -371,7 +367,7 @@ async fn test_deepgram_connection_error() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|_msg: String, _err_type: String| {});
+    let on_error = noop_error();
 
     // Попытка подключиться должна вернуть ошибку
     let result = provider
@@ -403,9 +399,7 @@ async fn test_deepgram_real_voice_transcription() {
         *final_text_clone.lock().unwrap() = t.text;
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -452,9 +446,7 @@ async fn test_deepgram_keepalive() {
 
     let on_partial = Arc::new(|_: Transcription| {});
     let on_final = Arc::new(|_: Transcription| {});
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -518,7 +510,7 @@ async fn test_e2e_full_pipeline_with_deepgram() {
     // Запускаем запись
     let on_audio_level = Arc::new(|_level: f32| {});
     let on_audio_spectrum = Arc::new(|_spectrum: [f32; 48]| {});
-    let on_error = Arc::new(|_msg: String, _err_type: String| {});
+    let on_error = noop_error();
 
     let result = service
         .start_recording(
@@ -566,9 +558,7 @@ async fn test_e2e_multiple_sessions() {
             println!("  Final: {}", t.text);
         });
 
-        let on_error = Arc::new(|msg: String, err_type: String| {
-            eprintln!("❌ Error: {} (type: {})", msg, err_type);
-        });
+        let on_error = stderr_error();
 
         provider
             .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -614,9 +604,7 @@ async fn test_e2e_long_session() {
         println!("✅ Final: {}", t.text);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -675,9 +663,7 @@ async fn test_e2e_language_switching() {
             println!("  Final: {}", t.text);
         });
 
-        let on_error = Arc::new(|msg: String, err_type: String| {
-            eprintln!("❌ Error: {} (type: {})", msg, err_type);
-        });
+        let on_error = stderr_error();
 
         provider
             .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -717,9 +703,7 @@ async fn test_e2e_abort_during_session() {
         println!("Final: {}", t.text);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -895,9 +879,7 @@ async fn test_real_mp3_transcription_deepgram() {
         *f_text.lock().unwrap() = t.text.clone();
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     println!("🔗 Подключаемся к Deepgram...");
     provider
@@ -1005,9 +987,7 @@ async fn test_real_mp3_long_transcription_deepgram() {
         f_texts.lock().unwrap().push(t.text.clone());
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     println!("🔗 Подключаемся к Deepgram...");
     provider
@@ -1102,9 +1082,7 @@ async fn test_real_mp3_transcription_quality() {
         transcriptions_final.lock().unwrap().push(t);
     });
 
-    let on_error = Arc::new(|msg: String, err_type: String| {
-        eprintln!("❌ Error: {} (type: {})", msg, err_type);
-    });
+    let on_error = stderr_error();
 
     provider
         .start_stream(on_partial, on_final, on_error, noop_connection_quality())
@@ -1196,9 +1174,7 @@ async fn test_real_mp3_different_chunk_sizes() {
             *f_text.lock().unwrap() = t.text.clone();
         });
 
-        let on_error = Arc::new(|msg: String, err_type: String| {
-            eprintln!("❌ Error: {} (type: {})", msg, err_type);
-        });
+        let on_error = stderr_error();
 
         provider
             .start_stream(on_partial, on_final, on_error, noop_connection_quality())

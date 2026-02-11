@@ -1453,6 +1453,12 @@ export const useTranscriptionStore = defineStore('transcription', () => {
 
           const isRetriable = detected === 'connection' || detected === 'timeout';
           const isLastAttempt = attempt >= connectMaxAttempts.value;
+          const isRateLimited =
+            details?.category === 'rate_limited' ||
+            details?.httpStatus === 429 ||
+            // Fallback: иногда category не проставляется, но сервер код есть.
+            details?.serverCode === 'RATE_LIMIT_EXCEEDED' ||
+            details?.serverCode === 'TOO_MANY_SESSIONS';
 
           console.warn('[ConnectRetry] Connect attempt failed:', {
             attempt,
@@ -1470,7 +1476,20 @@ export const useTranscriptionStore = defineStore('transcription', () => {
           }
 
           // Короткая пауза перед следующей попыткой
-          const backoffMs = calcBackoffMs(attempt);
+          let backoffMs = calcBackoffMs(attempt);
+          if (isRateLimited) {
+            const serverCode = details?.serverCode;
+            const jitter = Math.floor(Math.random() * 250);
+            // 429 нельзя ретраить "быстро": иначе сами усугубляем лимит.
+            // При TOO_MANY_SESSIONS обычно достаточно пары секунд (сервер успевает закрыть старую сессию).
+            if (serverCode === 'TOO_MANY_SESSIONS') {
+              backoffMs = 2000 + jitter;
+            } else if (serverCode === 'RATE_LIMIT_EXCEEDED') {
+              backoffMs = 5000 + jitter;
+            } else {
+              backoffMs = 4000 + jitter;
+            }
+          }
           await sleep(backoffMs);
         }
       }
