@@ -15,7 +15,6 @@
         "core:event:default",
         "core:event:allow-emit",
         "core:event:allow-listen",
-        "store:default",
         "clipboard-manager:default",
         "clipboard-manager:allow-write-text"
     ]

@@ -14,7 +14,6 @@
         "core:window:allow-start-dragging",
         "core:event:default",
         "core:event:allow-emit",
-        "core:event:allow-listen",
-        "store:default"
+        "core:event:allow-listen"
     ]
 }

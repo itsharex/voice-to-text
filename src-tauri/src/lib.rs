@@ -43,7 +43,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_deep_link::init())
         .plugin(tauri_plugin_shell::init())
-        .plugin(tauri_plugin_store::Builder::default().build());
+        ;
 
     // Добавляем NSPanel плагин на macOS для появления поверх fullscreen приложений
     #[cfg(target_os = "macos")]
@@ -106,6 +106,7 @@ pub fn run() {
             commands::get_app_config_snapshot,
             commands::get_stt_config_snapshot,
             commands::get_auth_state_snapshot,
+            commands::get_auth_session_snapshot,
             commands::get_ui_preferences_snapshot,
             commands::update_ui_preferences,
             commands::update_app_config,
@@ -129,6 +130,7 @@ pub fn run() {
             commands::show_settings_window,
             commands::show_profile_window,
             commands::set_authenticated,
+            commands::set_auth_session,
             demo::get_demo_snapshot,
             demo::update_demo_state,
         ])
@@ -342,8 +344,38 @@ pub fn run() {
 
             // Загружаем сохраненные конфигурации
             // API ключи теперь берутся из embedded_keys.rs (встроены в build) или из пользовательской конфигурации
+            // Загружаем auth store синхронно (до hotkey), чтобы избежать race:
+            // пользователь может нажать hotkey сразу после старта приложения.
+            {
+                let app_handle = app.handle().clone();
+                let state = app.state::<AppState>();
+                tauri::async_runtime::block_on(async {
+                    match crate::infrastructure::AuthStore::load_or_create().await {
+                        Ok(store) => {
+                            *state.auth_store.write().await = store.clone();
+                            *state.is_authenticated.write().await = store.is_authenticated();
+
+                            // Держим STT token синхронизированным с access token из сессии
+                            let mut stt = crate::infrastructure::ConfigStore::load_config()
+                                .await
+                                .unwrap_or_default();
+                            stt.backend_auth_token = store.session.as_ref().map(|s| s.access_token.clone());
+                            let _ = crate::infrastructure::ConfigStore::save_config(&stt).await;
+                            let _ = state.transcription_service.update_config(stt).await;
+
+                            // Запускаем фоновый refresh (если возможен).
+                            state.restart_auth_refresh_task(app_handle.clone()).await;
+                        }
+                        Err(e) => {
+                            log::warn!("Failed to load auth store: {}", e);
+                        }
+                    }
+                });
+            }
+
             let app_handle = app.handle().clone();
             tauri::async_runtime::spawn(async move {
+
                 // Загружаем STT конфигурацию
                 if let Ok(mut saved_config) = ConfigStore::load_config().await {
                     // API ключи теперь обрабатываются напрямую в провайдерах

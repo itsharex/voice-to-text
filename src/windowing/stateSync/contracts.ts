@@ -47,6 +47,27 @@ export type AuthStateSnapshotData = {
 };
 
 /**
+ * Полный снапшот auth-session (device_id + tokens).
+ * Соответствует Rust `AuthSessionSnapshotData`.
+ *
+ * Важно: содержит секреты (access/refresh), поэтому использовать только внутри приложения.
+ */
+export type AuthSessionSnapshotData = {
+  device_id: string;
+  session: null | {
+    access_token: string;
+    refresh_token: string | null;
+    access_expires_at: string;
+    refresh_expires_at: string | null;
+    user: null | {
+      id: string;
+      email: string;
+      email_verified: boolean;
+    };
+  };
+};
+
+/**
  * UI preferences (Rust SoT в Tauri).
  * Соответствует Rust `UiPreferences`.
  */

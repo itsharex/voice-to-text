@@ -2,6 +2,7 @@ export {
   TOPIC_APP_CONFIG,
   TOPIC_STT_CONFIG,
   TOPIC_AUTH_STATE,
+  TOPIC_AUTH_SESSION,
   TOPIC_UI_PREFERENCES,
 } from './topics';
 
@@ -14,6 +15,7 @@ export {
   CMD_GET_APP_CONFIG_SNAPSHOT,
   CMD_GET_STT_CONFIG_SNAPSHOT,
   CMD_GET_AUTH_STATE_SNAPSHOT,
+  CMD_GET_AUTH_SESSION_SNAPSHOT,
   CMD_GET_UI_PREFERENCES_SNAPSHOT,
   CMD_UPDATE_UI_PREFERENCES,
   CMD_UPDATE_APP_CONFIG,
@@ -42,11 +44,13 @@ export type {
   AppConfigSnapshotData,
   SttConfigSnapshotData,
   AuthStateSnapshotData,
+  AuthSessionSnapshotData,
   UiPreferencesSnapshotData,
   TauriSnapshotEnvelope,
 } from './contracts';
 
 export { createAuthStateSync } from './authStateSync';
+export { createAuthSessionSync } from './authSessionSync';
 export { createUiPreferencesSync } from './uiPreferencesSync';
 
 export { createStoreTauriTopicSync } from './storeSync';

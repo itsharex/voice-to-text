@@ -3,7 +3,7 @@ use std::sync::atomic::Ordering;
 use tauri::{AppHandle, Emitter, Manager, State, WebviewWindow, Window};
 
 use crate::domain::{AudioCapture, RecordingStatus, SttConnectionCategory, SttError};
-use crate::infrastructure::ConfigStore;
+use crate::infrastructure::{AuthSession, AuthStore, AuthUser, ConfigStore};
 use crate::presentation::{
     events::*, AppState, AudioLevelPayload, FinalTranscriptionPayload, PartialTranscriptionPayload,
     RecordingStatusPayload, MicrophoneTestLevelPayload, TranscriptionErrorPayload, ConnectionQualityPayload,
@@ -540,7 +540,7 @@ pub async fn toggle_recording_with_window(
                 .await
                 .map_err(|e| e.to_string())?;
 
-            log::info!("Recording stopped via hotkey, waiting for final transcription");
+            log::info!("Recording stopped via hotkey");
 
             // Эмитируем статус Idle с флагом stopped_via_hotkey
             // Frontend скроет окно когда получит этот статус
@@ -839,13 +839,73 @@ pub struct AuthStateData {
 /// Get current auth state snapshot
 #[tauri::command]
 pub async fn get_auth_state_snapshot(state: State<'_, AppState>) -> Result<SnapshotEnvelope<AuthStateData>, String> {
-    log::debug!("Command: get_auth_state_snapshot");
+    log::trace!("Command: get_auth_state_snapshot");
     let is_authenticated = *state.is_authenticated.read().await;
     let revision = state.auth_state_revision.read().await.to_string();
     Ok(SnapshotEnvelope {
         revision,
         data: AuthStateData { is_authenticated },
     })
+}
+
+/// Полный снапшот auth-session (device_id + tokens).
+///
+/// В отличие от auth-state, этот снапшот содержит секреты (access/refresh),
+/// поэтому его нельзя логировать/сериализовать в публичные конфиги.
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AuthSessionSnapshotData {
+    pub device_id: String,
+    pub session: Option<AuthSessionSnapshotSessionData>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AuthSessionSnapshotSessionData {
+    pub access_token: String,
+    pub refresh_token: Option<String>,
+    pub access_expires_at: String,
+    pub refresh_expires_at: Option<String>,
+    pub user: Option<AuthSessionSnapshotUserData>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct AuthSessionSnapshotUserData {
+    pub id: String,
+    pub email: String,
+    pub email_verified: bool,
+}
+
+fn ms_to_rfc3339(ms: i64) -> String {
+    // Важно: если ms некорректный — fallback на epoch, чтобы не падать.
+    chrono::DateTime::<chrono::Utc>::from_timestamp_millis(ms)
+        .unwrap_or_else(|| chrono::DateTime::<chrono::Utc>::from_timestamp(0, 0).unwrap())
+        .to_rfc3339()
+}
+
+/// Get current auth session snapshot (for cross-window sync).
+#[tauri::command]
+pub async fn get_auth_session_snapshot(
+    state: State<'_, AppState>,
+) -> Result<SnapshotEnvelope<AuthSessionSnapshotData>, String> {
+    log::trace!("Command: get_auth_session_snapshot");
+
+    let store = state.auth_store.read().await.clone();
+    let data = AuthSessionSnapshotData {
+        device_id: store.device_id,
+        session: store.session.map(|s| AuthSessionSnapshotSessionData {
+            access_token: s.access_token,
+            refresh_token: s.refresh_token,
+            access_expires_at: ms_to_rfc3339(s.access_expires_at_ms),
+            refresh_expires_at: s.refresh_expires_at_ms.map(ms_to_rfc3339),
+            user: s.user.map(|u| AuthSessionSnapshotUserData {
+                id: u.id,
+                email: u.email,
+                email_verified: u.email_verified,
+            }),
+        }),
+    };
+
+    let revision = state.auth_session_revision.read().await.to_string();
+    Ok(SnapshotEnvelope { revision, data })
 }
 
 /// Get current UI preferences snapshot
@@ -1838,6 +1898,144 @@ pub async fn show_profile_window(
             "initialSection": initial_section.unwrap_or_else(|| "none".to_string())
         }));
     }
+
+    Ok(())
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthSessionInputUser {
+    pub id: String,
+    pub email: String,
+    pub email_verified: bool,
+}
+
+#[derive(Debug, Clone, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct AuthSessionInput {
+    pub access_token: String,
+    pub refresh_token: Option<String>,
+    pub access_expires_at: String,
+    pub refresh_expires_at: Option<String>,
+    pub device_id: Option<String>, // ignore: Rust SoT
+    pub user: Option<AuthSessionInputUser>,
+}
+
+fn parse_rfc3339_to_ms(s: &str) -> Result<i64, String> {
+    chrono::DateTime::parse_from_rfc3339(s)
+        .map(|dt| dt.timestamp_millis())
+        .map_err(|e| format!("Invalid RFC3339 datetime: {} ({})", s, e))
+}
+
+async fn emit_invalidation(
+    app_handle: &AppHandle,
+    topic: &str,
+    revision: String,
+    source_id: Option<String>,
+) {
+    let _ = app_handle.emit(
+        EVENT_STATE_SYNC_INVALIDATION,
+        crate::presentation::StateSyncInvalidationPayload {
+            topic: topic.to_string(),
+            revision,
+            source_id,
+            timestamp_ms: chrono::Utc::now().timestamp_millis(),
+        },
+    );
+}
+
+/// Устанавливает/очищает auth session в Rust (SoT) и запускает фоновые refresh-таймеры.
+#[tauri::command]
+pub async fn set_auth_session(
+    state: State<'_, AppState>,
+    app_handle: AppHandle,
+    window: Window,
+    session: Option<AuthSessionInput>,
+) -> Result<(), String> {
+    // 1) Обновляем store в памяти + сохраняем на диск
+    let mut next = state.auth_store.read().await.clone();
+
+    let prev_is_auth = next.is_authenticated();
+
+    next.session = match session {
+        Some(s) => {
+            // device_id критичен: refresh token привязан к client_id на сервере.
+            // Поэтому если frontend прислал device_id (например, после login/refresh),
+            // обновляем Rust SoT, чтобы background refresh работал корректно.
+            if let Some(did) = s.device_id.as_deref() {
+                let did = did.trim();
+                if !did.is_empty() && did != next.device_id {
+                    next.device_id = did.to_string();
+                }
+            }
+
+            let access_expires_at_ms = parse_rfc3339_to_ms(&s.access_expires_at)?;
+            let refresh_expires_at_ms = match s.refresh_expires_at.as_deref() {
+                Some(v) => Some(parse_rfc3339_to_ms(v)?),
+                None => None,
+            };
+
+            Some(AuthSession {
+                access_token: s.access_token,
+                refresh_token: s.refresh_token,
+                access_expires_at_ms,
+                refresh_expires_at_ms,
+                user: s.user.map(|u| AuthUser {
+                    id: u.id,
+                    email: u.email,
+                    email_verified: u.email_verified,
+                }),
+            })
+        }
+        None => None,
+    };
+
+    if let Err(e) = AuthStore::save(&next).await {
+        return Err(format!("Failed to save auth store: {}", e));
+    }
+
+    *state.auth_store.write().await = next.clone();
+
+    // 2) Обновляем derived auth flag
+    let next_is_auth = next.is_authenticated();
+    *state.is_authenticated.write().await = next_is_auth;
+
+    // 3) Обновляем токен для STT (чтобы hotkey start_recording всегда имел актуальный access)
+    let stt_token = next.session.as_ref().map(|s| s.access_token.clone());
+    let mut stt = ConfigStore::load_config().await.unwrap_or_default();
+    stt.backend_auth_token = stt_token;
+    if let Err(e) = ConfigStore::save_config(&stt).await {
+        log::warn!("Failed to persist STT config token: {}", e);
+    }
+    if let Err(e) = state.transcription_service.update_config(stt).await {
+        log::warn!("Failed to update transcription service config token: {}", e);
+    }
+
+    // 4) Bump revisions + invalidations
+    // auth-state только если поменялся флаг
+    if prev_is_auth != next_is_auth {
+        let rev_state = AppState::bump_revision(&state.auth_state_revision).await;
+        emit_invalidation(
+            &app_handle,
+            "auth-state",
+            rev_state,
+            Some(window.label().to_string()),
+        )
+        .await;
+    }
+
+    // auth-session всегда: и login/logout, и refresh.
+    let rev_session = AppState::bump_revision(&state.auth_session_revision).await;
+    emit_invalidation(
+        &app_handle,
+        "auth-session",
+        rev_session,
+        Some(window.label().to_string()),
+    )
+    .await;
+
+    // 5) Перезапускаем фоновый refresh
+    state.restart_auth_refresh_task(app_handle.clone()).await;
 
     Ok(())
 }

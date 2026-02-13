@@ -10,6 +10,7 @@ import { useTranscriptionStore } from '../../stores/transcription';
 import { useAppConfigStore } from '../../stores/appConfig';
 import { useSttConfigStore } from '../../stores/sttConfig';
 import { useAuthStore } from '../../features/auth/store/authStore';
+import { useAuth } from '../../features/auth';
 import { SettingsPanel } from '../../features/settings';
 import ProfilePopover from './ProfilePopover.vue';
 import UpdateIndicator from './UpdateIndicator.vue';
@@ -40,6 +41,7 @@ const store = useTranscriptionStore();
 const appConfigStore = useAppConfigStore();
 const sttConfigStore = useSttConfigStore();
 const authStore = useAuthStore();
+const auth = useAuth();
 const { t } = useI18n();
 const showSettings = ref(false);
 const showProfile = ref(false);
@@ -152,6 +154,10 @@ onMounted(async () => {
   // Очищаем UI при фактическом показе окна (НЕ через focus: main может быть nonactivating NSPanel).
   // Важно: не очищаем посреди активной записи — иначе можно потерять текст если пользователь скрыл и снова показал окно.
   unlistenWindowShown = await listen(EVENT_RECORDING_WINDOW_SHOWN, async () => {
+    // Подтягиваем актуальную auth session из Rust SoT (important when WebView was "frozen").
+    // Best-effort: не блокируем UI на сетевых/IPC проблемах.
+    void auth.initialize({ silent: true });
+
     // Если UI рассинхронизировался (например окно было скрыто и JS "заморозили"),
     // сначала сверяемся с backend: он источник правды по статусу записи.
     const backendStatus = await store.reconcileBackendStatus('window_shown');

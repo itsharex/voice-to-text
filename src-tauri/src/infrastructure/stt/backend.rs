@@ -1163,6 +1163,12 @@ impl SttProvider for BackendProvider {
             }
         }
 
+        // Best-effort: просим сервер форсировать финализацию провайдера (Deepgram Finalize),
+        // чтобы "хвост" последней фразы пришёл ДО следующей записи и не протёк в новую UI-сессию.
+        if let Err(e) = self.send_json(&ClientMessage::Finalize).await {
+            log::warn!("BackendProvider: finalize failed on pause: {}", e);
+        }
+
         self.is_paused = true;
         Ok(())
     }

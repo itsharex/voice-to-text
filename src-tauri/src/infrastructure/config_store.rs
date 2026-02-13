@@ -51,10 +51,8 @@ impl ConfigStore {
 
         let app_config_dir = config_dir.join("voice-to-text");
 
-        // Создаем директорию если не существует
-        if !app_config_dir.exists() {
-            std::fs::create_dir_all(&app_config_dir)?;
-        }
+        // Важно: create_dir_all идемпотентен и надёжнее, чем exists() (race).
+        std::fs::create_dir_all(&app_config_dir)?;
 
         Ok(app_config_dir)
     }
@@ -76,7 +74,7 @@ impl ConfigStore {
         let json = serde_json::to_string_pretty(config)?;
         tokio::fs::write(path, json).await?;
 
-        log::info!("STT config saved to disk");
+        log::debug!("STT config saved to disk");
         Ok(())
     }
 
@@ -92,7 +90,7 @@ impl ConfigStore {
         let json = tokio::fs::read_to_string(path).await?;
         let config: SttConfig = serde_json::from_str(&json)?;
 
-        log::info!("STT config loaded from disk");
+        log::debug!("STT config loaded from disk");
         Ok(config)
     }
 

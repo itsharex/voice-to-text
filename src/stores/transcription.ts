@@ -64,7 +64,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
   let rateLimitRetryCount = 0;
   const RATE_LIMIT_MAX_RETRIES = 2;
   let isForcingLogout = false;
-  let isRefreshingAuthForStt = false;
+  let refreshAuthForSttPromise: Promise<boolean> | null = null;
 
   // Config flags — берём из appConfig store (единый источник правды)
   const appConfig = useAppConfigStore();
@@ -226,9 +226,33 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     try {
       const backendStatus = await invoke<RecordingStatus>('get_recording_status');
       if (backendStatus === RecordingStatus.Idle) {
-        // Backend говорит что мы точно не пишем — значит можно жёстко закрыть последнюю сессию,
-        // чтобы никакие "поздние" события не вернули UI назад.
-        markSessionsClosed(lastSeenSessionId.value, `backend_idle:${reason}`);
+        const uiIsStartingFlow =
+          awaitingSessionStart.value ||
+          isConnecting.value ||
+          status.value === RecordingStatus.Starting;
+
+        // ВАЖНО: иногда get_recording_status может на короткое время вернуть Idle
+        // в момент старта записи (race: окно показано → reconcile успел спросить backend
+        // до того как сервис обновил статус, но events уже летят/полетят).
+        //
+        // Если здесь "жёстко закрыть" сессию (markSessionsClosed) — мы можем случайно
+        // пометить ТЕКУЩУЮ session_id как закрытую, и потом навсегда игнорировать
+        // recording:status=Recording для этой же сессии → UI залипнет на "Подключение...".
+        if (!uiIsStartingFlow) {
+          // Backend говорит что мы точно не пишем — значит можно жёстко закрыть последнюю сессию,
+          // чтобы никакие "поздние" события не вернули UI назад.
+          markSessionsClosed(lastSeenSessionId.value, `backend_idle:${reason}`);
+        } else {
+          console.warn('[STT] Reconcile: backend reports Idle during start flow, skipping close floor update', {
+            reason,
+            backendStatus,
+            uiStatus: status.value,
+            awaitingSessionStart: awaitingSessionStart.value,
+            isConnecting: isConnecting.value,
+            lastSeenSessionId: lastSeenSessionId.value,
+            closedFloor: closedSessionIdFloor.value,
+          });
+        }
       }
 
       if (backendStatus !== status.value) {
@@ -253,8 +277,16 @@ export const useTranscriptionStore = defineStore('transcription', () => {
 
       // Если backend idle, но UI почему-то держит активную сессию — сбрасываем.
       if (backendStatus === RecordingStatus.Idle) {
-        sessionId.value = null;
-        awaitingSessionStart.value = false;
+        // В start-flow не сбрасываем sessionId/awaitingSessionStart — иначе можем
+        // "оторвать" UI от реальной записи при гонке статусов.
+        const uiIsStartingFlow =
+          awaitingSessionStart.value ||
+          isConnecting.value ||
+          status.value === RecordingStatus.Starting;
+        if (!uiIsStartingFlow) {
+          sessionId.value = null;
+          awaitingSessionStart.value = false;
+        }
       }
 
       return backendStatus;
@@ -882,6 +914,12 @@ export const useTranscriptionStore = defineStore('transcription', () => {
                 }
               }
             }
+
+            // UX: после остановки через hotkey окно сразу скрывается.
+            // Следующее открытие должно начинаться с "чистого листа", без текста прошлой сессии.
+            if (event.payload.stopped_via_hotkey) {
+              resetTextStateBeforeStart();
+            }
           }
 
           // Если прилетает Error после auth-ошибки, не показываем это пользователю.
@@ -1148,6 +1186,25 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     return null;
   }
 
+  function formatUnknownError(err: unknown): string {
+    if (typeof err === 'string') return err;
+    if (err && typeof err === 'object') {
+      const anyErr = err as { message?: unknown; error?: unknown; details?: unknown; toString?: unknown };
+      const message = typeof anyErr.message === 'string' ? anyErr.message : null;
+      const error = typeof anyErr.error === 'string' ? anyErr.error : null;
+      const details = typeof anyErr.details === 'string' ? anyErr.details : null;
+      const merged = [message, error, details].filter(Boolean).join(' | ');
+      if (merged) return merged;
+      try {
+        return JSON.stringify(err);
+      } catch {
+        // Fallback: хотя бы не теряем тип
+        return Object.prototype.toString.call(err);
+      }
+    }
+    return String(err ?? '');
+  }
+
   function asKnownErrorType(value: unknown): TranscriptionErrorPayload['error_type'] | null {
     if (value === 'timeout') return 'timeout';
     if (value === 'connection') return 'connection';
@@ -1375,12 +1432,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
         authStore.reset();
       } catch {}
 
-      // 3) На всякий случай синхронизируем состояние с tauri backend
-      try {
-        await invoke('set_authenticated', { authenticated: false, token: null });
-      } catch {}
-
-      // 4) И гарантируем, что auth окно показано (fallback)
+      // 3) И гарантируем, что auth окно показано (fallback)
       try {
         await invoke('show_auth_window');
       } catch {}
@@ -1394,34 +1446,38 @@ export const useTranscriptionStore = defineStore('transcription', () => {
   }
 
   async function tryRefreshAuthForStt(): Promise<boolean> {
-    if (isRefreshingAuthForStt) return false;
-    isRefreshingAuthForStt = true;
+    if (refreshAuthForSttPromise) return refreshAuthForSttPromise;
+
+    refreshAuthForSttPromise = (async () => {
+      try {
+        const tokenRepo = getTokenRepository();
+        const session = await tokenRepo.get();
+        if (!session) return false;
+
+        // Если refresh невозможен — смысла пытаться нет.
+        if (!canRefreshSession(session)) return false;
+
+        const container = getAuthContainer();
+        const refreshed = await container.refreshTokensUseCase.execute();
+        if (!refreshed) return false;
+
+        // Обновляем UI состояние (isAuthenticated остаётся true, но токен меняется)
+        try {
+          const authStore = useAuthStore();
+          authStore.setAuthenticated(refreshed);
+        } catch {}
+
+        return true;
+      } catch (err) {
+        console.warn('[STT] Failed to refresh auth for STT:', err);
+        return false;
+      }
+    })();
+
     try {
-      const tokenRepo = getTokenRepository();
-      const session = await tokenRepo.get();
-      if (!session) return false;
-
-      // Если refresh невозможен — смысла пытаться нет.
-      if (!canRefreshSession(session)) return false;
-
-      const container = getAuthContainer();
-      const refreshed = await container.refreshTokensUseCase.execute();
-      if (!refreshed) return false;
-
-      // Обновляем UI состояние (isAuthenticated остаётся true, но токен меняется)
-      try {
-        const authStore = useAuthStore();
-        authStore.setAuthenticated(refreshed);
-      } catch {}
-
-      // И обязательно обновляем токен в tauri backend, иначе backend STT снова получит 401.
-      try {
-        await invoke('set_authenticated', { authenticated: true, token: refreshed.accessToken });
-      } catch {}
-
-      return true;
+      return await refreshAuthForSttPromise;
     } finally {
-      isRefreshingAuthForStt = false;
+      refreshAuthForSttPromise = null;
     }
   }
 
@@ -1480,6 +1536,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
     isConnecting.value = true;
     connectAttempt.value = 0;
     connectMaxAttempts.value = Math.max(1, maxAttempts);
+    let authRefreshUsed = false;
 
     try {
       for (let attempt = 1; attempt <= connectMaxAttempts.value; attempt++) {
@@ -1521,7 +1578,7 @@ export const useTranscriptionStore = defineStore('transcription', () => {
           const failureType = asKnownErrorType(err);
 
           // Если ошибка пришла не через events, пробуем классифицировать по raw строке
-          const raw = lastConnectFailureRaw.value || String(err ?? '');
+          const raw = lastConnectFailureRaw.value || formatUnknownError(err);
           const details = lastConnectFailureDetails.value;
           const detected = failureType || detectErrorTypeFromRaw(raw) || 'connection';
 
@@ -1533,9 +1590,22 @@ export const useTranscriptionStore = defineStore('transcription', () => {
           // Auth ошибка: обычно это протухший access token.
           // Пробуем один раз обновить сессию и продолжить retry-цикл.
           if (detected === 'authentication') {
+            // Если уже успешно обновляли токены, но всё равно получаем 401 — значит токен не подходит
+            // (или backend всё ещё использует старый). Не оставляем UI в "Подключение..." бесконечно.
+            if (authRefreshUsed) {
+              errorType.value = 'authentication';
+              suppressNextErrorStatus = true;
+              await forceLogoutFromSttAuthError();
+              return;
+            }
+
             const ok = await tryRefreshAuthForStt();
             if (ok) {
+              authRefreshUsed = true;
               console.warn('[ConnectRetry] Auth refreshed, retrying connection');
+              // Refresh не должен "съедать" попытку подключения — иначе можно выйти из цикла
+              // без финального результата и залипнуть в Starting.
+              attempt = Math.max(0, attempt - 1);
               continue;
             }
             errorType.value = 'authentication';
@@ -1593,6 +1663,15 @@ export const useTranscriptionStore = defineStore('transcription', () => {
           await sleep(backoffMs);
         }
       }
+
+      // Защита: на всякий случай не оставляем UI в Starting без исхода.
+      // Это может случиться, если все попытки завершились continue (например, серия auth refresh),
+      // или если события от backend потерялись/были отфильтрованы.
+      const fallbackType = lastConnectFailure.value ?? 'connection';
+      const fallbackRaw = lastConnectFailureRaw.value || 'Unknown connection error';
+      errorType.value = fallbackType;
+      error.value = mapErrorMessage(fallbackType, fallbackRaw, lastConnectFailureDetails.value);
+      status.value = RecordingStatus.Error;
     } finally {
       isConnecting.value = false;
       connectAttempt.value = 0;

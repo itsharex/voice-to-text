@@ -2,5 +2,6 @@
 export const TOPIC_APP_CONFIG = 'app-config';
 export const TOPIC_STT_CONFIG = 'stt-config';
 export const TOPIC_AUTH_STATE = 'auth-state';
+export const TOPIC_AUTH_SESSION = 'auth-session';
 export const TOPIC_UI_PREFERENCES = 'ui-preferences';
 

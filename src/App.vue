@@ -5,7 +5,7 @@ import { useAuth, useAuthState } from './features/auth';
 import AuthScreen from './features/auth/presentation/components/AuthScreen.vue';
 import RecordingPopover from './presentation/components/RecordingPopover.vue';
 import { invoke } from '@tauri-apps/api/core';
-import { listen } from '@tauri-apps/api/event';
+import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { useUpdater } from './composables/useUpdater';
 import { getWindowMode, type AppWindowLabel } from './windowing/windowMode';
@@ -22,7 +22,9 @@ import type { RevisionSyncHandle } from './windowing/stateSync';
 import { isTauriAvailable } from './utils/tauri';
 import { i18n } from './i18n';
 import { normalizeUiLocale, normalizeUiTheme, type UiTheme } from './i18n.locales';
+import { EVENT_RECORDING_WINDOW_SHOWN } from './types';
 import { createAuthStateSync } from './windowing/stateSync/authStateSync';
+import { createAuthSessionSync } from './windowing/stateSync/authSessionSync';
 import { createUiPreferencesSync } from './windowing/stateSync/uiPreferencesSync';
 
 const auth = useAuth();
@@ -55,19 +57,15 @@ watch(
 const isInitialized = ref(false);
 
 // Защита от "пинг-понга" между окнами:
-// при синхронизации auth из другого окна мы обновляем store у себя, но не шлём set_authenticated обратно.
+// при синхронизации auth из другого окна мы обновляем store у себя, но не шлём write-команды обратно.
 let externalAuthSyncDepth = 0;
-
-function isExternalAuthSync(): boolean {
-  return externalAuthSyncDepth > 0;
-}
 
 async function runExternalAuthSync(task: () => Promise<void>): Promise<void> {
   externalAuthSyncDepth += 1;
   try {
     await task();
     // Важно: даём Vue отработать реактивные обновления,
-    // чтобы watcher не успел отправить set_authenticated обратно.
+    // чтобы watcher не успел отправить write-команды обратно.
     await nextTick();
   } finally {
     externalAuthSyncDepth = Math.max(0, externalAuthSyncDepth - 1);
@@ -209,10 +207,11 @@ watch(() => authState.isAuthenticated.value, async (isAuth) => {
   if (authState.isLoading.value) return;
 
   try {
-    if (!isExternalAuthSync()) {
-      const token = isAuth ? authState.accessToken.value : null;
-      console.log('[Auth] set_authenticated called, isAuth:', isAuth, 'token present:', !!token);
-      await invoke('set_authenticated', { authenticated: isAuth, token });
+    // Если это "внешняя" синхронизация (state-sync / background refresh), не открываем auth окно автоматически.
+    // Иначе приложение может всплыть само, пока пользователь не взаимодействует с ним.
+    const isExternalAuthSync = externalAuthSyncDepth > 0;
+    if (!isAuth && isExternalAuthSync) {
+      return;
     }
 
     // Переключение делаем по правилам окна, чтобы main не показывал auth UI и наоборот.
@@ -244,7 +243,9 @@ watch(() => authState.isAuthenticated.value, async (isAuth) => {
 
 // Per-topic sync handles
 let authSyncHandle: RevisionSyncHandle | null = null;
+let authSessionSyncHandle: RevisionSyncHandle | null = null;
 let uiPrefsSyncHandle: RevisionSyncHandle | null = null;
+let unlistenRecordingWindowShown: UnlistenFn | null = null;
 
 onMounted(async () => {
   startSystemThemeSync();
@@ -264,10 +265,7 @@ onMounted(async () => {
     await auth.initialize();
   } finally {
     isInitialized.value = true;
-
     const isAuth = authState.isAuthenticated.value;
-    const token = isAuth ? authState.accessToken.value : null;
-    await invoke('set_authenticated', { authenticated: isAuth, token });
 
     // При HMR не переключаем окна — состояние уже корректное
     if (!isHmrReload) {
@@ -296,6 +294,15 @@ onMounted(async () => {
       },
     });
 
+    authSessionSyncHandle = createAuthSessionSync({
+      listen,
+      invoke,
+      getLocalAccessToken: () => authState.accessToken.value,
+      onExternalAuthSession: () => {
+        void runExternalAuthSync(() => auth.initialize({ silent: true }));
+      },
+    });
+
     uiPrefsSyncHandle = createUiPreferencesSync({
       listen,
       invoke,
@@ -307,13 +314,26 @@ onMounted(async () => {
     try {
       await Promise.all([
         authSyncHandle.start(),
+        authSessionSyncHandle.start(),
         uiPrefsSyncHandle.start(),
       ]);
     } catch (err) {
       console.error('[App] state-sync start failed:', err);
       authSyncHandle?.stop(); authSyncHandle = null;
+      authSessionSyncHandle?.stop(); authSessionSyncHandle = null;
       uiPrefsSyncHandle?.stop(); uiPrefsSyncHandle = null;
     }
+
+    // На macOS main окно может быть NSPanel и при hide/show WebView может "замораживаться".
+    // В этом случае оно иногда пропускает invalidation события.
+    // Поэтому при фактическом показе recording окна принудительно освежаем ui-preferences.
+    try {
+      unlistenRecordingWindowShown = await listen(EVENT_RECORDING_WINDOW_SHOWN, async () => {
+        try {
+          await uiPrefsSyncHandle?.refresh();
+        } catch {}
+      });
+    } catch {}
   }
 });
 
@@ -322,9 +342,17 @@ onUnmounted(() => {
     authSyncHandle.stop();
     authSyncHandle = null;
   }
+  if (authSessionSyncHandle) {
+    authSessionSyncHandle.stop();
+    authSessionSyncHandle = null;
+  }
   if (uiPrefsSyncHandle) {
     uiPrefsSyncHandle.stop();
     uiPrefsSyncHandle = null;
+  }
+  if (unlistenRecordingWindowShown) {
+    unlistenRecordingWindowShown();
+    unlistenRecordingWindowShown = null;
   }
   stopSystemThemeSync();
   cleanupUpdateListener();
@@ -345,6 +373,10 @@ if (import.meta.hot) {
       if (authSyncHandle) {
         authSyncHandle.stop();
         authSyncHandle = null;
+      }
+      if (authSessionSyncHandle) {
+        authSessionSyncHandle.stop();
+        authSessionSyncHandle = null;
       }
       if (uiPrefsSyncHandle) {
         uiPrefsSyncHandle.stop();

@@ -4,28 +4,10 @@ import { createSession } from '../../domain/entities/Session';
 import { createUser } from '../../domain/entities/User';
 import { AuthError, AuthErrorCode } from '../../domain/errors';
 import { runRefreshSingleFlight } from '../../application/services/refreshSingleFlight';
-import { isTauriAvailable } from '../../../../utils/tauri';
 import { useAuthStore } from '../../store/authStore';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'https://api.voicetext.site';
 const REQUEST_TIMEOUT_MS = 30000;
-
-async function syncAuthWithTauriBackend(params: {
-  authenticated: boolean;
-  token: string | null;
-}): Promise<void> {
-  if (!isTauriAvailable()) return;
-
-  try {
-    const { invoke } = await import('@tauri-apps/api/core');
-    await invoke('set_authenticated', {
-      authenticated: params.authenticated,
-      token: params.token,
-    });
-  } catch (e) {
-    console.warn('[Auth] Failed to sync token with Tauri backend:', e);
-  }
-}
 
 function trySyncAuthStoreSession(session: ReturnType<typeof createSession> | null): void {
   // apiClient может вызываться до того, как Pinia активирована (например, в тестах).
@@ -97,16 +79,11 @@ async function refreshToken(): Promise<void> {
         const currentSession = await tokenRepo.get();
         if (currentSession?.refreshToken && currentSession.refreshToken !== usedRefreshToken) {
           trySyncAuthStoreSession(currentSession);
-          await syncAuthWithTauriBackend({
-            authenticated: true,
-            token: currentSession.accessToken,
-          });
           return;
         }
 
         await tokenRepo.clear();
         trySyncAuthStoreSession(null);
-        await syncAuthWithTauriBackend({ authenticated: false, token: null });
         throw new AuthError(AuthErrorCode.SessionExpired, message);
       }
 
@@ -147,10 +124,6 @@ async function refreshToken(): Promise<void> {
     });
     await tokenRepo.save(newSession);
     trySyncAuthStoreSession(newSession);
-    await syncAuthWithTauriBackend({
-      authenticated: true,
-      token: newSession.accessToken,
-    });
   });
 }
 

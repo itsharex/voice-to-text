@@ -1,12 +1,13 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
 use tokio::sync::RwLock;
-use tauri::Manager;
+use tauri::{AppHandle, Emitter, Manager};
 
 use crate::application::TranscriptionService;
 use crate::domain::{AppConfig, Transcription, AudioCapture, UiPreferences};
 use crate::infrastructure::{
     audio::{SystemAudioCapture, VadCaptureWrapper, VadProcessor},
+    AuthSession, AuthStore, AuthStoreData, AuthUser, ConfigStore,
     DefaultSttProviderFactory,
 };
 
@@ -77,6 +78,17 @@ pub struct AppState {
     /// Используется для определения какое окно показывать при нажатии hotkey
     pub is_authenticated: Arc<RwLock<bool>>,
 
+    /// Auth store (device_id + session) — Rust source of truth.
+    ///
+    /// Важно: нужен даже когда WebView "спит" (hotkey сценарий).
+    pub auth_store: Arc<RwLock<AuthStoreData>>,
+
+    /// Ревизия auth-session topic (меняется и при refresh, и при login/logout).
+    pub auth_session_revision: Arc<RwLock<u64>>,
+
+    /// Фоновая задача refresh токенов (если есть refresh_token).
+    pub auth_refresh_task: Arc<RwLock<Option<tauri::async_runtime::JoinHandle<()>>>>,
+
     /// Дебаунс для глобального hotkey записи.
     /// Нужен из‑за key repeat / случайных двойных срабатываний, которые выглядят как "мигание" окна.
     pub last_recording_hotkey_ms: AtomicU64,
@@ -120,6 +132,12 @@ impl AppState {
                     vad_handler_task: Arc::new(RwLock::new(None)),
                     last_focused_app_bundle_id: Arc::new(RwLock::new(None)),
                     is_authenticated: Arc::new(RwLock::new(false)),
+                    auth_store: Arc::new(RwLock::new(AuthStoreData {
+                        device_id: format!("desktop-{}", uuid::Uuid::new_v4()),
+                        session: None,
+                    })),
+                    auth_session_revision: Arc::new(RwLock::new(0)),
+                    auth_refresh_task: Arc::new(RwLock::new(None)),
                     last_recording_hotkey_ms: AtomicU64::new(0),
                     transcription_session_seq: AtomicU64::new(0),
                     active_transcription_session_id: AtomicU64::new(0),
@@ -156,6 +174,12 @@ impl AppState {
                     vad_handler_task: Arc::new(RwLock::new(None)),
                     last_focused_app_bundle_id: Arc::new(RwLock::new(None)),
                     is_authenticated: Arc::new(RwLock::new(false)),
+                    auth_store: Arc::new(RwLock::new(AuthStoreData {
+                        device_id: format!("desktop-{}", uuid::Uuid::new_v4()),
+                        session: None,
+                    })),
+                    auth_session_revision: Arc::new(RwLock::new(0)),
+                    auth_refresh_task: Arc::new(RwLock::new(None)),
                     last_recording_hotkey_ms: AtomicU64::new(0),
                     transcription_session_seq: AtomicU64::new(0),
                     active_transcription_session_id: AtomicU64::new(0),
@@ -199,6 +223,12 @@ impl AppState {
             vad_handler_task: Arc::new(RwLock::new(None)),
             last_focused_app_bundle_id: Arc::new(RwLock::new(None)),
             is_authenticated: Arc::new(RwLock::new(false)),
+            auth_store: Arc::new(RwLock::new(AuthStoreData {
+                device_id: format!("desktop-{}", uuid::Uuid::new_v4()),
+                session: None,
+            })),
+            auth_session_revision: Arc::new(RwLock::new(0)),
+            auth_refresh_task: Arc::new(RwLock::new(None)),
             last_recording_hotkey_ms: AtomicU64::new(0),
             transcription_session_seq: AtomicU64::new(0),
             active_transcription_session_id: AtomicU64::new(0),
@@ -210,6 +240,333 @@ impl AppState {
         let mut rev = counter.write().await;
         *rev = rev.saturating_add(1);
         rev.to_string()
+    }
+
+    fn get_api_base_url() -> String {
+        std::env::var("VOICE_TO_TEXT_API_URL")
+            .unwrap_or_else(|_| "https://api.voicetext.site".to_string())
+    }
+
+    fn parse_rfc3339_to_ms(s: &str) -> Option<i64> {
+        chrono::DateTime::parse_from_rfc3339(s)
+            .map(|dt| dt.timestamp_millis())
+            .ok()
+    }
+
+    async fn apply_backend_auth_token_to_stt(&self, token: Option<String>) {
+        // Best-effort: ошибки не должны блокировать UX, но они важны для диагностики.
+        let mut config = ConfigStore::load_config().await.unwrap_or_default();
+        config.backend_auth_token = token;
+        if let Err(e) = ConfigStore::save_config(&config).await {
+            log::warn!("Failed to persist STT config token: {}", e);
+        }
+        if let Err(e) = self.transcription_service.update_config(config).await {
+            log::warn!("Failed to update transcription service config token: {}", e);
+        }
+    }
+
+    async fn emit_invalidation(app_handle: &AppHandle, topic: &str, revision: String, source_id: Option<String>) {
+        let _ = app_handle.emit(
+            crate::presentation::events::EVENT_STATE_SYNC_INVALIDATION,
+            crate::presentation::StateSyncInvalidationPayload {
+                topic: topic.to_string(),
+                revision,
+                source_id,
+                timestamp_ms: chrono::Utc::now().timestamp_millis(),
+            },
+        );
+    }
+
+    /// Перезапускает фоновую задачу refresh токенов на основании текущего auth_store.
+    ///
+    /// Запускается:
+    /// - после загрузки auth_store на старте приложения
+    /// - после любых изменений сессии (login/logout/refresh) через `set_auth_session`
+    pub async fn restart_auth_refresh_task(&self, app_handle: AppHandle) {
+        // Abort previous task
+        if let Some(handle) = self.auth_refresh_task.write().await.take() {
+            handle.abort();
+            let _ = handle.await;
+        }
+
+        let store = self.auth_store.read().await.clone();
+        let Some(session) = store.session.clone() else {
+            return;
+        };
+        let Some(_refresh_token) = session.refresh_token.clone() else {
+            return;
+        };
+
+        // If refresh token is expired (when known) — don't start.
+        if let Some(exp) = session.refresh_expires_at_ms {
+            if exp <= chrono::Utc::now().timestamp_millis() {
+                return;
+            }
+        }
+
+        let auth_store_arc = self.auth_store.clone();
+        let is_authenticated_arc = self.is_authenticated.clone();
+        let auth_state_revision = self.auth_state_revision.clone();
+        let auth_session_revision = self.auth_session_revision.clone();
+        let app_handle_for_task = app_handle.clone();
+        let service_for_task = self.transcription_service.clone();
+
+        let task = tauri::async_runtime::spawn(async move {
+            const REFRESH_BUFFER_MS: i64 = 2 * 60 * 1000; // 2 minutes before access expiry
+            const ERROR_RETRY_DELAY_SECS: u64 = 30;
+
+            #[derive(serde::Serialize)]
+            struct RefreshReq {
+                refresh_token: String,
+                device_id: String,
+            }
+
+            #[derive(serde::Deserialize)]
+            struct RefreshResp {
+                data: RefreshRespData,
+            }
+
+            #[derive(serde::Deserialize)]
+            struct RefreshRespUser {
+                id: String,
+                email: String,
+                email_verified: bool,
+            }
+
+            #[derive(serde::Deserialize)]
+            struct RefreshRespData {
+                access_token: String,
+                refresh_token: Option<String>,
+                access_expires_at: String,
+                refresh_expires_at: Option<String>,
+                user: Option<RefreshRespUser>,
+            }
+
+            loop {
+                let (device_id, current_session) = {
+                    let store = auth_store_arc.read().await;
+                    (store.device_id.clone(), store.session.clone())
+                };
+
+                let Some(sess) = current_session else {
+                    break;
+                };
+                let Some(_refresh_token) = sess.refresh_token.clone() else {
+                    break;
+                };
+
+                if let Some(exp) = sess.refresh_expires_at_ms {
+                    if exp <= chrono::Utc::now().timestamp_millis() {
+                        break;
+                    }
+                }
+
+                // Wait until refresh time
+                let now_ms = chrono::Utc::now().timestamp_millis();
+                let refresh_at_ms = (sess.access_expires_at_ms - REFRESH_BUFFER_MS).max(now_ms);
+                let sleep_ms = (refresh_at_ms - now_ms).max(0) as u64;
+                if sleep_ms > 0 {
+                    tokio::time::sleep(tokio::time::Duration::from_millis(sleep_ms)).await;
+                }
+
+                // Re-check after sleep (session could have been refreshed elsewhere)
+                let (device_id2, session2) = {
+                    let store = auth_store_arc.read().await;
+                    (store.device_id.clone(), store.session.clone())
+                };
+                let Some(sess2) = session2 else {
+                    break;
+                };
+                let Some(refresh_token2) = sess2.refresh_token.clone() else {
+                    break;
+                };
+
+                let now_ms2 = chrono::Utc::now().timestamp_millis();
+                if sess2.access_expires_at_ms - REFRESH_BUFFER_MS > now_ms2 {
+                    continue;
+                }
+
+                let url = format!("{}/api/v1/auth/refresh", AppState::get_api_base_url());
+                // Важно: refresh не должен "висеть" бесконечно — иначе мы можем пропустить окно обновления
+                // и получить 401 в hotkey/STT сценарии.
+                let client = match reqwest::Client::builder()
+                    .timeout(std::time::Duration::from_secs(20))
+                    .connect_timeout(std::time::Duration::from_secs(10))
+                    .build()
+                {
+                    Ok(c) => c,
+                    Err(e) => {
+                        log::warn!("[auth-refresh] failed to build HTTP client: {}", e);
+                        tokio::time::sleep(tokio::time::Duration::from_secs(ERROR_RETRY_DELAY_SECS)).await;
+                        continue;
+                    }
+                };
+                let resp = client
+                    .post(url)
+                    .header("Content-Type", "application/json")
+                    .header("X-Client-Type", "native")
+                    .json(&RefreshReq {
+                        refresh_token: refresh_token2.clone(),
+                        device_id: device_id2.clone(),
+                    })
+                    .send()
+                    .await;
+
+                let resp = match resp {
+                    Ok(r) => r,
+                    Err(e) => {
+                        log::warn!("[auth-refresh] network error: {}", e);
+                        tokio::time::sleep(tokio::time::Duration::from_secs(ERROR_RETRY_DELAY_SECS)).await;
+                        continue;
+                    }
+                };
+
+                if resp.status() == reqwest::StatusCode::UNAUTHORIZED {
+                    let now_ms = chrono::Utc::now().timestamp_millis();
+                    let access_ttl_ms = sess2.access_expires_at_ms - now_ms;
+                    let refresh_ttl_ms = sess2
+                        .refresh_expires_at_ms
+                        .map(|ms| ms - now_ms);
+
+                    // Считываем ответ, чтобы логировать серверный код/сообщение (важно для диагностики).
+                    let body_text = resp.text().await.unwrap_or_default();
+                    let (server_code, server_msg) = (|| {
+                        let v: serde_json::Value = serde_json::from_str(&body_text).ok()?;
+                        // envelope: { error: { code, message } }
+                        let err = v.get("error")?;
+                        let code = err.get("code").and_then(|x| x.as_str()).map(|s| s.to_string());
+                        let msg = err
+                            .get("message")
+                            .and_then(|x| x.as_str())
+                            .map(|s| s.to_string());
+                        Some((code, msg))
+                    })()
+                    .unwrap_or((None, None));
+
+                    // Важно: на 401 возможна гонка с refresh-token rotation:
+                    // другое окно/поток успел обновить refresh_token, но мы ещё не увидели запись.
+                    // Делаем короткую паузу и сверяем "источник правды" ещё раз.
+                    tokio::time::sleep(tokio::time::Duration::from_millis(300)).await;
+                    let became_stale = {
+                        let store = auth_store_arc.read().await;
+                        let current_device_id = store.device_id.clone();
+                        let current_refresh = store.session.as_ref().and_then(|s| s.refresh_token.clone());
+                        current_device_id != device_id2 || current_refresh != Some(refresh_token2.clone())
+                    };
+
+                    if became_stale {
+                        log::info!(
+                            "[auth-refresh] 401 on stale session — store already changed (device_id={}, code={:?})",
+                            device_id2,
+                            server_code
+                        );
+                        continue;
+                    }
+
+                    log::warn!(
+                        "[auth-refresh] refresh rejected (401) — clearing session (device_id={}, access_ttl_ms={}, refresh_ttl_ms={:?}, code={:?}, msg={:?})",
+                        device_id2,
+                        access_ttl_ms,
+                        refresh_ttl_ms,
+                        server_code,
+                        server_msg
+                    );
+
+                    // Clear session, keep device_id
+                    let mut store = auth_store_arc.write().await;
+                    store.session = None;
+                    let _ = AuthStore::save(&store).await;
+                    drop(store);
+
+                    *is_authenticated_arc.write().await = false;
+
+                    let rev_state = AppState::bump_revision(&auth_state_revision).await;
+                    AppState::emit_invalidation(&app_handle_for_task, "auth-state", rev_state, None).await;
+
+                    let rev_session = AppState::bump_revision(&auth_session_revision).await;
+                    AppState::emit_invalidation(&app_handle_for_task, "auth-session", rev_session, None).await;
+
+                    // Clear STT token
+                    if let Some(state) = app_handle_for_task.try_state::<AppState>() {
+                        state.apply_backend_auth_token_to_stt(None).await;
+                    }
+
+                    break;
+                }
+
+                if !resp.status().is_success() {
+                    log::warn!(
+                        "[auth-refresh] refresh failed: status={}",
+                        resp.status().as_u16()
+                    );
+                    tokio::time::sleep(tokio::time::Duration::from_secs(ERROR_RETRY_DELAY_SECS)).await;
+                    continue;
+                }
+
+                let json: RefreshResp = match resp.json().await {
+                    Ok(j) => j,
+                    Err(e) => {
+                        log::warn!("[auth-refresh] invalid JSON: {}", e);
+                        tokio::time::sleep(tokio::time::Duration::from_secs(ERROR_RETRY_DELAY_SECS)).await;
+                        continue;
+                    }
+                };
+
+                let access_expires_at_ms = match AppState::parse_rfc3339_to_ms(&json.data.access_expires_at) {
+                    Some(ms) => ms,
+                    None => {
+                        log::warn!("[auth-refresh] bad access_expires_at: {}", json.data.access_expires_at);
+                        tokio::time::sleep(tokio::time::Duration::from_secs(ERROR_RETRY_DELAY_SECS)).await;
+                        continue;
+                    }
+                };
+
+                let refresh_expires_at_ms = json
+                    .data
+                    .refresh_expires_at
+                    .as_deref()
+                    .and_then(AppState::parse_rfc3339_to_ms);
+
+                // Update store + persist
+                {
+                    let mut store = auth_store_arc.write().await;
+                    store.session = Some(AuthSession {
+                        access_token: json.data.access_token.clone(),
+                        // Если сервер не вернул refresh_token, сохраняем актуальный токен
+                        // из текущей сессии (refresh_token2).
+                        refresh_token: json.data.refresh_token.clone().or(Some(refresh_token2)),
+                        access_expires_at_ms,
+                        refresh_expires_at_ms,
+                        user: json.data.user.map(|u| AuthUser {
+                            id: u.id,
+                            email: u.email,
+                            email_verified: u.email_verified,
+                        }),
+                    });
+                    let _ = AuthStore::save(&store).await;
+                }
+
+                *is_authenticated_arc.write().await = true;
+
+                // Update STT token best-effort
+                if let Some(state) = app_handle_for_task.try_state::<AppState>() {
+                    state
+                        .apply_backend_auth_token_to_stt(Some(json.data.access_token))
+                        .await;
+                } else {
+                    let _ = &service_for_task;
+                }
+
+                // Emit auth-session invalidation (auth-state stays the same)
+                let rev_session = AppState::bump_revision(&auth_session_revision).await;
+                AppState::emit_invalidation(&app_handle_for_task, "auth-session", rev_session, None).await;
+
+                // Continue loop (will schedule next refresh)
+                let _ = device_id; // silence unused warning in some builds
+            }
+        });
+
+        *self.auth_refresh_task.write().await = Some(task);
     }
 
     /// Запускает обработчик VAD timeout событий (вызывается из setup)

@@ -14,6 +14,7 @@ export type StateSyncInvalidationEventPayload = {
 export const CMD_GET_APP_CONFIG_SNAPSHOT = 'get_app_config_snapshot' as const;
 export const CMD_GET_STT_CONFIG_SNAPSHOT = 'get_stt_config_snapshot' as const;
 export const CMD_GET_AUTH_STATE_SNAPSHOT = 'get_auth_state_snapshot' as const;
+export const CMD_GET_AUTH_SESSION_SNAPSHOT = 'get_auth_session_snapshot' as const;
 export const CMD_GET_UI_PREFERENCES_SNAPSHOT = 'get_ui_preferences_snapshot' as const;
 
 // Write path (Rust SoT)
