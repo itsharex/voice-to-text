@@ -6,6 +6,10 @@
 import { useI18n } from 'vue-i18n';
 import { useSettings } from '../../composables/useSettings';
 import { useMicrophoneTest } from '../../composables/useMicrophoneTest';
+import AudioVisualizer from '../../../../../presentation/components/AudioVisualizer.vue';
+import { MicTestAudioSource } from '../../composables/useMicTestAudioSource';
+
+const micTestSource = new MicTestAudioSource();
 
 const { t } = useI18n();
 const { microphoneSensitivity, selectedAudioDevice } = useSettings();
@@ -28,7 +32,8 @@ async function handleStop() {
 
 <template>
   <v-card class="mic-test-card" variant="tonal" rounded="lg">
-    <v-card-text class="pa-4">
+    <AudioVisualizer :active="isTesting" :source="micTestSource" />
+    <v-card-text class="mic-test-content pa-4">
       <div class="mic-test-title text-body-1 font-weight-medium mb-2">
         {{ t('settings.micTest.label') }}
       </div>
@@ -128,6 +133,13 @@ async function handleStop() {
 .mic-test-card {
   margin-bottom: var(--spacing-xl);
   border: 1px solid rgba(var(--v-theme-on-surface), 0.12);
+  position: relative;
+  overflow: hidden;
+}
+
+.mic-test-content {
+  position: relative;
+  z-index: 1;
 }
 
 .mic-test-btn--recording {

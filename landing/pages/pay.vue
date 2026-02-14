@@ -1,5 +1,7 @@
 <script setup lang="ts">
-usePageSeo("meta.payTitle", "meta.payDescription");
+usePageSeo("meta.payTitle", "meta.payDescription", {
+  robots: "noindex, nofollow"
+});
 </script>
 
 <template>

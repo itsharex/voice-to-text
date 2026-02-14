@@ -6,6 +6,10 @@ export default defineEventHandler((event) => {
 
   return `User-agent: *
 Allow: /
+Disallow: /checkout-success
+Disallow: /pay
+Disallow: /*/checkout-success
+Disallow: /*/pay
 Sitemap: ${siteUrl}/sitemap.xml
 `;
 });

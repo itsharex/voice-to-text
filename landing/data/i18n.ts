@@ -22,16 +22,31 @@ export const pages = [
   "/pay"
 ] as const;
 
-export const generateI18nRoutes = (): string[] => {
+/** Страницы для sitemap — без транзакционных (noindex) */
+export const sitemapPages = [
+  "/",
+  "/download",
+  "/privacy",
+  "/privacy-policy",
+  "/terms",
+  "/refund-policy"
+] as const;
+
+/** Генерирует i18n-маршруты для заданного списка страниц */
+const buildI18nRoutes = (source: readonly string[]): string[] => {
   const routes: string[] = [];
-  for (const page of pages) {
+  for (const page of source) {
     routes.push(page);
     for (const locale of supportedLocales) {
-      if (locale.code === defaultLocale) {
-        continue;
-      }
+      if (locale.code === defaultLocale) continue;
       routes.push(page === "/" ? `/${locale.code}` : `/${locale.code}${page}`);
     }
   }
   return routes;
 };
+
+/** Все i18n-маршруты (для prerender) */
+export const generateI18nRoutes = (): string[] => buildI18nRoutes(pages);
+
+/** i18n-маршруты только для sitemap (без noindex-страниц) */
+export const generateSitemapRoutes = (): string[] => buildI18nRoutes(sitemapPages);

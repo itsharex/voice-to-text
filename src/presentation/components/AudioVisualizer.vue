@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref, toRefs, watch } from 'vue';
-import { useAudioVisualizer } from '../../composables/useAudioVisualizer';
+import { useAudioVisualizer, type AudioVisualizerSource } from '../../composables/useAudioVisualizer';
 
 const props = defineProps<{
   active: boolean;
+  source?: AudioVisualizerSource;
 }>();
 
 const { active } = toRefs(props);
@@ -13,6 +14,7 @@ const containerRef = ref<HTMLElement | null>(null);
 
 const { bars } = useAudioVisualizer(active, {
   barCount: 48,
+  source: props.source,
   // Чуть спокойнее: вверх реагирует быстро, но без "перекача"
   attackSmoothing: 0.85,
   releaseSmoothing: 0.95,

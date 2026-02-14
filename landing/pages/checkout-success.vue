@@ -1,5 +1,7 @@
 <script setup lang="ts">
-usePageSeo("meta.checkoutSuccessTitle", "meta.checkoutSuccessDescription");
+usePageSeo("meta.checkoutSuccessTitle", "meta.checkoutSuccessDescription", {
+  robots: "noindex, nofollow"
+});
 </script>
 
 <template>
