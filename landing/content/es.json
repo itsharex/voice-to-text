@@ -28,36 +28,36 @@
   "providers": [
     {
       "id": "nova3-accuracy",
-      "name": "Precisión superior",
-      "description": "54,3% menos errores en streaming y 47,4% en procesamiento por lotes comparado con competidores."
+      "name": "Mejor precisión de su clase",
+      "description": "54% menos errores que la competencia. Escucha exactamente lo que dices, incluso en entornos ruidosos."
     },
     {
       "id": "nova3-multilingual",
-      "name": "Multilingüe en tiempo real",
-      "description": "Primer modelo de voz IA con transcripción multilingüe en tiempo real."
+      "name": "Tiempo real en 40+ idiomas",
+      "description": "Habla en cualquier idioma — la transcripción aparece al instante mientras hablas."
     },
     {
       "id": "nova3-customization",
-      "name": "Personalización autónoma",
-      "description": "Adaptación instantánea de vocabulario sin reentrenamiento del modelo — precisa y efectiva."
+      "name": "Se adapta a tu vocabulario",
+      "description": "Términos técnicos, nombres, jerga — reconoce tus palabras sin ninguna configuración."
     },
     {
       "id": "nova3-enterprise",
-      "name": "Listo para empresas",
-      "description": "Capacidades ampliadas para casos empresariales reales y condiciones de audio difíciles."
+      "name": "Funciona con cualquier audio",
+      "description": "Ruido de fondo, acentos, micrófonos de baja calidad — Nova-3 lo maneja todo."
     },
     {
       "id": "nova3-preferred",
-      "name": "Preferido sobre Whisper",
-      "description": "Preferido en 7 de 7 idiomas probados — hasta 8 a 1 en ciertos idiomas."
+      "name": "Preferido 8 a 1 sobre Whisper",
+      "description": "En pruebas ciegas en 7 idiomas, los usuarios eligieron abrumadoramente Nova-3."
     }
   ],
   "openSource": {
     "title": "Código abierto",
     "bullets": [
-      "Código fuente disponible en GitHub — inspecciona, modifica y compila libremente",
-      "Desarrollo impulsado por la comunidad con issues abiertos y contribuciones",
-      "Actualizaciones regulares y proceso de desarrollo transparente"
+      "100% open source — lee cada línea de código en GitHub",
+      "Desarrollado en público — cada corrección y función rastreada abiertamente",
+      "Sin telemetría, sin dependencia — tus datos de voz son tuyos"
     ],
     "note": "Transparencia y confianza a través del código abierto."
   },

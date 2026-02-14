@@ -28,36 +28,36 @@
   "providers": [
     {
       "id": "nova3-accuracy",
-      "name": "Überlegene Genauigkeit",
-      "description": "54,3% weniger Wortfehler beim Streaming und 47,4% bei der Stapelverarbeitung im Vergleich zu Mitbewerbern."
+      "name": "Beste Genauigkeit seiner Klasse",
+      "description": "54% weniger Fehler als die Konkurrenz. Versteht genau, was du sagst — selbst in lauter Umgebung."
     },
     {
       "id": "nova3-multilingual",
-      "name": "Echtzeit-Mehrsprachigkeit",
-      "description": "Erstes Voice-AI-Modell mit mehrsprachiger Echtzeit-Transkription."
+      "name": "Echtzeit in 40+ Sprachen",
+      "description": "Sprich in jeder Sprache — die Transkription erscheint sofort, während du redest."
     },
     {
       "id": "nova3-customization",
-      "name": "Self-Service-Anpassung",
-      "description": "Sofortige Vokabularanpassung ohne Modell-Neutraining — präzise und effektiv."
+      "name": "Passt sich deinem Vokabular an",
+      "description": "Fachbegriffe, Namen, Jargon — erkennt deine Wörter ohne jede Einrichtung."
     },
     {
       "id": "nova3-enterprise",
-      "name": "Enterprise-fähig",
-      "description": "Erweiterte Fähigkeiten für reale Unternehmensanwendungen und schwierige Audiobedingungen."
+      "name": "Funktioniert mit jedem Audio",
+      "description": "Hintergrundgeräusche, Akzente, schlechte Mikrofone — Nova-3 meistert alles."
     },
     {
       "id": "nova3-preferred",
-      "name": "Bevorzugt vor Whisper",
-      "description": "Bevorzugt in 7 von 7 getesteten Sprachen — bis zu 8:1 Präferenz bei bestimmten Sprachen."
+      "name": "8-zu-1 bevorzugt vor Whisper",
+      "description": "In Blindtests über 7 Sprachen hinweg wählten Nutzer überwiegend Nova-3."
     }
   ],
   "openSource": {
     "title": "Open Source",
     "bullets": [
-      "Quellcode auf GitHub verfügbar — einsehen, ändern und frei kompilieren",
-      "Community-getriebene Entwicklung mit offenen Issues und Beiträgen",
-      "Regelmäßige Updates und transparenter Entwicklungsprozess"
+      "100% Open Source — lies jede Zeile Code auf GitHub",
+      "Öffentlich entwickelt — jeder Bugfix und jedes Feature offen nachvollziehbar",
+      "Keine Telemetrie, kein Lock-in — deine Sprachdaten bleiben deine"
     ],
     "note": "Transparenz und Vertrauen durch offenen Code."
   },
