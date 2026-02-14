@@ -4,12 +4,18 @@ import { useThemeStore } from "~/stores/theme";
 export const useBrowserTheme = () => {
   const themeStore = useThemeStore();
   const { $vuetifyTheme } = useNuxtApp();
-  const vuetifyTheme = $vuetifyTheme as { global: { name: import("vue").Ref<string> } } | null;
+  const vuetifyTheme = $vuetifyTheme as {
+    global: { name: import("vue").Ref<string>; current: import("vue").Ref<any> };
+    change: (name: string) => void;
+  } | null;
   let mediaQueryHandler: ((event: MediaQueryListEvent) => void) | null = null;
   let mediaQuery: MediaQueryList | null = null;
 
   const applyVuetifyTheme = (name: "light" | "dark") => {
-    if (vuetifyTheme) {
+    if (!vuetifyTheme) return;
+    if (typeof vuetifyTheme.change === "function") {
+      vuetifyTheme.change(name);
+    } else {
       vuetifyTheme.global.name.value = name;
     }
   };
