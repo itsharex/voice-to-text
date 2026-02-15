@@ -70,17 +70,27 @@
     {
       "id": "howItWorks",
       "question": "Wie funktioniert die Transkription?",
-      "answer": "Deine Stimme wird an Deepgram Nova-3 gestreamt und in Echtzeit mit hoher Genauigkeit transkribiert."
+      "answer": "Drücke den Hotkey, sprich — der Text erscheint sofort und wird in die Zwischenablage kopiert."
+    },
+    {
+      "id": "isFree",
+      "question": "Ist es kostenlos?",
+      "answer": "Ja. Der kostenlose Plan ist zeitlich unbegrenzt. Bezahlpläne bieten mehr Minuten und Priority-Support."
+    },
+    {
+      "id": "privacy",
+      "question": "Sind meine Sprachdaten privat?",
+      "answer": "Audio wird in Echtzeit verarbeitet und nicht gespeichert. Keine Aufnahmen werden aufbewahrt."
     },
     {
       "id": "hotkey",
       "question": "Wie ändere ich den Hotkey?",
-      "answer": "Ändere ihn in den App-Einstellungen."
+      "answer": "In den App-Einstellungen."
     },
     {
       "id": "openSource",
       "question": "Ist das Projekt Open Source?",
-      "answer": "Ja, der Code ist Open Source auf <a href='https://github.com/777genius/voice-to-text' target='_blank'>GitHub</a>."
+      "answer": "Ja, der gesamte Code auf <a href='https://github.com/777genius/voice-to-text' target='_blank'>GitHub</a>."
     }
   ],
   "download": {

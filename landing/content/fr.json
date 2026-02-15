@@ -70,17 +70,27 @@
     {
       "id": "howItWorks",
       "question": "Comment fonctionne la transcription ?",
-      "answer": "Votre voix est envoyée à Deepgram Nova-3 et transcrite en temps réel avec une grande précision."
+      "answer": "Appuyez sur le raccourci, parlez — le texte apparaît instantanément et est copié dans le presse-papiers."
+    },
+    {
+      "id": "isFree",
+      "question": "C'est gratuit ?",
+      "answer": "Oui. Le plan gratuit est sans limite de durée. Les plans payants offrent plus de minutes et un support prioritaire."
+    },
+    {
+      "id": "privacy",
+      "question": "Mes données vocales sont-elles privées ?",
+      "answer": "L'audio est traité en temps réel et n'est pas stocké. Aucun enregistrement n'est conservé."
     },
     {
       "id": "hotkey",
       "question": "Comment changer le raccourci ?",
-      "answer": "Modifiez-le dans les paramètres de l'application."
+      "answer": "Dans les paramètres de l'application."
     },
     {
       "id": "openSource",
       "question": "Le projet est-il open source ?",
-      "answer": "Oui, le code est open source sur <a href='https://github.com/777genius/voice-to-text' target='_blank'>GitHub</a>."
+      "answer": "Oui, tout le code sur <a href='https://github.com/777genius/voice-to-text' target='_blank'>GitHub</a>."
     }
   ],
   "download": {

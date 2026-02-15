@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { mdiMonitorCellphone, mdiMicrophoneOutline, mdiKeyboardSettingsOutline, mdiShieldCheckOutline, mdiHelpCircleOutline, mdiFrequentlyAskedQuestions } from '@mdi/js'
+import { mdiMonitorCellphone, mdiMicrophoneOutline, mdiTagOutline, mdiShieldLockOutline, mdiKeyboardSettingsOutline, mdiSourceBranch, mdiHelpCircleOutline, mdiFrequentlyAskedQuestions } from '@mdi/js'
 
 const { content } = useLandingContent();
 const { t } = useI18n();
@@ -20,8 +20,10 @@ watch(openPanels, (newVal, oldVal) => {
 const faqIcons = [
   mdiMonitorCellphone,
   mdiMicrophoneOutline,
+  mdiTagOutline,
+  mdiShieldLockOutline,
   mdiKeyboardSettingsOutline,
-  mdiShieldCheckOutline,
+  mdiSourceBranch,
 ];
 </script>
 

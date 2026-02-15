@@ -70,17 +70,27 @@
     {
       "id": "howItWorks",
       "question": "¿Cómo funciona la transcripción?",
-      "answer": "Tu voz se transmite a Deepgram Nova-3 y se transcribe en tiempo real con alta precisión."
+      "answer": "Pulsa el atajo, habla — el texto aparece al instante y se copia al portapapeles."
+    },
+    {
+      "id": "isFree",
+      "question": "¿Es gratis?",
+      "answer": "Sí. El plan gratuito no tiene límite de tiempo. Los planes de pago ofrecen más minutos y soporte prioritario."
+    },
+    {
+      "id": "privacy",
+      "question": "¿Mis datos de voz son privados?",
+      "answer": "El audio se procesa en tiempo real y no se almacena. No se guardan grabaciones."
     },
     {
       "id": "hotkey",
       "question": "¿Cómo cambio el atajo?",
-      "answer": "Modifícalo en Configuración dentro de la app."
+      "answer": "En los ajustes de la app."
     },
     {
       "id": "openSource",
       "question": "¿El proyecto es de código abierto?",
-      "answer": "Sí, el código es open source en <a href='https://github.com/777genius/voice-to-text' target='_blank'>GitHub</a>."
+      "answer": "Sí, todo el código en <a href='https://github.com/777genius/voice-to-text' target='_blank'>GitHub</a>."
     }
   ],
   "download": {
