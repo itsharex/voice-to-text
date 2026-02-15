@@ -4,4 +4,5 @@ export const testimonials = [
   { id: "user3", avatar: "#f59e0b" },
   { id: "user4", avatar: "#ec4899" },
   { id: "user5", avatar: "#8b5cf6" },
+  { id: "user6", avatar: "#06b6d4" },
 ] as const;

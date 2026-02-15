@@ -100,9 +100,10 @@
   "testimonials": [
     { "id": "user1", "name": "Alex M.", "role": "Entwickler", "text": "Hat mein teures Transkriptionstool ersetzt. Schneller und kostenlos." },
     { "id": "user2", "name": "Sarah K.", "role": "Content-Erstellerin", "text": "Ich diktiere Blogbeiträge beim Spazierengehen. Die Genauigkeit beeindruckt." },
-    { "id": "user3", "name": "Marco R.", "role": "Student", "text": "Perfekt für Vorlesungsnotizen. Einfach den Hotkey drücken und sprechen." },
+    { "id": "user3", "name": "Marco R.", "role": "Teamleiter", "text": "Ich antworte jetzt per Sprache in Slack. Viel schneller als Tippen während Meetings." },
     { "id": "user4", "name": "Yuki T.", "role": "Produktmanagerin", "text": "Endlich ein Sprache-zu-Text, das unter Linux funktioniert. Einfach und zuverlässig." },
-    { "id": "user5", "name": "Lisa W.", "role": "Freiberuflerin", "text": "Die Echtzeit-Transkription ist unglaublich schnell. Keinerlei Verzögerung." }
+    { "id": "user5", "name": "Lisa W.", "role": "Freiberuflerin", "text": "Die Echtzeit-Transkription ist unglaublich schnell. Keinerlei Verzögerung." },
+    { "id": "user6", "name": "Dan P.", "role": "Autor", "text": "Ich habe die Hälfte meines Buches in diese App diktiert. Meine Handgelenke tun endlich nicht mehr weh." }
   ],
   "pricing": [
     {
