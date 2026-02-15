@@ -36,7 +36,6 @@ const faqIcons = [
     <v-container>
       <!-- Header -->
       <div class="faq-section__header">
-        <span class="faq-section__badge">{{ t('nav.faq') }}</span>
         <h2 class="faq-section__title">{{ t('faq.sectionTitle') }}</h2>
         <p class="faq-section__subtitle">{{ t('faq.subtitle') }}</p>
       </div>

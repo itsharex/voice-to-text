@@ -26,7 +26,6 @@ const items = computed(() =>
     </div>
     <v-container>
       <div class="features-section__header">
-        <span class="features-section__badge">{{ t("nav.features") }}</span>
         <h2 class="features-section__title">
           {{ t("features.sectionTitle") }}
         </h2>
