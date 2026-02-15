@@ -103,7 +103,7 @@
     { "id": "user3", "name": "Marco R.", "role": "Team lead", "text": "Je réponds sur Slack par la voix maintenant. Bien plus rapide que taper pendant les réunions." },
     { "id": "user4", "name": "Yuki T.", "role": "Chef de produit", "text": "Enfin un outil voix-en-texte qui fonctionne sur Linux. Simple et fiable." },
     { "id": "user5", "name": "Lisa W.", "role": "Freelance", "text": "La transcription en temps réel est incroyablement rapide. Aucun délai." },
-    { "id": "user6", "name": "Dan P.", "role": "Écrivain", "text": "J'ai dicté la moitié de mon livre dans cette app. Mes poignets ont enfin cessé de souffrir." }
+    { "id": "user6", "name": "Dan P.", "role": "Écrivain", "text": "Je dicte mes e-mails et mes notes au lieu de taper. Je gagne au moins une heure par jour." }
   ],
   "pricing": [
     {

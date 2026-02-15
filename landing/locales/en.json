@@ -57,7 +57,9 @@
   },
   "testimonials": {
     "sectionTitle": "What users say",
-    "sectionSubtitle": "Real feedback from real users"
+    "sectionSubtitle": "Real feedback from real users",
+    "showMore": "Show more",
+    "showLess": "Show less"
   },
   "faq": {
     "sectionTitle": "Got questions? We've got answers",

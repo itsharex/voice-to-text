@@ -103,7 +103,7 @@
     { "id": "user3", "name": "Marco R.", "role": "Team lead", "text": "I reply to Slack messages by voice now. Way faster than typing during meetings." },
     { "id": "user4", "name": "Yuki T.", "role": "Product manager", "text": "Finally a voice-to-text that works on Linux. Simple and reliable." },
     { "id": "user5", "name": "Lisa W.", "role": "Freelancer", "text": "The real-time transcription is incredibly fast. No lag at all." },
-    { "id": "user6", "name": "Dan P.", "role": "Writer", "text": "I wrote half my book by dictating into this app. My wrists finally stopped hurting." }
+    { "id": "user6", "name": "Dan P.", "role": "Writer", "text": "Dictating emails and notes instead of typing. Saves me at least an hour every day." }
   ],
   "pricing": [
     {

@@ -103,7 +103,7 @@
     { "id": "user3", "name": "Marco R.", "role": "Teamleiter", "text": "Ich antworte jetzt per Sprache in Slack. Viel schneller als Tippen während Meetings." },
     { "id": "user4", "name": "Yuki T.", "role": "Produktmanagerin", "text": "Endlich ein Sprache-zu-Text, das unter Linux funktioniert. Einfach und zuverlässig." },
     { "id": "user5", "name": "Lisa W.", "role": "Freiberuflerin", "text": "Die Echtzeit-Transkription ist unglaublich schnell. Keinerlei Verzögerung." },
-    { "id": "user6", "name": "Dan P.", "role": "Autor", "text": "Ich habe die Hälfte meines Buches in diese App diktiert. Meine Handgelenke tun endlich nicht mehr weh." }
+    { "id": "user6", "name": "Dan P.", "role": "Autor", "text": "E-Mails und Notizen diktieren statt tippen. Spart mir mindestens eine Stunde pro Tag." }
   ],
   "pricing": [
     {

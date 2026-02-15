@@ -1,11 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDisplay } from 'vuetify'
 import { testimonials } from '~/data/testimonials'
 import { useLandingContent } from '~/composables/useLandingContent'
 
 const { content } = useLandingContent();
 const { t } = useI18n();
+const { smAndUp } = useDisplay();
+
+const expanded = ref(false);
 
 const items = computed(() =>
   testimonials
@@ -15,6 +19,15 @@ const items = computed(() =>
       return { ...contentItem, avatar: entry.avatar };
     })
     .filter(Boolean)
+);
+
+const visibleItems = computed(() => {
+  if (expanded.value) return items.value;
+  return items.value.slice(0, smAndUp.value ? 4 : 2);
+});
+
+const hasMore = computed(() =>
+  !expanded.value && items.value.length > (smAndUp.value ? 4 : 2)
 );
 
 const getInitial = (name: string) => name.charAt(0).toUpperCase();
@@ -38,11 +51,10 @@ const getInitial = (name: string) => name.charAt(0).toUpperCase();
 
       <v-row justify="center">
         <v-col
-          v-for="(item, index) in items"
+          v-for="(item, index) in visibleItems"
           :key="item.id"
           cols="12"
           sm="6"
-          lg="4"
         >
           <div
             class="testimonials-section__card-wrap"
@@ -67,6 +79,15 @@ const getInitial = (name: string) => name.charAt(0).toUpperCase();
           </div>
         </v-col>
       </v-row>
+
+      <div v-if="hasMore || expanded" class="testimonials-section__toggle">
+        <button
+          class="testimonials-section__toggle-btn"
+          @click="expanded = !expanded"
+        >
+          {{ expanded ? t('testimonials.showLess') : t('testimonials.showMore') }}
+        </button>
+      </div>
     </v-container>
   </section>
 </template>
@@ -211,6 +232,44 @@ const getInitial = (name: string) => name.charAt(0).toUpperCase();
   font-size: 0.8rem;
   opacity: 0.5;
   line-height: 1.3;
+}
+
+.testimonials-section__toggle {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+  position: relative;
+  z-index: 1;
+}
+
+.testimonials-section__toggle-btn {
+  padding: 10px 28px;
+  border-radius: 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: inherit;
+}
+
+.testimonials-section__toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.v-theme--dark .testimonials-section__toggle-btn {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(30, 41, 59, 0.5);
+  color: #e2e8f0;
+}
+
+.v-theme--dark .testimonials-section__toggle-btn:hover {
+  background: rgba(30, 41, 59, 0.8);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 @keyframes fadeInUp {
