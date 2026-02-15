@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import { useDisplay } from 'vuetify';
-
 const { t } = useI18n();
-const { smAndDown } = useDisplay();
 const menuOpen = ref(false);
 const { trackNavClick } = useAnalytics();
 
@@ -14,20 +11,20 @@ const navItems = computed(() => [
 </script>
 
 <template>
-  <v-app-bar flat class="app-header">
-    <v-container class="d-flex align-center header-container ml-24">
+  <header class="app-header">
+    <v-container class="app-header__inner">
       <AppLogo />
-      <div class="nav-links ml-6" v-show="!smAndDown">
+      <nav class="app-header__nav">
         <v-btn v-for="item in navItems" :key="item.id" variant="text" :href="`#${item.id}`" @click="trackNavClick(item.id)">
           {{ item.label }}
         </v-btn>
-      </div>
-      <v-spacer />
-      <div class="desktop-actions" v-show="!smAndDown">
+      </nav>
+      <div class="app-header__spacer" />
+      <div class="app-header__desktop-actions">
         <LanguageSwitcher compact />
         <ThemeToggle />
       </div>
-      <div class="mobile-actions" v-show="smAndDown">
+      <div class="app-header__mobile-actions">
         <v-btn icon="mdi-menu" variant="text" @click="menuOpen = true" />
         <v-dialog v-model="menuOpen" fullscreen scrim>
           <v-card class="mobile-menu">
@@ -55,33 +52,83 @@ const navItems = computed(() => [
         </v-dialog>
       </div>
     </v-container>
-  </v-app-bar>
+  </header>
 </template>
 
 <style scoped>
-.nav-links {
+.app-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.v-theme--light .app-header {
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom-color: rgba(0, 0, 0, 0.06);
+}
+
+.v-theme--dark .app-header {
+  background: rgba(18, 18, 18, 0.85);
+}
+
+.app-header__inner {
+  display: flex;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+/* Desktop nav — скрыто на мобилке через CSS media query (SSR-safe) */
+.app-header__nav {
   display: flex;
   align-self: stretch;
   align-items: stretch;
+  margin-left: 16px;
 }
 
-.nav-links :deep(.v-btn) {
+.app-header__nav :deep(.v-btn) {
   height: 100% !important;
   border-radius: 0;
 }
 
-.header-container {
-  flex-wrap: nowrap;
+.app-header__spacer {
+  flex: 1;
 }
 
-.desktop-actions {
+.app-header__desktop-actions {
   display: flex;
   gap: 8px;
   align-items: center;
 }
 
-.mobile-actions :deep(.v-list-item) {
+/* Мобильное меню — скрыто на десктопе через CSS */
+.app-header__mobile-actions {
+  display: none;
+}
+
+.app-header__mobile-actions :deep(.v-list-item) {
   min-height: 40px;
+}
+
+@media (max-width: 959px) {
+  .app-header__nav {
+    display: none;
+  }
+
+  .app-header__desktop-actions {
+    display: none;
+  }
+
+  .app-header__mobile-actions {
+    display: flex;
+  }
 }
 
 .mobile-menu {

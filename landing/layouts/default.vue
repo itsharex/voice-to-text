@@ -1,11 +1,9 @@
 <template>
   <v-app class="app-layout">
     <AppHeader />
-    <v-main class="app-layout__main">
-      <div>
-        <slot />
-      </div>
-    </v-main>
+    <main class="app-layout__main">
+      <slot />
+    </main>
     <AppFooter />
   </v-app>
 </template>
@@ -13,5 +11,6 @@
 <style scoped>
 .app-layout__main {
   flex: 1;
+  padding-top: 64px;
 }
 </style>
