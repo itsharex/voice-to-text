@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { mdiMenu, mdiClose } from '@mdi/js';
+
 const { t } = useI18n();
 const menuOpen = ref(false);
 const { trackNavClick } = useAnalytics();
@@ -25,7 +27,7 @@ const navItems = computed(() => [
         <ThemeToggle />
       </div>
       <div class="app-header__mobile-actions">
-        <v-btn icon="mdi-menu" variant="text" @click="menuOpen = true" />
+        <v-btn :icon="mdiMenu" variant="text" @click="menuOpen = true" />
         <Teleport to="body">
           <Transition name="mobile-menu-fade">
             <div v-if="menuOpen" class="mobile-menu-overlay" @click.self="menuOpen = false">
@@ -33,7 +35,7 @@ const navItems = computed(() => [
                 <div class="mobile-menu__header">
                   <AppLogo />
                   <div style="flex: 1" />
-                  <v-btn icon="mdi-close" variant="text" @click="menuOpen = false" />
+                  <v-btn :icon="mdiClose" variant="text" @click="menuOpen = false" />
                 </div>
                 <hr class="mobile-menu__divider" />
                 <nav class="mobile-menu__list">

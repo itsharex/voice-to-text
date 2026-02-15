@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { mdiHome } from '@mdi/js'
 import type { NuxtError } from "#app";
 
 const props = defineProps<{
@@ -44,7 +45,7 @@ const handleGoHome = () => clearError({ redirect: "/" });
           class="error-page__btn"
           @click="handleGoHome"
         >
-          <v-icon start>mdi-home</v-icon>
+          <v-icon start :icon="mdiHome" />
           {{ t("error.goHome") }}
         </v-btn>
       </v-container>

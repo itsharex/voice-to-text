@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { mdiLightningBolt, mdiTranslate, mdiMonitorMultiple } from '@mdi/js';
+
 const { content } = useLandingContent();
 const { t, locale } = useI18n();
 const { data: releaseData } = useReleaseDownloads();
@@ -56,17 +58,17 @@ const releaseDate = computed(() => {
           <!-- Trust indicators -->
           <div class="hero-section__trust">
             <div class="hero-section__trust-item">
-              <v-icon size="16" class="hero-section__trust-icon">mdi-lightning-bolt</v-icon>
+              <v-icon size="16" class="hero-section__trust-icon" :icon="mdiLightningBolt" />
               <span>{{ t("hero.trust.realtime") }}</span>
             </div>
             <div class="hero-section__trust-divider" />
             <div class="hero-section__trust-item">
-              <v-icon size="16" class="hero-section__trust-icon">mdi-translate</v-icon>
+              <v-icon size="16" class="hero-section__trust-icon" :icon="mdiTranslate" />
               <span>{{ t("hero.trust.multilingual") }}</span>
             </div>
             <div class="hero-section__trust-divider" />
             <div class="hero-section__trust-item">
-              <v-icon size="16" class="hero-section__trust-icon">mdi-monitor-multiple</v-icon>
+              <v-icon size="16" class="hero-section__trust-icon" :icon="mdiMonitorMultiple" />
               <span>{{ t("hero.trust.crossPlatform") }}</span>
             </div>
           </div>

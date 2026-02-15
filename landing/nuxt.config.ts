@@ -42,7 +42,7 @@ export default defineNuxtConfig({
     "@nuxt/eslint",
     "nuxt-gtag"
   ],
-  css: ["@mdi/font/css/materialdesignicons.css", "~/assets/styles/main.scss"],
+  css: ["~/assets/styles/main.scss"],
   components: [
     {
       path: "~/components",

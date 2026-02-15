@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { mdiSourceBranch, mdiAccountGroupOutline, mdiUpdate, mdiGithub, mdiOpenSourceInitiative, mdiCheckCircleOutline } from '@mdi/js';
+
 const { content } = useLandingContent();
 const { t, locale } = useI18n();
 const { data: releaseData } = useReleaseDownloads();
@@ -14,9 +16,9 @@ const releaseDate = computed(() => {
 });
 
 const openSourceIcons = [
-  'mdi-source-branch',
-  'mdi-account-group-outline',
-  'mdi-update',
+  mdiSourceBranch,
+  mdiAccountGroupOutline,
+  mdiUpdate,
 ];
 </script>
 
@@ -46,7 +48,7 @@ const openSourceIcons = [
             rel="noopener"
             variant="flat"
             class="opensource-section__btn mt-6"
-            prepend-icon="mdi-github"
+            :prepend-icon="mdiGithub"
           >
             {{ t('nav.viewOnGithub') }}
           </v-btn>
@@ -54,7 +56,7 @@ const openSourceIcons = [
           <!-- Code visual -->
           <div class="opensource-section__visual">
             <div class="opensource-section__visual-inner">
-              <v-icon size="48" class="opensource-section__visual-icon">mdi-open-source-initiative</v-icon>
+              <v-icon size="48" class="opensource-section__visual-icon" :icon="mdiOpenSourceInitiative" />
             </div>
             <div class="opensource-section__visual-ring opensource-section__visual-ring--1" />
             <div class="opensource-section__visual-ring opensource-section__visual-ring--2" />
@@ -71,9 +73,7 @@ const openSourceIcons = [
             :style="{ '--delay': `${index * 0.12}s` }"
           >
             <div class="opensource-section__card-icon-wrap">
-              <v-icon size="28" class="opensource-section__card-icon">
-                {{ openSourceIcons[index] || 'mdi-check-circle-outline' }}
-              </v-icon>
+              <v-icon size="28" class="opensource-section__card-icon" :icon="openSourceIcons[index] || mdiCheckCircleOutline" />
             </div>
             <div class="opensource-section__card-content">
               <span class="opensource-section__card-number">0{{ index + 1 }}</span>

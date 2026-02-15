@@ -1,11 +1,16 @@
 import "vuetify/styles";
 import { createVuetify } from "vuetify";
-import { useThemeStore } from "~/stores/theme";
+import { aliases, mdi } from "vuetify/iconsets/mdi-svg";
 
 export default defineNuxtPlugin({
   name: "vuetify",
   setup(nuxtApp) {
     const vuetify = createVuetify({
+      icons: {
+        defaultSet: "mdi",
+        aliases,
+        sets: { mdi }
+      },
       theme: {
         defaultTheme: "dark",
         themes: {

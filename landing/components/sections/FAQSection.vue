@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { mdiMonitorCellphone, mdiMicrophoneOutline, mdiKeyboardSettingsOutline, mdiShieldCheckOutline, mdiHelpCircleOutline, mdiFrequentlyAskedQuestions } from '@mdi/js'
 
 const { content } = useLandingContent();
 const { t } = useI18n();
@@ -17,10 +18,10 @@ watch(openPanels, (newVal, oldVal) => {
 });
 
 const faqIcons = [
-  'mdi-monitor-cellphone',
-  'mdi-microphone-outline',
-  'mdi-keyboard-settings-outline',
-  'mdi-shield-check-outline',
+  mdiMonitorCellphone,
+  mdiMicrophoneOutline,
+  mdiKeyboardSettingsOutline,
+  mdiShieldCheckOutline,
 ];
 </script>
 
@@ -59,9 +60,7 @@ const faqIcons = [
               <v-expansion-panel-title class="faq-section__panel-title">
                 <div class="faq-section__panel-header">
                   <div class="faq-section__panel-icon-wrap">
-                    <v-icon size="22" class="faq-section__panel-icon">
-                      {{ faqIcons[index] || 'mdi-help-circle-outline' }}
-                    </v-icon>
+                    <v-icon size="22" class="faq-section__panel-icon" :icon="faqIcons[index] || mdiHelpCircleOutline" />
                   </div>
                   <span class="faq-section__panel-question">{{ item.question }}</span>
                 </div>
@@ -76,7 +75,7 @@ const faqIcons = [
         <!-- Decorative side element -->
         <div class="faq-section__decoration">
           <div class="faq-section__deco-circle">
-            <v-icon size="40" class="faq-section__deco-icon">mdi-frequently-asked-questions</v-icon>
+            <v-icon size="40" class="faq-section__deco-icon" :icon="mdiFrequentlyAskedQuestions" />
           </div>
           <div class="faq-section__deco-ring faq-section__deco-ring--1" />
           <div class="faq-section__deco-ring faq-section__deco-ring--2" />

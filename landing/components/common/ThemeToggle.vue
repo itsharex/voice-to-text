@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { mdiWeatherSunny, mdiWeatherNight } from '@mdi/js';
+
 const { t } = useI18n();
 const { isDark, toggleTheme } = useBrowserTheme();
 const { trackThemeToggle } = useAnalytics();
@@ -17,7 +19,7 @@ const onToggle = () => {
       <template #activator="{ props }">
         <v-btn
           v-bind="props"
-          :icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
+          :icon="isDark ? mdiWeatherSunny : mdiWeatherNight"
           variant="text"
           size="small"
           :aria-label="tooltip"
@@ -27,7 +29,7 @@ const onToggle = () => {
     </v-tooltip>
     <template #fallback>
       <v-btn
-        icon="mdi-weather-sunny"
+        :icon="mdiWeatherSunny"
         variant="text"
         size="small"
         aria-label="Toggle theme"

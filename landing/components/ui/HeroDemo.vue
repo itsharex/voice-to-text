@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { mdiStop, mdiMicrophone, mdiWindowMinimize, mdiAccountCircleOutline, mdiCogOutline } from '@mdi/js';
 
 // ─── Версия из GitHub releases ───
 const { data: releaseData } = useReleaseDownloads();
@@ -48,7 +49,7 @@ const buttonClass = computed(() => ({
 }));
 
 const buttonIcon = computed(() => {
-  return state.value === 'recording' ? 'mdi mdi-stop' : 'mdi mdi-microphone';
+  return state.value === 'recording' ? mdiStop : mdiMicrophone;
 });
 
 // ─── Canvas visualizer (ported from AudioVisualizer.vue) ───
@@ -360,9 +361,9 @@ onUnmounted(() => {
           <span v-if="appVersion" class="hero-demo__version">{{ appVersion }}</span>
         </div>
         <div class="hero-demo__header-icons">
-          <span class="mdi mdi-window-minimize" />
-          <span class="mdi mdi-account-circle-outline" />
-          <span class="mdi mdi-cog-outline" />
+          <v-icon :icon="mdiWindowMinimize" size="22" />
+          <v-icon :icon="mdiAccountCircleOutline" size="22" />
+          <v-icon :icon="mdiCogOutline" size="22" />
         </div>
       </div>
 
@@ -384,7 +385,7 @@ onUnmounted(() => {
       <!-- Record button (styles from RecordingPopover.vue) -->
       <div class="hero-demo__controls">
         <div class="hero-demo__btn" :class="buttonClass">
-          <span :class="buttonIcon" />
+          <v-icon :icon="buttonIcon" />
         </div>
       </div>
 

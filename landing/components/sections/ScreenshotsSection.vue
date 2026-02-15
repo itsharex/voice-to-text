@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from "vue";
+import { mdiWeatherSunny, mdiWeatherNight, mdiChevronLeft, mdiChevronRight, mdiMagnifyPlusOutline, mdiClose } from '@mdi/js';
 import { screenshots } from "~/data/screenshots";
 
 const { t } = useI18n();
@@ -114,7 +115,7 @@ onUnmounted(() => {
               class="screenshots-section__toggle-label"
               :class="{ 'screenshots-section__toggle-label--active': !isScreenshotDark }"
             >
-              <v-icon size="18" icon="mdi-weather-sunny" />
+              <v-icon size="18" :icon="mdiWeatherSunny" />
               {{ t("screenshots.light") }}
             </span>
             <button
@@ -131,7 +132,7 @@ onUnmounted(() => {
               class="screenshots-section__toggle-label"
               :class="{ 'screenshots-section__toggle-label--active': isScreenshotDark }"
             >
-              <v-icon size="18" icon="mdi-weather-night" />
+              <v-icon size="18" :icon="mdiWeatherNight" />
               {{ t("screenshots.dark") }}
             </span>
           </div>
@@ -139,13 +140,13 @@ onUnmounted(() => {
           <!-- Navigation arrows (mobile/tablet only) -->
           <div class="screenshots-section__nav">
             <button class="screenshots-section__nav-btn" aria-label="Previous" @click="prev">
-              <v-icon size="20" icon="mdi-chevron-left" />
+              <v-icon size="20" :icon="mdiChevronLeft" />
             </button>
             <span class="screenshots-section__nav-count">
               {{ activeIndex + 1 }} / {{ totalSlides }}
             </span>
             <button class="screenshots-section__nav-btn" aria-label="Next" @click="next">
-              <v-icon size="20" icon="mdi-chevron-right" />
+              <v-icon size="20" :icon="mdiChevronRight" />
             </button>
           </div>
         </div>
@@ -185,7 +186,7 @@ onUnmounted(() => {
               </Transition>
               <!-- Zoom icon overlay -->
               <div class="screenshots-section__zoom-overlay">
-                <v-icon class="screenshots-section__zoom-icon" icon="mdi-magnify-plus-outline" />
+                <v-icon class="screenshots-section__zoom-icon" :icon="mdiMagnifyPlusOutline" />
               </div>
             </div>
             <span class="screenshots-section__caption">{{ t(shot.labelKey) }}</span>
@@ -221,7 +222,7 @@ onUnmounted(() => {
               aria-label="Close lightbox"
               @click="closeLightbox"
             >
-              <v-icon size="28" icon="mdi-close" />
+              <v-icon size="28" :icon="mdiClose" />
             </button>
 
             <!-- Navigation arrows -->
@@ -230,14 +231,14 @@ onUnmounted(() => {
               aria-label="Previous screenshot"
               @click="lightboxPrev"
             >
-              <v-icon size="32" icon="mdi-chevron-left" />
+              <v-icon size="32" :icon="mdiChevronLeft" />
             </button>
             <button
               class="lightbox__nav lightbox__nav--next"
               aria-label="Next screenshot"
               @click="lightboxNext"
             >
-              <v-icon size="32" icon="mdi-chevron-right" />
+              <v-icon size="32" :icon="mdiChevronRight" />
             </button>
 
             <!-- Image container -->
@@ -248,7 +249,7 @@ onUnmounted(() => {
                   class="lightbox__toggle-label"
                   :class="{ 'lightbox__toggle-label--active': !isScreenshotDark }"
                 >
-                  <v-icon size="16" icon="mdi-weather-sunny" />
+                  <v-icon size="16" :icon="mdiWeatherSunny" />
                 </span>
                 <button
                   class="lightbox__switch"
@@ -264,7 +265,7 @@ onUnmounted(() => {
                   class="lightbox__toggle-label"
                   :class="{ 'lightbox__toggle-label--active': isScreenshotDark }"
                 >
-                  <v-icon size="16" icon="mdi-weather-night" />
+                  <v-icon size="16" :icon="mdiWeatherNight" />
                 </span>
               </div>
 

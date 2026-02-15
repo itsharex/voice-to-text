@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { mdiOpenInNew } from '@mdi/js'
 import { providers } from "~/data/providers";
 
 const { content } = useLandingContent();
@@ -72,7 +73,7 @@ const NOVA3_URL = "https://deepgram.com/learn/introducing-nova-3-speech-to-text-
           class="providers-section__btn"
         >
           {{ t("providers.learnMoreBtn") }}
-          <v-icon icon="mdi-open-in-new" size="16" class="providers-section__btn-icon" />
+          <v-icon :icon="mdiOpenInNew" size="16" class="providers-section__btn-icon" />
         </a>
       </div>
     </v-container>
