@@ -83,15 +83,13 @@ const NOVA3_URL = "https://deepgram.com/learn/introducing-nova-3-speech-to-text-
 <style scoped>
 .providers-section {
   position: relative;
-  overflow: hidden;
 }
 
 /* ─── Background ─── */
 .providers-section__bg {
   position: absolute;
-  inset: 0;
+  inset: -80px 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .providers-section__orb {
@@ -102,8 +100,8 @@ const NOVA3_URL = "https://deepgram.com/learn/introducing-nova-3-speech-to-text-
 }
 
 .providers-section__orb--1 {
-  width: 600px;
-  height: 600px;
+  width: 780px;
+  height: 780px;
   background: #8b5cf6;
   top: -200px;
   left: 50%;
@@ -111,8 +109,8 @@ const NOVA3_URL = "https://deepgram.com/learn/introducing-nova-3-speech-to-text-
 }
 
 .providers-section__orb--2 {
-  width: 500px;
-  height: 500px;
+  width: 650px;
+  height: 650px;
   background: #06b6d4;
   bottom: -180px;
   right: -100px;

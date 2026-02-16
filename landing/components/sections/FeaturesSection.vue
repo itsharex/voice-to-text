@@ -62,14 +62,12 @@ const items = computed(() =>
 <style scoped>
 .features-section {
   position: relative;
-  overflow: hidden;
 }
 
 .features-section__bg {
   position: absolute;
-  inset: 0;
+  inset: -80px 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .features-section__orb {
@@ -80,16 +78,16 @@ const items = computed(() =>
 }
 
 .features-section__orb--1 {
-  width: 600px;
-  height: 600px;
+  width: 780px;
+  height: 780px;
   background: #6366f1;
   top: -200px;
   right: -100px;
 }
 
 .features-section__orb--2 {
-  width: 500px;
-  height: 500px;
+  width: 650px;
+  height: 650px;
   background: #ec4899;
   bottom: -150px;
   left: -100px;

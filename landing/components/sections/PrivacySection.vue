@@ -90,15 +90,13 @@ const openSourceIcons = [
 <style scoped>
 .opensource-section {
   position: relative;
-  overflow: hidden;
 }
 
 /* --- Background --- */
 .opensource-section__bg {
   position: absolute;
-  inset: 0;
+  inset: -80px 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .opensource-section__orb {
@@ -109,16 +107,16 @@ const openSourceIcons = [
 }
 
 .opensource-section__orb--1 {
-  width: 550px;
-  height: 550px;
+  width: 720px;
+  height: 720px;
   background: #8b5cf6;
   top: -180px;
   left: -120px;
 }
 
 .opensource-section__orb--2 {
-  width: 450px;
-  height: 450px;
+  width: 590px;
+  height: 590px;
   background: #6366f1;
   bottom: -120px;
   right: -80px;

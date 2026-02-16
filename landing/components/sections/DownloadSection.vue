@@ -137,15 +137,13 @@ const sortedAssets = computed(() => {
 <style scoped>
 .download-section {
   position: relative;
-  overflow: hidden;
 }
 
 /* ─── Background ─── */
 .download-section__bg {
   position: absolute;
-  inset: 0;
+  inset: -80px 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .download-section__orb {
@@ -156,24 +154,24 @@ const sortedAssets = computed(() => {
 }
 
 .download-section__orb--1 {
-  width: 500px;
-  height: 500px;
+  width: 650px;
+  height: 650px;
   background: #8b5cf6;
   top: -180px;
   right: -60px;
 }
 
 .download-section__orb--2 {
-  width: 400px;
-  height: 400px;
+  width: 520px;
+  height: 520px;
   background: #3b82f6;
   bottom: -100px;
   left: -80px;
 }
 
 .download-section__orb--3 {
-  width: 300px;
-  height: 300px;
+  width: 400px;
+  height: 400px;
   background: #f59e0b;
   bottom: -80px;
   right: 30%;

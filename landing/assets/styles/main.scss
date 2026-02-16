@@ -9,6 +9,9 @@ body {
   color: rgb(var(--v-theme-on-background));
 }
 
+.page {
+  overflow: clip;
+}
 
 .section {
   padding: 64px 0;

@@ -95,14 +95,12 @@ const getInitial = (name: string) => name.charAt(0).toUpperCase();
 <style scoped>
 .testimonials-section {
   position: relative;
-  overflow: hidden;
 }
 
 .testimonials-section__bg {
   position: absolute;
-  inset: 0;
+  inset: -80px 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .testimonials-section__orb {
@@ -113,16 +111,16 @@ const getInitial = (name: string) => name.charAt(0).toUpperCase();
 }
 
 .testimonials-section__orb--1 {
-  width: 550px;
-  height: 550px;
+  width: 720px;
+  height: 720px;
   background: #14b8a6;
   top: -180px;
   left: -80px;
 }
 
 .testimonials-section__orb--2 {
-  width: 450px;
-  height: 450px;
+  width: 590px;
+  height: 590px;
   background: #8b5cf6;
   bottom: -120px;
   right: -60px;

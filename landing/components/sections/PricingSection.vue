@@ -225,14 +225,12 @@ function openCheckout() {
 <style scoped>
 .pricing-section {
   position: relative;
-  overflow: hidden;
 }
 
 .pricing-section__bg {
   position: absolute;
-  inset: 0;
+  inset: -80px 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .pricing-section__orb {
@@ -243,24 +241,24 @@ function openCheckout() {
 }
 
 .pricing-section__orb--1 {
-  width: 500px;
-  height: 500px;
+  width: 650px;
+  height: 650px;
   background: #8b5cf6;
   top: -150px;
   left: -100px;
 }
 
 .pricing-section__orb--2 {
-  width: 400px;
-  height: 400px;
+  width: 520px;
+  height: 520px;
   background: #06b6d4;
   bottom: -100px;
   right: -80px;
 }
 
 .pricing-section__orb--3 {
-  width: 300px;
-  height: 300px;
+  width: 400px;
+  height: 400px;
   background: #f43f5e;
   top: 50%;
   left: 50%;

@@ -94,15 +94,13 @@ const faqIcons = [
 <style scoped>
 .faq-section {
   position: relative;
-  overflow: hidden;
 }
 
 /* ─── Background ─── */
 .faq-section__bg {
   position: absolute;
-  inset: 0;
+  inset: -80px 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .faq-section__orb {
@@ -113,16 +111,16 @@ const faqIcons = [
 }
 
 .faq-section__orb--1 {
-  width: 500px;
-  height: 500px;
+  width: 650px;
+  height: 650px;
   background: #f59e0b;
   top: -150px;
   right: -80px;
 }
 
 .faq-section__orb--2 {
-  width: 450px;
-  height: 450px;
+  width: 590px;
+  height: 590px;
   background: #8b5cf6;
   bottom: -120px;
   left: -100px;

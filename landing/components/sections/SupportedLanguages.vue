@@ -56,7 +56,6 @@ const { t } = useI18n();
 <style scoped>
 .languages-section {
   position: relative;
-  overflow: hidden;
   padding: 80px 0;
 }
 
@@ -67,9 +66,8 @@ const { t } = useI18n();
 
 .languages-section__bg {
   position: absolute;
-  inset: 0;
+  inset: -80px 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .languages-section__orb {
@@ -80,16 +78,16 @@ const { t } = useI18n();
 }
 
 .languages-section__orb--1 {
-  width: 500px;
-  height: 500px;
+  width: 650px;
+  height: 650px;
   background: #6366f1;
   top: -200px;
   left: -100px;
 }
 
 .languages-section__orb--2 {
-  width: 400px;
-  height: 400px;
+  width: 520px;
+  height: 520px;
   background: #ec4899;
   bottom: -150px;
   right: -100px;

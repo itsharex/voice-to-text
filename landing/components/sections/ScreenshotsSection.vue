@@ -294,7 +294,6 @@ onUnmounted(() => {
 <style scoped>
 .screenshots-section {
   position: relative;
-  overflow: hidden;
   padding-top: 32px !important;
   padding-bottom: 24px !important;
 }
@@ -302,9 +301,8 @@ onUnmounted(() => {
 /* ─── Background ─── */
 .screenshots-section__bg {
   position: absolute;
-  inset: 0;
+  inset: -80px 0;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .screenshots-section__orb {
@@ -315,16 +313,16 @@ onUnmounted(() => {
 }
 
 .screenshots-section__orb--1 {
-  width: 550px;
-  height: 550px;
+  width: 720px;
+  height: 720px;
   background: #f97316;
   top: -200px;
   left: -80px;
 }
 
 .screenshots-section__orb--2 {
-  width: 450px;
-  height: 450px;
+  width: 590px;
+  height: 590px;
   background: #06b6d4;
   bottom: -120px;
   right: -100px;

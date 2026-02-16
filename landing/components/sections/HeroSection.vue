@@ -100,7 +100,6 @@ const releaseDate = computed(() => {
 <style scoped>
 .hero-section {
   position: relative;
-  overflow: hidden;
   min-height: 85vh;
   display: flex;
   align-items: center;
@@ -109,9 +108,8 @@ const releaseDate = computed(() => {
 /* ─── Background ─── */
 .hero-section__bg {
   position: absolute;
-  inset: 0;
+  inset: 0 0 -80px;
   pointer-events: none;
-  overflow: hidden;
 }
 
 .hero-section__orb {
@@ -122,8 +120,8 @@ const releaseDate = computed(() => {
 }
 
 .hero-section__orb--1 {
-  width: 700px;
-  height: 700px;
+  width: 900px;
+  height: 900px;
   background: #6366f1;
   top: -300px;
   right: -150px;
@@ -131,8 +129,8 @@ const releaseDate = computed(() => {
 }
 
 .hero-section__orb--2 {
-  width: 500px;
-  height: 500px;
+  width: 650px;
+  height: 650px;
   background: #ec4899;
   bottom: -200px;
   left: -100px;
@@ -140,8 +138,8 @@ const releaseDate = computed(() => {
 }
 
 .hero-section__orb--3 {
-  width: 400px;
-  height: 400px;
+  width: 520px;
+  height: 520px;
   background: #8b5cf6;
   top: 30%;
   left: 40%;
