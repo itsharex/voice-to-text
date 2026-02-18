@@ -1,7 +1,7 @@
 {
     "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
     "productName": "VoicetextAI",
-    "version": "0.9.4",
+    "version": "0.9.5",
     "identifier": "com.voicetotext.app",
     "build": {
         "frontendDist": "../dist",
@@ -100,8 +100,8 @@
             "entitlements": "entitlements.plist",
             "exceptionDomain": null,
             "frameworks": [],
-            "providerShortName": null,
-            "signingIdentity": null
+            "providerShortName": "6C84CW694S",
+            "signingIdentity": "Developer ID Application: Oleksii Zelenko (6C84CW694S)"
         },
         "windows": {
             "certificateThumbprint": null,
