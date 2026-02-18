@@ -156,12 +156,19 @@ impl SttProvider for DeepgramProvider {
         log::info!("Using Deepgram model '{}' for language '{}'", model, language);
 
         // Собираем URL с параметрами (добавляем channels=1 для mono)
-        let url = format!(
+        let mut url = format!(
             "{}?encoding=linear16&sample_rate=16000&channels=1&model={}&language={}&punctuate=true&interim_results=true",
             DEEPGRAM_WS_URL,
             model,
             language
         );
+
+        // Добавляем keyterms если заданы
+        if let Some(ref raw) = self.config.as_ref().and_then(|c| c.deepgram_keyterms.clone()) {
+            for term in raw.split(',').map(|t| t.trim()).filter(|t| !t.is_empty()) {
+                url.push_str(&format!("&keyterm={}", urlencoding::encode(term)));
+            }
+        }
 
         log::debug!("Connecting to Deepgram: {}", url);
 
@@ -977,12 +984,19 @@ impl DeepgramProvider {
             }
 
             // Пытаемся создать новое WebSocket соединение
-            let url = format!(
+            let mut url = format!(
                 "{}?encoding=linear16&sample_rate=16000&channels=1&language={}&model={}",
                 DEEPGRAM_WS_URL,
                 config.language,
                 config.model.as_deref().unwrap_or("nova-3")
             );
+
+            // Добавляем keyterms если заданы
+            if let Some(ref raw) = config.deepgram_keyterms {
+                for term in raw.split(',').map(|t| t.trim()).filter(|t| !t.is_empty()) {
+                    url.push_str(&format!("&keyterm={}", urlencoding::encode(term)));
+                }
+            }
 
             let request = match Request::builder()
                 .method("GET")

@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use std::sync::{Arc, Mutex};
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::{AudioCapture, AudioChunk, AudioChunkCallback, AudioConfig, AudioResult};
 use crate::infrastructure::audio::{VadProcessor, VadResult};
@@ -24,6 +25,7 @@ pub struct VadCaptureWrapper {
     on_silence_timeout: Option<SilenceTimeoutCallback>,
     audio_config: AudioConfig,
     silence_timeout_triggered: Arc<Mutex<bool>>, // Флаг для одноразового вызова callback
+    running: Arc<AtomicBool>, // Защита от "хвостов" callback после stop_capture
 }
 
 impl VadCaptureWrapper {
@@ -39,6 +41,7 @@ impl VadCaptureWrapper {
             on_silence_timeout: None,
             audio_config: AudioConfig::default(),
             silence_timeout_triggered: Arc::new(Mutex::new(false)),
+            running: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -58,6 +61,8 @@ impl AudioCapture for VadCaptureWrapper {
     }
 
     async fn start_capture(&mut self, on_chunk: AudioChunkCallback) -> AudioResult<()> {
+        self.running.store(true, Ordering::SeqCst);
+
         // Сбрасываем флаг при старте новой записи
         if let Ok(mut flag) = self.silence_timeout_triggered.lock() {
             *flag = false;
@@ -73,6 +78,7 @@ impl AudioCapture for VadCaptureWrapper {
         let vad = self.vad.clone();
         let silence_callback = self.on_silence_timeout.clone();
         let timeout_flag = self.silence_timeout_triggered.clone();
+        let running = self.running.clone();
 
         // Frame buffer for accumulating exactly 480 samples (30ms @ 16kHz)
         // Shared between callback invocations via Arc<Mutex<>>
@@ -80,6 +86,12 @@ impl AudioCapture for VadCaptureWrapper {
 
         // Wrapped callback that processes audio through VAD
         let wrapped_callback = Arc::new(move |chunk: AudioChunk| {
+            // Важно: после stop_capture внутренняя аудио-система может ещё кратко вызывать callback.
+            // Мы обязаны игнорировать такие "хвосты", иначе VAD может отправить timeout уже в новой сессии.
+            if !running.load(Ordering::Relaxed) {
+                return;
+            }
+
             // Validate input format (VAD requirements)
             if chunk.sample_rate != 16000 {
                 log::error!(
@@ -197,6 +209,8 @@ impl AudioCapture for VadCaptureWrapper {
     }
 
     async fn stop_capture(&mut self) -> AudioResult<()> {
+        self.running.store(false, Ordering::SeqCst);
+
         // Reset VAD state on stop
         if let Ok(mut vad) = self.vad.lock() {
             vad.reset();

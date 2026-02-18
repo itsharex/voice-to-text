@@ -35,6 +35,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const selectedAudioDevice = ref('');
   const autoCopyToClipboard = ref(true);
   const autoPasteText = ref(false);
+  const deepgramKeyterms = ref('');
 
   // Debounce для автосохранения чувствительности (иначе будем спамить invoke при перетаскивании слайдера)
   let micSensitivityPersistTimer: ReturnType<typeof setTimeout> | null = null;
@@ -84,6 +85,7 @@ export const useSettingsStore = defineStore('settings', () => {
     selectedAudioDevice: selectedAudioDevice.value,
     autoCopyToClipboard: autoCopyToClipboard.value,
     autoPasteText: autoPasteText.value,
+    deepgramKeyterms: deepgramKeyterms.value,
   }));
 
   // Действия
@@ -284,6 +286,10 @@ export const useSettingsStore = defineStore('settings', () => {
     autoPasteText.value = value;
   }
 
+  function setDeepgramKeyterms(value: string) {
+    deepgramKeyterms.value = value;
+  }
+
   function setAvailableAudioDevices(devices: string[]) {
     availableAudioDevices.value = devices;
   }
@@ -335,6 +341,8 @@ export const useSettingsStore = defineStore('settings', () => {
       autoCopyToClipboard.value = state.autoCopyToClipboard;
     if (state.autoPasteText !== undefined)
       autoPasteText.value = state.autoPasteText;
+    if (state.deepgramKeyterms !== undefined)
+      deepgramKeyterms.value = state.deepgramKeyterms;
   }
 
   return {
@@ -351,6 +359,7 @@ export const useSettingsStore = defineStore('settings', () => {
     selectedAudioDevice,
     autoCopyToClipboard,
     autoPasteText,
+    deepgramKeyterms,
     availableAudioDevices,
     hasAccessibilityPermission,
     saveStatus,
@@ -378,6 +387,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setSelectedAudioDevice,
     setAutoCopyToClipboard,
     setAutoPasteText,
+    setDeepgramKeyterms,
     setAvailableAudioDevices,
     setAccessibilityPermission,
     setLoading,

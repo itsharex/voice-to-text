@@ -436,6 +436,7 @@ mod snapshot_contract_tests {
                 assemblyai_api_key: None,
                 model: None,
                 keep_connection_alive: true,
+                deepgram_keyterms: None,
             },
         };
 
@@ -671,6 +672,7 @@ pub async fn update_stt_config(
     deepgram_api_key: Option<String>,
     assemblyai_api_key: Option<String>,
     model: Option<String>,
+    deepgram_keyterms: Option<String>,
 ) -> Result<(), String> {
     log::info!("Command: update_stt_config - provider: {}, language: {}, model: {:?}", provider, language, model);
 
@@ -679,10 +681,10 @@ pub async fn update_stt_config(
     let _ = provider;
     let provider_type = SttProviderType::Backend;
 
-    // Запоминаем текущий language для проверки изменений
-    let old_language = {
+    // Снимаем текущее состояние для сравнения после сохранения
+    let old_stt = {
         let config = state.config.read().await;
-        config.stt.language.clone()
+        config.stt.clone()
     };
 
     // Загружаем существующую конфигурацию из файла (если есть)
@@ -713,6 +715,9 @@ pub async fn update_stt_config(
     config.deepgram_api_key = None;
     config.assemblyai_api_key = None;
 
+    // Keyterms для улучшения распознавания Deepgram
+    config.deepgram_keyterms = deepgram_keyterms;
+
     // Обновляем конфигурацию в сервисе
     state
         .transcription_service
@@ -732,9 +737,12 @@ pub async fn update_stt_config(
         .await
         .map_err(|e| format!("Failed to save config: {}", e))?;
 
-    // Синхронизация между окнами — только при реальных изменениях
-    let language_changed = config.language != old_language;
-    if language_changed {
+    // Синхронизация между окнами — бампим ревизию при любых изменениях STT конфига,
+    // чтобы state-sync корректно подтягивал актуальный snapshot (включая keyterms и т.д.)
+    let stt_changed = config.language != old_stt.language
+        || config.deepgram_keyterms != old_stt.deepgram_keyterms
+        || config.provider != old_stt.provider;
+    if stt_changed {
         let revision = AppState::bump_revision(&state.stt_config_revision).await;
         let _ = app_handle.emit(
             EVENT_STATE_SYNC_INVALIDATION,
@@ -806,6 +814,7 @@ pub struct SttConfigSnapshotData {
     pub assemblyai_api_key: Option<String>,
     pub model: Option<String>,
     pub keep_connection_alive: bool,
+    pub deepgram_keyterms: Option<String>,
 }
 
 /// Get current STT configuration snapshot
@@ -825,6 +834,7 @@ pub async fn get_stt_config_snapshot(
         assemblyai_api_key: config.assemblyai_api_key,
         model: config.model,
         keep_connection_alive: config.keep_connection_alive,
+        deepgram_keyterms: config.deepgram_keyterms,
     };
     let revision = state.stt_config_revision.read().await.to_string();
     Ok(SnapshotEnvelope { revision, data })

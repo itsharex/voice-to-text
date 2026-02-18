@@ -105,7 +105,7 @@ impl SttProvider for MockSttProvider {
 
     fn is_connection_alive(&self) -> bool {
         // Для sync метода используем try_read (лучше чем blocking_read в async context)
-        self.supports_keep_alive_flag &&  self.paused.try_read().map(|p| !*p).unwrap_or(true)
+        self.supports_keep_alive_flag && self.paused.try_read().map(|p| *p).unwrap_or(false)
     }
 
     async fn initialize(&mut self, _config: &SttConfig) -> Result<(), SttError> {
@@ -445,6 +445,184 @@ async fn test_keep_alive_mode() {
         Arc::new(|_: String, _: Option<String>| {}),
     ).await;
     assert!(result2.is_ok(), "Быстрый рестарт с keep-alive должен работать");
+
+    service.stop_recording().await.unwrap();
+}
+
+#[tokio::test]
+async fn test_keep_alive_connection_resets_on_language_change() {
+    use std::sync::atomic::{AtomicUsize, Ordering};
+
+    struct CountingProvider {
+        supports_keep_alive: bool,
+        paused: bool,
+        streaming: bool,
+        start_stream_calls: Arc<AtomicUsize>,
+        resume_stream_calls: Arc<AtomicUsize>,
+    }
+
+    #[async_trait]
+    impl SttProvider for CountingProvider {
+        async fn initialize(&mut self, _config: &SttConfig) -> Result<(), SttError> {
+            Ok(())
+        }
+
+        async fn start_stream(
+            &mut self,
+            _on_partial: TranscriptionCallback,
+            _on_final: TranscriptionCallback,
+            _on_error: ErrorCallback,
+            _on_connection_quality: ConnectionQualityCallback,
+        ) -> Result<(), SttError> {
+            self.streaming = true;
+            self.paused = false;
+            self.start_stream_calls.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }
+
+        async fn send_audio(&mut self, _chunk: &AudioChunk) -> Result<(), SttError> {
+            Ok(())
+        }
+
+        async fn stop_stream(&mut self) -> Result<(), SttError> {
+            self.streaming = false;
+            self.paused = false;
+            Ok(())
+        }
+
+        async fn abort(&mut self) -> Result<(), SttError> {
+            self.streaming = false;
+            self.paused = false;
+            Ok(())
+        }
+
+        async fn pause_stream(&mut self) -> Result<(), SttError> {
+            if !self.supports_keep_alive {
+                return Err(SttError::Configuration("Keep-alive not supported".to_string()));
+            }
+            self.paused = true;
+            Ok(())
+        }
+
+        async fn resume_stream(
+            &mut self,
+            _on_partial: TranscriptionCallback,
+            _on_final: TranscriptionCallback,
+            _on_error: ErrorCallback,
+            _on_connection_quality: ConnectionQualityCallback,
+        ) -> Result<(), SttError> {
+            if !self.supports_keep_alive {
+                return Err(SttError::Configuration("Keep-alive not supported".to_string()));
+            }
+            if !self.is_connection_alive() {
+                return Err(SttError::Connection(app_lib::domain::SttConnectionError::simple(
+                    "Connection not alive",
+                )));
+            }
+            self.streaming = true;
+            self.paused = false;
+            self.resume_stream_calls.fetch_add(1, Ordering::SeqCst);
+            Ok(())
+        }
+
+        fn name(&self) -> &str {
+            "counting"
+        }
+
+        fn supports_keep_alive(&self) -> bool {
+            self.supports_keep_alive
+        }
+
+        fn is_connection_alive(&self) -> bool {
+            self.supports_keep_alive && self.paused
+        }
+
+        fn is_online(&self) -> bool {
+            true
+        }
+    }
+
+    struct CountingFactory {
+        start_stream_calls: Arc<AtomicUsize>,
+        resume_stream_calls: Arc<AtomicUsize>,
+    }
+
+    impl SttProviderFactory for CountingFactory {
+        fn create(&self, _config: &SttConfig) -> Result<Box<dyn SttProvider>, SttError> {
+            Ok(Box::new(CountingProvider {
+                supports_keep_alive: true,
+                paused: false,
+                streaming: false,
+                start_stream_calls: self.start_stream_calls.clone(),
+                resume_stream_calls: self.resume_stream_calls.clone(),
+            }))
+        }
+    }
+
+    let audio_capture = Box::new(MockAudioCapture::new());
+    let start_stream_calls = Arc::new(AtomicUsize::new(0));
+    let resume_stream_calls = Arc::new(AtomicUsize::new(0));
+    let factory = Arc::new(CountingFactory {
+        start_stream_calls: start_stream_calls.clone(),
+        resume_stream_calls: resume_stream_calls.clone(),
+    });
+
+    let service = TranscriptionService::new(audio_capture, factory);
+
+    let mut config = SttConfig::default();
+    config.provider = SttProviderType::Deepgram;
+    config.keep_connection_alive = true;
+    config.language = "ru".to_string();
+    service.update_config(config).await.unwrap();
+
+    service.initialize_audio(AudioConfig::default()).await.unwrap();
+
+    let on_partial = Arc::new(|_: Transcription| {});
+    let on_final = Arc::new(|_: Transcription| {});
+    let on_audio_level = Arc::new(|_: f32| {});
+    let on_audio_spectrum = Arc::new(|_: [f32; 48]| {});
+    let on_error = Arc::new(|_err: SttError| {});
+    let on_connection_quality = Arc::new(|_: String, _: Option<String>| {});
+
+    service
+        .start_recording(
+            on_partial.clone(),
+            on_final.clone(),
+            on_audio_level.clone(),
+            on_audio_spectrum.clone(),
+            on_error.clone(),
+            on_connection_quality.clone(),
+        )
+        .await
+        .unwrap();
+    sleep(Duration::from_millis(80)).await;
+    service.stop_recording().await.unwrap();
+    sleep(Duration::from_millis(30)).await;
+
+    assert_eq!(start_stream_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(resume_stream_calls.load(Ordering::SeqCst), 0);
+
+    // Меняем язык — должно сбросить keep-alive соединение, чтобы следующий старт пошёл через start_stream.
+    let mut new_config = service.get_config().await;
+    new_config.language = "en".to_string();
+    service.update_config(new_config).await.unwrap();
+
+    service
+        .start_recording(
+            on_partial,
+            on_final,
+            on_audio_level,
+            on_audio_spectrum,
+            on_error,
+            on_connection_quality,
+        )
+        .await
+        .unwrap();
+
+    sleep(Duration::from_millis(80)).await;
+
+    assert_eq!(start_stream_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(resume_stream_calls.load(Ordering::SeqCst), 0);
 
     service.stop_recording().await.unwrap();
 }

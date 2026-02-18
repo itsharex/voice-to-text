@@ -15,6 +15,7 @@ import type { SettingsState } from '../../domain/types';
 
 // Секции
 import LanguageSection from './sections/LanguageSection.vue';
+import KeytermsSection from './sections/KeytermsSection.vue';
 import ThemeSection from './sections/ThemeSection.vue';
 import HotkeySection from './sections/HotkeySection.vue';
 import AutoActionsSection from './sections/AutoActionsSection.vue';
@@ -52,6 +53,7 @@ function snapshotSettingsState(): SettingsState {
     selectedAudioDevice: settingsStore.selectedAudioDevice,
     autoCopyToClipboard: settingsStore.autoCopyToClipboard,
     autoPasteText: settingsStore.autoPasteText,
+    deepgramKeyterms: settingsStore.deepgramKeyterms,
   };
 }
 
@@ -154,6 +156,7 @@ async function handleSave(): Promise<void> {
           <LanguageSection />
           <ThemeSection />
         </div>
+        <KeytermsSection />
         <HotkeySection />
         <AutoActionsSection />
         <AudioDeviceSection />

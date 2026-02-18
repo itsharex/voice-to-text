@@ -71,6 +71,11 @@ pub struct SttConfig {
     /// по лимиту параллельных соединений. Поэтому TTL должен быть коротким (по умолчанию 2 минуты).
     #[serde(default = "default_keep_alive_ttl_secs")]
     pub keep_alive_ttl_secs: u64,
+
+    /// Ключевые термины для улучшения распознавания Deepgram (через запятую).
+    /// Например: "Kubernetes, VoicetextAI, Deepgram"
+    #[serde(default)]
+    pub deepgram_keyterms: Option<String>,
 }
 
 fn default_keep_alive_ttl_secs() -> u64 {
@@ -92,6 +97,7 @@ impl Default for SttConfig {
             backend_url: None,
             keep_connection_alive: false, // Безопасно по умолчанию для всех провайдеров
             keep_alive_ttl_secs: default_keep_alive_ttl_secs(),
+            deepgram_keyterms: None,
         }
     }
 }

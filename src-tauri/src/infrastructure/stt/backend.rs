@@ -548,6 +548,16 @@ impl SttProvider for BackendProvider {
             _ => "deepgram", // fallback
         };
 
+        // Парсим keyterms из конфига (строка через запятую → Vec<String>)
+        let keyterms = config.deepgram_keyterms.as_ref().and_then(|raw| {
+            let terms: Vec<String> = raw
+                .split(',')
+                .map(|t| t.trim().to_string())
+                .filter(|t| !t.is_empty())
+                .collect();
+            if terms.is_empty() { None } else { Some(terms) }
+        });
+
         let config_msg = ClientMessage::Config {
             protocol_v: 1,
             provider: provider_name.to_string(),
@@ -555,6 +565,7 @@ impl SttProvider for BackendProvider {
             sample_rate: 16000,
             channels: 1,
             encoding: "pcm_s16le".to_string(),
+            keyterms,
         };
 
         self.send_json(&config_msg).await?;

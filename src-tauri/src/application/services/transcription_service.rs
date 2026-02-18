@@ -763,6 +763,8 @@ impl TranscriptionService {
 
     /// Update STT configuration
     pub async fn update_config(&self, config: SttConfig) -> Result<()> {
+        let prev_config = self.config.read().await.clone();
+
         // Backend-only режим: keep-alive должен быть всегда включён.
         // Иначе даже при кратком "стоп/старт" по hotkey мы будем пересоздавать WS и UI будет показывать "Подключение...".
         let mut config = config;
@@ -771,6 +773,51 @@ impl TranscriptionService {
             const MIN_BACKEND_KEEPALIVE_TTL_SECS: u64 = 300;
             if config.keep_alive_ttl_secs < MIN_BACKEND_KEEPALIVE_TTL_SECS {
                 config.keep_alive_ttl_secs = MIN_BACKEND_KEEPALIVE_TTL_SECS;
+            }
+        }
+
+        // Важно: если в keep-alive режиме уже есть "живое" соединение (пауза между сессиями),
+        // смена критичных параметров (язык/кейтермы/провайдер) должна сбросить это соединение.
+        // Иначе следующий старт записи может сделать resume_stream() и фактически продолжить старую сессию,
+        // где язык уже "залип" на предыдущем Config message.
+        let config_requires_new_connection =
+            prev_config.provider != config.provider
+                || prev_config.language != config.language
+                || prev_config.deepgram_keyterms != config.deepgram_keyterms;
+
+        if config_requires_new_connection {
+            let status = *self.status.read().await;
+            if status == RecordingStatus::Idle {
+                let has_keep_alive_connection = {
+                    let provider_opt = self.stt_provider.read().await;
+                    provider_opt
+                        .as_ref()
+                        .map(|p| p.supports_keep_alive() && p.is_connection_alive())
+                        .unwrap_or(false)
+                };
+
+                if has_keep_alive_connection {
+                    // Отменяем таймер TTL (если был), чтобы он не "стрельнул" после того как мы уже закрыли провайдера.
+                    if let Some(timer) = self.inactivity_timer_task.write().await.take() {
+                        timer.abort();
+                        let _ = timer.await;
+                    }
+
+                    // Закрываем провайдера целиком: следующий start_recording создаст новое соединение
+                    // и отправит новый Config message (с новым языком и т.д.).
+                    if let Some(mut provider) = self.stt_provider.write().await.take() {
+                        if let Err(e) = provider.stop_stream().await {
+                            log::warn!("Failed to stop keep-alive stream on config change, aborting: {}", e);
+                            let _ = provider.abort().await;
+                        }
+                    }
+                }
+            } else {
+                // Если запись идёт — не вмешиваемся. Новая конфигурация применится на следующей сессии.
+                log::info!(
+                    "STT config updated while status={:?}; keep-alive connection will not be reset until idle",
+                    status
+                );
             }
         }
 
