@@ -101,10 +101,7 @@
             "exceptionDomain": null,
             "frameworks": [],
             "providerShortName": "6C84CW694S",
-            "signingIdentity": "Developer ID Application: Oleksii Zelenko (6C84CW694S)",
-            "infoPlist": {
-                "NSMicrophoneUsageDescription": "VoicetextAI needs microphone access to transcribe your speech to text."
-            }
+            "signingIdentity": "Developer ID Application: Oleksii Zelenko (6C84CW694S)"
         },
         "windows": {
             "certificateThumbprint": null,
