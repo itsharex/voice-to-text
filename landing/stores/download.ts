@@ -13,6 +13,12 @@ export const useDownloadStore = defineStore("download", {
     assets: () => downloadAssets,
     selectedAsset(state) {
       return downloadAssets.find((asset) => asset.id === state.selectedId);
+    },
+    isMacOs(state): boolean {
+      return state.os === "macos";
+    },
+    macArch(state): "arm64" | "x64" {
+      return state.arch === "arm64" ? "arm64" : "x64";
     }
   },
   actions: {
@@ -26,9 +32,8 @@ export const useDownloadStore = defineStore("download", {
       } else if (this.os !== "unknown") {
         this.arch = "x64";
       }
-      const match = downloadAssets.find(
-        (asset) => asset.os === this.os && asset.arch === this.arch
-      );
+      // Для macOS — одна карточка, матчим по OS
+      const match = downloadAssets.find((asset) => asset.os === this.os);
       if (match) {
         this.selectedId = match.id;
       }

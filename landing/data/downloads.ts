@@ -3,19 +3,11 @@ export type DownloadArch = "arm64" | "x64" | "universal";
 
 export const downloadAssets = [
   {
-    id: "macos-arm64",
+    id: "macos",
     os: "macos",
-    arch: "arm64",
+    arch: "universal",
     label: "macOS",
-    archLabel: "Apple Silicon",
-    url: "https://github.com/777genius/voice-to-text/releases"
-  },
-  {
-    id: "macos-x64",
-    os: "macos",
-    arch: "x64",
-    label: "macOS",
-    archLabel: "Intel",
+    archLabel: "Apple Silicon / Intel",
     url: "https://github.com/777genius/voice-to-text/releases"
   },
   {

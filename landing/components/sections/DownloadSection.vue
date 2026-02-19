@@ -22,12 +22,26 @@ const platformColors: Record<string, string> = {
   linux: "#fbbf24",
 };
 
+// Для macOS на маке показываем конкретный arch, иначе "Apple Silicon / Intel"
+const visibleAssets = computed(() =>
+  downloadAssets.map((asset) => {
+    if (asset.os !== "macos") return { ...asset };
+    if (!downloadStore.isMacOs) return { ...asset };
+    return {
+      ...asset,
+      archLabel: downloadStore.macArch === "arm64" ? "Apple Silicon" : "Intel",
+    };
+  })
+);
+
+// macOS скачивание — резолвим по реальному arch пользователя
 const getDownloadUrl = (asset: (typeof downloadAssets)[number]) => {
-  return resolve(asset.os, asset.arch)?.url || asset.url;
+  const arch = asset.os === "macos" ? downloadStore.macArch : asset.arch;
+  return resolve(asset.os, arch)?.url || asset.url;
 };
 
-const getDownloadVersion = (asset: (typeof downloadAssets)[number]) => {
-  return resolve(asset.os, asset.arch)?.version || null;
+const getDownloadArch = (asset: (typeof downloadAssets)[number]) => {
+  return asset.os === "macos" ? downloadStore.macArch : asset.arch;
 };
 
 const releaseVersion = computed(() => releaseData.value?.version || null);
@@ -54,7 +68,7 @@ const releaseDate = computed(() => {
       <!-- Platform cards -->
       <div class="download-section__cards">
         <div
-          v-for="(asset, index) in downloadAssets"
+          v-for="(asset, index) in visibleAssets"
           :key="asset.id"
           class="download-section__card"
           :class="{ 'download-section__card--active': downloadStore.selectedId === asset.id }"
@@ -76,16 +90,13 @@ const releaseDate = computed(() => {
           <div class="download-section__card-info">
             <h3 class="download-section__card-label">{{ asset.label }}</h3>
             <span class="download-section__card-arch">{{ asset.archLabel }}</span>
-            <span v-if="getDownloadVersion(asset)" class="download-section__card-version">
-              v{{ getDownloadVersion(asset) }}
-            </span>
           </div>
 
           <!-- Download button -->
           <a
             class="download-section__btn"
             :href="getDownloadUrl(asset)"
-            @click.stop="trackDownloadClick({ os: asset.os, arch: asset.arch, version: getDownloadVersion(asset), source: 'download_section' }); downloadStore.setSelected(asset.id)"
+            @click.stop="trackDownloadClick({ os: asset.os, arch: getDownloadArch(asset), version: releaseVersion, source: 'download_section' }); downloadStore.setSelected(asset.id)"
           >
             <v-icon size="18" class="download-section__btn-icon" :icon="mdiDownload" />
             <span>{{ t("download.title") }}</span>
@@ -158,13 +169,12 @@ const releaseDate = computed(() => {
 /* ─── Cards Grid ─── */
 .download-section__cards {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 18px;
   position: relative;
   z-index: 1;
-  max-width: 1100px;
+  max-width: 840px;
   margin: 0 auto;
-  /* Чтобы scale не обрезался */
   overflow: visible;
   padding: 12px 0;
   align-items: center;
@@ -293,15 +303,6 @@ const releaseDate = computed(() => {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   opacity: 0.45;
-}
-
-.download-section__card-version {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  opacity: 0.5;
 }
 
 /* Download button */
@@ -489,13 +490,6 @@ const releaseDate = computed(() => {
 }
 
 /* ─── Responsive ─── */
-@media (max-width: 1100px) {
-  .download-section__cards {
-    grid-template-columns: repeat(2, 1fr);
-    max-width: 560px;
-  }
-}
-
 @media (max-width: 960px) {
   .download-section__cards {
     grid-template-columns: 1fr;
