@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - macOS code signing and notarization in CI/CD pipeline
 - Updated Tauri updater signing keypair
 
+### Fixed
+- macOS microphone access: added NSMicrophoneUsageDescription to Info.plist for signed/notarized builds
+
 ---
 
 ## [0.9.5] — 2026-02-17
