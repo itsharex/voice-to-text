@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+## [0.9.6] — 2026-02-19
+
+### Added
+- Deepgram keyterms support: custom keywords improve STT recognition accuracy
+- Timeout handling for STT and app configuration updates
+- macOS code signing and notarization in CI/CD pipeline
+- Updated Tauri updater signing keypair
+
+---
+
+## [0.9.5] — 2026-02-17
+
+### Added
+- Audio device unavailable error messages in multiple languages
+- Testimonials section on landing page
+- Parallax effect and show more/less toggle for testimonials
+- AudioVisualizer reuse in mic test section
+
+### Changed
+- Landing page: unified page background, wave dividers between sections
+- Switched from @mdi/font webfont to @mdi/js SVG icons for better performance
+- Lazy-load below-fold sections, replaced v-dialog with CSS
+- Rewritten open source and providers section copy
+- Switched state-sync to npm, ignore landing in vite watch
+
+### Fixed
+- CLS issues: SSR languages, removed v-app-bar, fixed hero demo width
+- Hydration mismatch, added font-display swap, improved link text
+- Smooth section transitions: removed background seams
+- Hero demo flash during lazy component loading
+
+---
+
 ## [0.9.4] — 2026-02-13
 
 ### Changed
@@ -233,6 +266,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 
 ---
 
+[0.9.6]: https://github.com/777genius/voice-to-text/compare/v0.9.5...v0.9.6
+[0.9.5]: https://github.com/777genius/voice-to-text/compare/v0.9.4...v0.9.5
 [0.9.4]: https://github.com/777genius/voice-to-text/compare/v0.9.3...v0.9.4
 [0.9.3]: https://github.com/777genius/voice-to-text/compare/v0.9.2...v0.9.3
 [0.9.2]: https://github.com/777genius/voice-to-text/compare/v0.9.1...v0.9.2
