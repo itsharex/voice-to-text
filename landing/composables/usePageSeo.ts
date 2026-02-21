@@ -149,7 +149,7 @@ export const usePageSeo = (titleKey: string, descriptionKey: string, options: Pa
       htmlAttrs: { lang: locale.value || "en" },
       link: links,
       meta: [
-        { name: "author", content: "iliyazelenkog@gmail.com" },
+        { name: "author", content: "QuantJumpPro" },
         { name: "application-name", content: siteName },
         { name: "apple-mobile-web-app-title", content: siteName },
         { name: "format-detection", content: "telephone=no" },

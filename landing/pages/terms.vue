@@ -11,7 +11,7 @@ usePageSeo("meta.termsTitle", "meta.termsDescription");
       <section class="legal-section">
         <h2 class="text-h6">1. About VoicetextAI</h2>
         <p>
-          VoicetextAI is developed and operated by Iliya Zelenko ("Developer", "we", "us").
+          VoicetextAI is developed and operated by QuantJumpPro ("Developer", "we", "us").
           All payments are processed by
           <a href="https://www.paddle.com" target="_blank" rel="noopener">Paddle.com</a>,
           which acts as the Merchant of Record for all transactions. Your purchase is also governed by
