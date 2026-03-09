@@ -8,9 +8,9 @@ use crate::domain::{
 #[cfg(feature = "whisper")]
 mod whisper_impl {
     use super::*;
-    use std::path::PathBuf;
     use std::sync::Arc;
     use whisper_rs::{WhisperContext, WhisperContextParameters, FullParams, SamplingStrategy};
+    use crate::infrastructure::models::whisper_models;
 
     pub struct WhisperLocalProvider {
         config: Option<SttConfig>,
@@ -31,12 +31,9 @@ mod whisper_impl {
             }
         }
 
-        fn get_model_path(model_name: &str) -> SttResult<PathBuf> {
-            let app_data_dir = dirs::data_dir()
-                .ok_or_else(|| SttError::Configuration("Cannot determine app data directory".to_string()))?;
-
-            let models_dir = app_data_dir.join("voice-to-text").join("models");
-            let model_file = models_dir.join(format!("ggml-{}.bin", model_name));
+        fn get_model_path(model_name: &str) -> SttResult<std::path::PathBuf> {
+            let model_file = whisper_models::get_model_path(model_name)
+                .map_err(|e| SttError::Configuration(format!("Cannot resolve Whisper model path: {}", e)))?;
 
             if !model_file.exists() {
                 return Err(SttError::Configuration(format!(

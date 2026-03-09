@@ -4,15 +4,17 @@
  * Объединяет все секции и управляет загрузкой/сохранением
  */
 
-import { ref, nextTick, onMounted, watch } from 'vue';
+import { ref, computed, nextTick, onMounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import UpdateDialog from '@/presentation/components/UpdateDialog.vue';
 import { useSettings } from '../composables/useSettings';
 import { useSettingsTheme } from '../composables/useSettingsTheme';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { SettingsState } from '../../domain/types';
+import { areSettingsStatesEqual } from '../../domain/settingsState';
 import { isTauriAvailable } from '@/utils/tauri';
 import { invokeUpdateAppConfig } from '@/windowing/stateSync';
+import UnsavedChangesDialog from './dialogs/UnsavedChangesDialog.vue';
 
 // Секции
 import LanguageSection from './sections/LanguageSection.vue';
@@ -79,6 +81,7 @@ watch(
 
 const baselineState = ref<SettingsState | null>(null);
 const baselineUiLocale = ref<string>('');
+const showUnsavedChangesDialog = ref(false);
 
 const liveApplyAudioDeviceArmed = ref(false);
 let lastAppliedAudioDevice = '';
@@ -106,6 +109,10 @@ function captureBaseline(): void {
   baselineState.value = snapshotSettingsState();
   baselineUiLocale.value = String(locale.value ?? '');
 }
+
+const hasUnsavedChanges = computed(() => {
+  return !areSettingsStatesEqual(baselineState.value, snapshotSettingsState());
+});
 
 function armLiveApplyAudioDevice(): void {
   if (!isTauriAvailable()) {
@@ -141,7 +148,16 @@ function discardDraftChanges(): void {
   }
 }
 
-function handleClose(arg?: unknown): void {
+function finalizeClose(shouldDiscard: boolean): void {
+  if (shouldDiscard) {
+    discardDraftChanges();
+  } else {
+    captureBaseline();
+  }
+  emit('close');
+}
+
+async function handleClose(arg?: unknown): Promise<void> {
   // Этот хендлер используется как:
   // - @click (Vue передаёт MouseEvent)
   // - handleClose({ discard: false })
@@ -150,12 +166,26 @@ function handleClose(arg?: unknown): void {
     typeof arg === 'object' && arg !== null && 'discard' in arg
       ? Boolean((arg as { discard?: boolean }).discard ?? true)
       : true;
-  if (shouldDiscard) {
-    discardDraftChanges();
-  } else {
-    captureBaseline();
+
+  if (shouldDiscard && hasUnsavedChanges.value) {
+    showUnsavedChangesDialog.value = true;
+    return;
   }
-  emit('close');
+
+  finalizeClose(shouldDiscard);
+}
+
+async function handleDiscardAndClose(): Promise<void> {
+  showUnsavedChangesDialog.value = false;
+  finalizeClose(true);
+}
+
+async function handleSaveAndClose(): Promise<void> {
+  const success = await saveConfig();
+  if (!success) return;
+
+  showUnsavedChangesDialog.value = false;
+  await handleClose({ discard: false });
 }
 
 // Сохранение и закрытие
@@ -264,6 +294,17 @@ watch(
 
     <!-- Диалог обновления -->
     <UpdateDialog v-model="showUpdateDialog" />
+    <UnsavedChangesDialog
+      v-model="showUnsavedChangesDialog"
+      :title="t('settings.unsavedChanges.title')"
+      :message="t('settings.unsavedChanges.message')"
+      :continue-label="t('settings.unsavedChanges.continueEditing')"
+      :discard-label="t('settings.unsavedChanges.discard')"
+      :save-label="t('settings.unsavedChanges.saveAndClose')"
+      :is-saving="isSaving"
+      @discard="handleDiscardAndClose"
+      @save="handleSaveAndClose"
+    />
   </div>
 </template>
 

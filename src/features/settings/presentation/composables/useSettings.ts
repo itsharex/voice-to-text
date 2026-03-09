@@ -19,7 +19,7 @@ import { useSettingsStore } from '../../store/settingsStore';
 import { tauriSettingsService } from '../../infrastructure/adapters/TauriSettingsService';
 import { useAppConfigStore } from '@/stores/appConfig';
 import { useSttConfigStore } from '@/stores/sttConfig';
-import type { SttConfigData } from '../../domain/types';
+import type { AppConfigData, SttConfigData } from '../../domain/types';
 import { withTimeout } from '@/utils/async';
 
 // Кэшируем определение macOS - это не меняется во время работы
@@ -62,8 +62,8 @@ export function useSettings() {
 
   const microphoneSensitivity = computed({
     get: () => store.microphoneSensitivity,
-    // Чувствительность критична для UX — сохраняем сразу (debounce внутри store).
-    set: (value: number) => store.setMicrophoneSensitivity(value),
+    // Слайдер меняет только draft. Реальное сохранение — только по Save.
+    set: (value: number) => store.setMicrophoneSensitivity(value, { persist: false }),
   });
 
   const selectedAudioDevice = computed({
@@ -142,6 +142,8 @@ export function useSettings() {
           localStorage.setItem('sttLanguage', sttLang);
         }
 
+        store.capturePersistedState();
+
         return;
       }
 
@@ -208,6 +210,8 @@ export function useSettings() {
           console.error('Ошибка проверки Accessibility:', err);
         }
       }
+
+      store.capturePersistedState();
     } catch (err) {
       console.error('Ошибка загрузки конфигурации:', err);
       store.setError(String(err));
@@ -227,34 +231,60 @@ export function useSettings() {
       // Важно: даём Vue применить последние изменения из v-model (например, если пользователь
       // только что отпустил слайдер и сразу нажал "Сохранить").
       await nextTick();
-
-      // Сохраняем STT конфиг
-      const sttConfigData: SttConfigData = {
-        // Выбор провайдера выключен: всегда Backend
-        provider: SttProviderType.Backend,
-        language: store.language,
-        deepgramApiKey: null,
-        assemblyaiApiKey: null,
-        model: null,
-        deepgramKeyterms: store.deepgramKeyterms.trim() || null,
+      const persistedState = store.getPersistedState();
+      const normalizeKeyterms = (v: string | null | undefined): string | null => {
+        const s = String(v ?? '').trim();
+        return s ? s : null;
+      };
+      const normalizeAudioDevice = (v: string | null | undefined): string | null => {
+        const s = String(v ?? '').trim();
+        return s ? s : null;
       };
 
-      await withTimeout(
-        tauriSettingsService.updateSttConfig(sttConfigData),
-        12_000,
-        'Не удалось сохранить STT настройки: таймаут',
+      const latestStt = await withTimeout(
+        tauriSettingsService.getSttConfig(),
+        10_000,
+        'Не удалось получить актуальные STT настройки: таймаут',
+      );
+      const latestApp = await withTimeout(
+        tauriSettingsService.getAppConfig(),
+        10_000,
+        'Не удалось получить актуальные настройки приложения: таймаут',
       );
 
-      // Проверяем, что язык реально применился в Rust SoT.
-      // Иначе UI может переключиться (syncLocale), но запись останется на старом языке.
-      try {
-        const normalizeKeyterms = (v: string | null | undefined): string | null => {
-          const s = String(v ?? '').trim();
-          return s ? s : null;
+      const hasLanguageChange = persistedState
+        ? persistedState.language !== store.language
+        : latestStt.language !== store.language;
+      const expectedKeyterms = normalizeKeyterms(store.deepgramKeyterms);
+      const persistedKeyterms = normalizeKeyterms(persistedState?.deepgramKeyterms);
+      const hasKeytermsChange = persistedState
+        ? persistedKeyterms !== expectedKeyterms
+        : normalizeKeyterms(latestStt.deepgram_keyterms) !== expectedKeyterms;
+
+      const shouldSaveStt = hasLanguageChange || hasKeytermsChange;
+      if (shouldSaveStt) {
+        const languageForSave = hasLanguageChange ? store.language : latestStt.language;
+        const sttConfigData: Partial<SttConfigData> & Pick<SttConfigData, 'provider' | 'language'> = {
+          provider: SttProviderType.Backend,
+          language: languageForSave,
         };
-        const expectedKeyterms = normalizeKeyterms(store.deepgramKeyterms);
+
+        if (hasKeytermsChange) {
+          sttConfigData.deepgramKeyterms = expectedKeyterms;
+        }
+
+        await withTimeout(
+          tauriSettingsService.updateSttConfig(sttConfigData),
+          12_000,
+          'Не удалось сохранить STT настройки: таймаут',
+        );
+
         const isSttApplied = (stt: Awaited<ReturnType<typeof tauriSettingsService.getSttConfig>>) => {
-          return stt.language === store.language && normalizeKeyterms(stt.deepgram_keyterms) === expectedKeyterms;
+          if (stt.language !== languageForSave) return false;
+          if (hasKeytermsChange) {
+            return normalizeKeyterms(stt.deepgram_keyterms) === expectedKeyterms;
+          }
+          return true;
         };
 
         const stt1 = await withTimeout(
@@ -275,47 +305,67 @@ export function useSettings() {
           );
           if (!isSttApplied(stt2)) {
             throw new Error(
-              `STT настройки не сохранились: ожидали language=${store.language}, deepgram_keyterms=${expectedKeyterms ?? 'null'}, получили language=${stt2.language}, deepgram_keyterms=${normalizeKeyterms(stt2.deepgram_keyterms) ?? 'null'}`,
+              `STT настройки не сохранились: ожидали language=${languageForSave}, deepgram_keyterms=${hasKeytermsChange ? expectedKeyterms ?? 'null' : normalizeKeyterms(stt2.deepgram_keyterms) ?? 'null'}, получили language=${stt2.language}, deepgram_keyterms=${normalizeKeyterms(stt2.deepgram_keyterms) ?? 'null'}`,
             );
           }
         }
-      } catch (verifyErr) {
-        throw verifyErr;
       }
 
-      // Сохраняем App конфиг
-      // Отдельно сохраняем чувствительность: это критично для UX, и так мы избегаем
-      // любых странностей сериализации/комбинации полей в одном invoke.
-      await withTimeout(
-        tauriSettingsService.updateAppConfig({
-          microphone_sensitivity: store.microphoneSensitivity,
-        }),
-        12_000,
-        'Не удалось сохранить чувствительность микрофона: таймаут',
-      );
+      const appUpdatePayload: Partial<AppConfigData> = {};
+      const persistedSensitivity = persistedState?.microphoneSensitivity;
+      const hasSensitivityChange = persistedState
+        ? persistedSensitivity !== store.microphoneSensitivity
+        : latestApp.microphone_sensitivity !== store.microphoneSensitivity;
+      if (hasSensitivityChange && latestApp.microphone_sensitivity !== store.microphoneSensitivity) {
+        appUpdatePayload.microphone_sensitivity = store.microphoneSensitivity;
+      }
 
-      // Остальные поля можно сохранить вторым вызовом.
-      await withTimeout(
-        tauriSettingsService.updateAppConfig({
-          recording_hotkey: store.recordingHotkey,
-          auto_copy_to_clipboard: store.autoCopyToClipboard,
-          auto_paste_text: store.autoPasteText,
-          selected_audio_device: store.selectedAudioDevice,
-        }),
-        12_000,
-        'Не удалось сохранить настройки приложения: таймаут',
-      );
+      const hasHotkeyChange = persistedState
+        ? persistedState.recordingHotkey !== store.recordingHotkey
+        : latestApp.recording_hotkey !== store.recordingHotkey;
+      if (hasHotkeyChange && latestApp.recording_hotkey !== store.recordingHotkey) {
+        appUpdatePayload.recording_hotkey = store.recordingHotkey;
+      }
 
-      // Жёсткая проверка: иногда UI может думать что сохранили, но по факту snapshot остался старым.
-      // Такое лучше ловить сразу, иначе пользователь видит "сохранилось", а при следующем открытии снова 95.
-      try {
+      const hasAutoCopyChange = persistedState
+        ? persistedState.autoCopyToClipboard !== store.autoCopyToClipboard
+        : latestApp.auto_copy_to_clipboard !== store.autoCopyToClipboard;
+      if (hasAutoCopyChange && latestApp.auto_copy_to_clipboard !== store.autoCopyToClipboard) {
+        appUpdatePayload.auto_copy_to_clipboard = store.autoCopyToClipboard;
+      }
+
+      const hasAutoPasteChange = persistedState
+        ? persistedState.autoPasteText !== store.autoPasteText
+        : latestApp.auto_paste_text !== store.autoPasteText;
+      if (hasAutoPasteChange && latestApp.auto_paste_text !== store.autoPasteText) {
+        appUpdatePayload.auto_paste_text = store.autoPasteText;
+      }
+
+      const selectedDevice = normalizeAudioDevice(store.selectedAudioDevice);
+      const persistedDevice = normalizeAudioDevice(persistedState?.selectedAudioDevice);
+      const latestDevice = normalizeAudioDevice(latestApp.selected_audio_device);
+      const hasSelectedDeviceChange = persistedState
+        ? persistedDevice !== selectedDevice
+        : latestDevice !== selectedDevice;
+      if (hasSelectedDeviceChange && latestDevice !== selectedDevice) {
+        appUpdatePayload.selected_audio_device = selectedDevice;
+      }
+
+      if (Object.keys(appUpdatePayload).length > 0) {
+        await withTimeout(
+          tauriSettingsService.updateAppConfig(appUpdatePayload),
+          12_000,
+          'Не удалось сохранить настройки приложения: таймаут',
+        );
+      }
+
+      if (hasSensitivityChange) {
         const snap1 = await withTimeout(
           tauriSettingsService.getAppConfig(),
           10_000,
           'Не удалось проверить настройки приложения: таймаут',
         );
         if (snap1.microphone_sensitivity !== store.microphoneSensitivity) {
-          // Повторяем только sensitivity — минимальный безопасный ретрай.
           await withTimeout(
             tauriSettingsService.updateAppConfig({
               microphone_sensitivity: store.microphoneSensitivity,
@@ -334,12 +384,11 @@ export function useSettings() {
             );
           }
         }
-      } catch (verifyErr) {
-        throw verifyErr;
       }
 
       // UI preferences (theme/locale/system-theme) сохраняем только по "Save".
       persistUiPreferences();
+      store.capturePersistedState();
 
       store.setSaveStatus('success');
       return true;

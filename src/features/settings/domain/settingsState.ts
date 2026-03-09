@@ -1,0 +1,21 @@
+import type { SettingsState } from './types';
+
+export function areSettingsStatesEqual(a: SettingsState | null, b: SettingsState | null): boolean {
+  if (!a || !b) return a === b;
+
+  return (
+    a.provider === b.provider &&
+    a.language === b.language &&
+    a.deepgramApiKey === b.deepgramApiKey &&
+    a.assemblyaiApiKey === b.assemblyaiApiKey &&
+    a.whisperModel === b.whisperModel &&
+    a.theme === b.theme &&
+    a.useSystemTheme === b.useSystemTheme &&
+    a.recordingHotkey === b.recordingHotkey &&
+    a.microphoneSensitivity === b.microphoneSensitivity &&
+    a.selectedAudioDevice === b.selectedAudioDevice &&
+    a.autoCopyToClipboard === b.autoCopyToClipboard &&
+    a.autoPasteText === b.autoPasteText &&
+    a.deepgramKeyterms === b.deepgramKeyterms
+  );
+}

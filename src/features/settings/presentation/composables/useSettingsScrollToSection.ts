@@ -3,7 +3,7 @@
  * Используется при открытии настроек с указанием целевой секции (например, выбор устройства).
  */
 
-import { ref, nextTick, onMounted, onUnmounted } from 'vue';
+import { nextTick, onMounted, onUnmounted } from 'vue';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { isTauriAvailable } from '@/utils/tauri';
 

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { listen, type UnlistenFn } from '@tauri-apps/api/event';
 import { invoke } from '@tauri-apps/api/core';
@@ -12,7 +12,9 @@ import { useSettings } from '../composables/useSettings';
 import { useSettingsTheme } from '../composables/useSettingsTheme';
 import { useSettingsStore } from '../../store/settingsStore';
 import type { SettingsState } from '../../domain/types';
+import { areSettingsStatesEqual } from '../../domain/settingsState';
 import { invokeUpdateAppConfig } from '@/windowing/stateSync';
+import UnsavedChangesDialog from './dialogs/UnsavedChangesDialog.vue';
 
 // Секции
 import LanguageSection from './sections/LanguageSection.vue';
@@ -40,6 +42,7 @@ let unlistenOpened: UnlistenFn | null = null;
 
 const baselineState = ref<SettingsState | null>(null);
 const baselineUiLocale = ref<string>('');
+const showUnsavedChangesDialog = ref(false);
 
 const liveApplyAudioDeviceArmed = ref(false);
 let lastAppliedAudioDevice = '';
@@ -67,6 +70,10 @@ function captureBaseline(): void {
   baselineState.value = snapshotSettingsState();
   baselineUiLocale.value = String(locale.value ?? '');
 }
+
+const hasUnsavedChanges = computed(() => {
+  return !areSettingsStatesEqual(baselineState.value, snapshotSettingsState());
+});
 
 function armLiveApplyAudioDevice(): void {
   if (!isTauriAvailable()) {
@@ -107,6 +114,25 @@ function discardDraftChanges(): void {
     locale.value = baselineUiLocale.value;
     document.documentElement.dataset.uiLocale = baselineUiLocale.value;
   }
+}
+
+async function finalizeClose(shouldDiscard: boolean): Promise<void> {
+  if (shouldDiscard) {
+    discardDraftChanges();
+  } else {
+    captureBaseline();
+  }
+  if (!isTauriAvailable()) return;
+
+  try {
+    await invoke('show_recording_window');
+  } catch {}
+
+  // Дополнительная страховка: даже если invoke по какой-то причине не сработал,
+  // скрываем текущее окно настроек напрямую.
+  try {
+    await getCurrentWindow().hide();
+  } catch {}
 }
 
 onMounted(async () => {
@@ -164,22 +190,26 @@ onUnmounted(() => {
 async function handleClose(opts?: { discard?: boolean }): Promise<void> {
   showUpdateDialog.value = false;
   const shouldDiscard = opts?.discard ?? true;
-  if (shouldDiscard) {
-    discardDraftChanges();
-  } else {
-    captureBaseline();
+
+  if (shouldDiscard && hasUnsavedChanges.value) {
+    showUnsavedChangesDialog.value = true;
+    return;
   }
-  if (!isTauriAvailable()) return;
 
-  try {
-    await invoke('show_recording_window');
-  } catch {}
+  await finalizeClose(shouldDiscard);
+}
 
-  // Дополнительная страховка: даже если invoke по какой-то причине не сработал,
-  // скрываем текущее окно настроек напрямую.
-  try {
-    await getCurrentWindow().hide();
-  } catch {}
+async function handleDiscardAndClose(): Promise<void> {
+  showUnsavedChangesDialog.value = false;
+  await finalizeClose(true);
+}
+
+async function handleSaveAndClose(): Promise<void> {
+  const success = await saveConfig();
+  if (!success) return;
+
+  showUnsavedChangesDialog.value = false;
+  await handleClose({ discard: false });
 }
 
 async function handleSave(): Promise<void> {
@@ -262,6 +292,17 @@ watch(
     </div>
 
     <UpdateDialog v-model="showUpdateDialog" />
+    <UnsavedChangesDialog
+      v-model="showUnsavedChangesDialog"
+      :title="t('settings.unsavedChanges.title')"
+      :message="t('settings.unsavedChanges.message')"
+      :continue-label="t('settings.unsavedChanges.continueEditing')"
+      :discard-label="t('settings.unsavedChanges.discard')"
+      :save-label="t('settings.unsavedChanges.saveAndClose')"
+      :is-saving="isSaving"
+      @discard="handleDiscardAndClose"
+      @save="handleSaveAndClose"
+    />
   </div>
 </template>
 

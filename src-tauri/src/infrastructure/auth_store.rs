@@ -40,13 +40,66 @@ impl AuthStoreData {
 }
 
 impl AuthStore {
+    fn app_dir_name() -> &'static str {
+        if cfg!(debug_assertions) {
+            "voice-to-text-dev"
+        } else {
+            "voice-to-text"
+        }
+    }
+
+    fn legacy_shared_dir_name() -> &'static str {
+        "voice-to-text"
+    }
+
+    fn scoped_config_dir(root: &Path) -> PathBuf {
+        root.join(Self::app_dir_name())
+    }
+
+    fn legacy_shared_dir(root: &Path) -> PathBuf {
+        root.join(Self::legacy_shared_dir_name())
+    }
+
+    fn migrate_legacy_store_once(root: &Path) -> Result<()> {
+        if !cfg!(debug_assertions) {
+            return Ok(());
+        }
+
+        let target_dir = Self::scoped_config_dir(root);
+        let legacy_dir = Self::legacy_shared_dir(root);
+        if target_dir == legacy_dir {
+            return Ok(());
+        }
+
+        std::fs::create_dir_all(&target_dir)?;
+
+        let target = target_dir.join("auth_store.json");
+        if target.exists() {
+            return Ok(());
+        }
+
+        let legacy = legacy_dir.join("auth_store.json");
+        if !legacy.exists() {
+            return Ok(());
+        }
+
+        std::fs::copy(&legacy, &target)?;
+        log::info!(
+            "Migrated auth store from {:?} to {:?}",
+            legacy_dir,
+            target_dir
+        );
+        Ok(())
+    }
+
     fn config_dir() -> Result<PathBuf> {
         let config_dir = dirs::config_dir()
             .ok_or_else(|| anyhow::anyhow!("Failed to get config directory"))?;
-        let app_config_dir = config_dir.join("voice-to-text");
+        let app_config_dir = Self::scoped_config_dir(&config_dir);
 
         // Важно: create_dir_all идемпотентен и надёжнее, чем exists() (race).
         std::fs::create_dir_all(&app_config_dir)?;
+        Self::migrate_legacy_store_once(&config_dir)?;
         Ok(app_config_dir)
     }
 
@@ -126,3 +179,42 @@ impl AuthStore {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    #[test]
+    fn app_dir_name_matches_build_profile() {
+        #[cfg(debug_assertions)]
+        assert_eq!(AuthStore::app_dir_name(), "voice-to-text-dev");
+
+        #[cfg(not(debug_assertions))]
+        assert_eq!(AuthStore::app_dir_name(), "voice-to-text");
+    }
+
+    #[test]
+    fn migrate_legacy_store_once_copies_existing_auth_store_for_dev_storage() {
+        let root = std::env::temp_dir().join(format!("voice-to-text-auth-migrate-{}", Uuid::new_v4()));
+        let legacy_dir = root.join("voice-to-text");
+        std::fs::create_dir_all(&legacy_dir).unwrap();
+        std::fs::write(legacy_dir.join("auth_store.json"), "{\"device_id\":\"desktop-1\",\"session\":null}").unwrap();
+
+        AuthStore::migrate_legacy_store_once(&root).unwrap();
+
+        let target_dir = AuthStore::scoped_config_dir(&root);
+        #[cfg(debug_assertions)]
+        assert_eq!(
+            std::fs::read_to_string(target_dir.join("auth_store.json")).unwrap(),
+            "{\"device_id\":\"desktop-1\",\"session\":null}"
+        );
+
+        #[cfg(not(debug_assertions))]
+        assert_eq!(
+            std::fs::read_to_string(target_dir.join("auth_store.json")).unwrap(),
+            "{\"device_id\":\"desktop-1\",\"session\":null}"
+        );
+
+        let _ = std::fs::remove_dir_all(root);
+    }
+}

@@ -2,6 +2,69 @@ use std::path::PathBuf;
 use std::fs;
 use serde::{Deserialize, Serialize};
 
+fn app_data_dir_name() -> &'static str {
+    if cfg!(debug_assertions) {
+        "voice-to-text-dev"
+    } else {
+        "voice-to-text"
+    }
+}
+
+fn legacy_shared_dir_name() -> &'static str {
+    "voice-to-text"
+}
+
+fn scoped_app_data_dir(root: &std::path::Path) -> PathBuf {
+    root.join(app_data_dir_name())
+}
+
+fn legacy_shared_app_data_dir(root: &std::path::Path) -> PathBuf {
+    root.join(legacy_shared_dir_name())
+}
+
+fn copy_dir_recursive_once(source: &std::path::Path, target: &std::path::Path) -> anyhow::Result<()> {
+    if !source.exists() {
+        return Ok(());
+    }
+    if target.exists() {
+        return Ok(());
+    }
+
+    fs::create_dir_all(target)?;
+    for entry in fs::read_dir(source)? {
+        let entry = entry?;
+        let source_path = entry.path();
+        let target_path = target.join(entry.file_name());
+        let file_type = entry.file_type()?;
+
+        if file_type.is_dir() {
+            copy_dir_recursive_once(&source_path, &target_path)?;
+        } else if file_type.is_file() {
+            fs::copy(&source_path, &target_path)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn migrate_legacy_models_dir_once(root: &std::path::Path) -> anyhow::Result<()> {
+    if !cfg!(debug_assertions) {
+        return Ok(());
+    }
+
+    let target_dir = scoped_app_data_dir(root).join("models");
+    let legacy_dir = legacy_shared_app_data_dir(root).join("models");
+    if target_dir == legacy_dir {
+        return Ok(());
+    }
+
+    copy_dir_recursive_once(&legacy_dir, &target_dir)?;
+    if target_dir.exists() {
+        log::info!("Ensured scoped models directory exists at {}", target_dir.display());
+    }
+    Ok(())
+}
+
 /// Информация о модели Whisper
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WhisperModelInfo {
@@ -72,7 +135,9 @@ pub fn get_models_dir() -> anyhow::Result<PathBuf> {
     let app_data_dir = dirs::data_dir()
         .ok_or_else(|| anyhow::anyhow!("Cannot determine app data directory"))?;
 
-    let models_dir = app_data_dir.join("voice-to-text").join("models");
+    migrate_legacy_models_dir_once(&app_data_dir)?;
+
+    let models_dir = scoped_app_data_dir(&app_data_dir).join("models");
 
     // Создаем директорию если не существует
     if !models_dir.exists() {
@@ -217,4 +282,37 @@ pub fn delete_model(model_name: &str) -> anyhow::Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    #[test]
+    fn app_data_dir_name_matches_build_profile() {
+        #[cfg(debug_assertions)]
+        assert_eq!(app_data_dir_name(), "voice-to-text-dev");
+
+        #[cfg(not(debug_assertions))]
+        assert_eq!(app_data_dir_name(), "voice-to-text");
+    }
+
+    #[test]
+    fn migrate_legacy_models_dir_once_copies_models_to_scoped_dir() {
+        let root = std::env::temp_dir().join(format!("voice-to-text-models-{}", Uuid::new_v4()));
+        let legacy_models_dir = root.join("voice-to-text").join("models");
+        fs::create_dir_all(&legacy_models_dir).unwrap();
+        fs::write(legacy_models_dir.join("ggml-base.bin"), b"model-bytes").unwrap();
+
+        migrate_legacy_models_dir_once(&root).unwrap();
+
+        let target_models_dir = scoped_app_data_dir(&root).join("models");
+        assert_eq!(
+            fs::read(target_models_dir.join("ggml-base.bin")).unwrap(),
+            b"model-bytes"
+        );
+
+        let _ = fs::remove_dir_all(root);
+    }
 }

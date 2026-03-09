@@ -12,7 +12,6 @@ import {
   CMD_UPDATE_UI_PREFERENCES,
   readUiPreferencesFromStorage,
   writeUiPreferencesCacheToStorage,
-  invokeUpdateAppConfig,
   invokeUpdateSttConfig,
 } from '@/windowing/stateSync';
 import { normalizeUiLocale, normalizeUiTheme } from '@/i18n.locales';
@@ -36,18 +35,11 @@ export const useSettingsStore = defineStore('settings', () => {
   const autoCopyToClipboard = ref(true);
   const autoPasteText = ref(false);
   const deepgramKeyterms = ref('');
-
-  // Debounce для автосохранения чувствительности (иначе будем спамить invoke при перетаскивании слайдера)
-  let micSensitivityPersistTimer: ReturnType<typeof setTimeout> | null = null;
-  let lastPersistedMicSensitivity: number | null = null;
+  const persistedState = ref<SettingsState | null>(null);
 
   // Debounce для автосохранения STT языка
   let sttLanguagePersistTimer: ReturnType<typeof setTimeout> | null = null;
   let lastPersistedSttLanguage: string | null = null;
-
-  // Debounce для автосохранения keyterms (иначе будем спамить invoke при вводе)
-  let deepgramKeytermsPersistTimer: ReturnType<typeof setTimeout> | null = null;
-  let lastPersistedDeepgramKeyterms: string | null = null;
 
   // Список доступных устройств
   const availableAudioDevices = ref<string[]>([]);
@@ -128,11 +120,6 @@ export const useSettingsStore = defineStore('settings', () => {
         lastPersistedSttLanguage = language.value;
       } catch {}
     }, 150);
-  }
-
-  function normalizeKeytermsForPersist(raw: string): string | null {
-    const v = String(raw ?? '').trim();
-    return v ? v : null;
   }
 
   async function flushSttLanguagePersist(): Promise<void> {
@@ -234,55 +221,9 @@ export const useSettingsStore = defineStore('settings', () => {
     recordingHotkey.value = value;
   }
 
-  function setMicrophoneSensitivity(value: number, opts?: { persist?: boolean }) {
+  function setMicrophoneSensitivity(value: number, _opts?: { persist?: boolean }) {
     const next = Math.max(0, Math.min(200, Math.round(value)));
     microphoneSensitivity.value = next;
-
-    const shouldPersist = opts?.persist ?? true;
-    if (!shouldPersist) {
-      // Значение пришло из backend/sync — считаем его "уже сохранённым",
-      // чтобы flush при закрытии окна не дёргал update_app_config без реальных изменений.
-      lastPersistedMicSensitivity = next;
-      return;
-    }
-    if (!isTauriAvailable()) return;
-
-    if (micSensitivityPersistTimer) {
-      clearTimeout(micSensitivityPersistTimer);
-      micSensitivityPersistTimer = null;
-    }
-
-    micSensitivityPersistTimer = setTimeout(() => {
-      // Защита от лишних вызовов: если уже отправляли это значение — не дёргаем бэкенд.
-      if (lastPersistedMicSensitivity === microphoneSensitivity.value) return;
-
-      try {
-          void invokeUpdateAppConfig({
-          // Tauri command args ожидают camelCase (Rust: microphone_sensitivity)
-          microphoneSensitivity: microphoneSensitivity.value,
-        });
-        lastPersistedMicSensitivity = microphoneSensitivity.value;
-      } catch {}
-    }, 250);
-  }
-
-  async function flushMicrophoneSensitivityPersist(): Promise<void> {
-    if (!isTauriAvailable()) return;
-    if (micSensitivityPersistTimer) {
-      clearTimeout(micSensitivityPersistTimer);
-      micSensitivityPersistTimer = null;
-    }
-
-    const next = Math.max(0, Math.min(200, Math.round(microphoneSensitivity.value)));
-    microphoneSensitivity.value = next;
-    if (lastPersistedMicSensitivity === next) return;
-
-    try {
-      await invokeUpdateAppConfig({ microphoneSensitivity: next });
-      lastPersistedMicSensitivity = next;
-    } catch {
-      // Тут намеренно молчим: пользователь закрывает окно, не надо мешать UX.
-    }
   }
 
   function setSelectedAudioDevice(value: string) {
@@ -297,44 +238,9 @@ export const useSettingsStore = defineStore('settings', () => {
     autoPasteText.value = value;
   }
 
-  function setDeepgramKeyterms(value: string, opts?: { persist?: boolean }) {
+  function setDeepgramKeyterms(value: string, _opts?: { persist?: boolean }) {
     const nextRaw = String(value ?? '');
     deepgramKeyterms.value = nextRaw;
-
-    const shouldPersist = opts?.persist ?? true;
-    const normalized = normalizeKeytermsForPersist(nextRaw);
-
-    if (!shouldPersist) {
-      // Значение пришло из backend/sync или откатили черновик — считаем "уже сохранённым",
-      // чтобы debounce/flush не делали лишние вызовы.
-      lastPersistedDeepgramKeyterms = normalized;
-      return;
-    }
-    if (!isTauriAvailable()) return;
-
-    if (deepgramKeytermsPersistTimer) {
-      clearTimeout(deepgramKeytermsPersistTimer);
-      deepgramKeytermsPersistTimer = null;
-    }
-
-    deepgramKeytermsPersistTimer = setTimeout(() => {
-      const current = normalizeKeytermsForPersist(deepgramKeyterms.value);
-      if (lastPersistedDeepgramKeyterms === current) return;
-
-      try {
-        // update_stt_config требует обязательный language. Берём "последний сохранённый" из localStorage,
-        // чтобы автосохранение keyterms не тащило за собой черновик языка (язык сохраняется только по Save).
-        const persistedLang = String(localStorage.getItem('sttLanguage') ?? '').trim();
-        const languageForPersist = persistedLang || language.value;
-
-        void invokeUpdateSttConfig({
-          provider: SttProviderType.Backend,
-          language: languageForPersist,
-          deepgramKeyterms: current,
-        });
-        lastPersistedDeepgramKeyterms = current;
-      } catch {}
-    }, 450);
   }
 
   function setAvailableAudioDevices(devices: string[]) {
@@ -392,6 +298,19 @@ export const useSettingsStore = defineStore('settings', () => {
       setDeepgramKeyterms(state.deepgramKeyterms, { persist: false });
   }
 
+  function capturePersistedState(state?: SettingsState): void {
+    const snapshot = state ?? currentState.value;
+    persistedState.value = {
+      ...snapshot,
+      deepgramKeyterms: snapshot.deepgramKeyterms ?? '',
+    };
+  }
+
+  function getPersistedState(): SettingsState | null {
+    if (!persistedState.value) return null;
+    return { ...persistedState.value };
+  }
+
   return {
     // Состояние
     provider,
@@ -407,6 +326,7 @@ export const useSettingsStore = defineStore('settings', () => {
     autoCopyToClipboard,
     autoPasteText,
     deepgramKeyterms,
+    persistedState,
     availableAudioDevices,
     hasAccessibilityPermission,
     saveStatus,
@@ -431,7 +351,6 @@ export const useSettingsStore = defineStore('settings', () => {
     setUseSystemTheme,
     setRecordingHotkey,
     setMicrophoneSensitivity,
-    flushMicrophoneSensitivityPersist,
     setSelectedAudioDevice,
     setAutoCopyToClipboard,
     setAutoPasteText,
@@ -443,5 +362,7 @@ export const useSettingsStore = defineStore('settings', () => {
     setError,
     clearError,
     applyState,
+    capturePersistedState,
+    getPersistedState,
   };
 });
