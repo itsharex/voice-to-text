@@ -32,6 +32,7 @@ export interface ApiRegisterRequest {
 
 export interface ApiRegisterResponse {
   needs_verification: boolean;
+  next_step: 'verify_email' | 'password_setup';
 }
 
 export interface ApiVerifyEmailRequest {

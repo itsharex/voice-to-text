@@ -8,6 +8,7 @@ import PasswordResetForm from './PasswordResetForm.vue';
 import FlagIcon from '@/presentation/components/FlagIcon.vue';
 import { UI_LOCALES, type UiLocale } from '@/i18n.locales';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import type { PasswordResetStep } from '../composables/usePasswordReset';
 
 const { t, locale } = useI18n();
 const authState = useAuthState();
@@ -28,6 +29,8 @@ async function closeWindow() {
 
 type AuthView = 'login' | 'register' | 'verify' | 'reset';
 const currentView = ref<AuthView>('login');
+const resetInitialEmail = ref('');
+const resetInitialStep = ref<PasswordResetStep>('email');
 
 const showVerifyEmail = computed(() => authState.needsVerification.value);
 
@@ -53,9 +56,13 @@ function switchToRegister() {
 
 function switchToLogin() {
   currentView.value = 'login';
+  resetInitialEmail.value = '';
+  resetInitialStep.value = 'email';
 }
 
-function switchToReset() {
+function switchToReset(initialEmail = '', initialStep: PasswordResetStep = 'email') {
+  resetInitialEmail.value = initialEmail;
+  resetInitialStep.value = initialStep;
   currentView.value = 'reset';
 }
 </script>
@@ -123,11 +130,14 @@ function switchToReset() {
           :mode="currentView"
           @switch-to-register="switchToRegister"
           @switch-to-login="switchToLogin"
-          @forgot-password="switchToReset"
+          @forgot-password="switchToReset()"
+          @start-password-setup="switchToReset($event, 'code')"
         />
 
         <PasswordResetForm
           v-else-if="currentView === 'reset'"
+          :initial-email="resetInitialEmail"
+          :initial-step="resetInitialStep"
           @back="switchToLogin"
         />
       </div>

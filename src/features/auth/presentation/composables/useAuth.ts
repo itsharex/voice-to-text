@@ -2,6 +2,7 @@ import { useI18n } from 'vue-i18n';
 import { useAuthStore } from '../../store/authStore';
 import { getAuthContainer } from '../../infrastructure/di/authContainer';
 import { AuthError, AuthErrorCode } from '../../domain/errors';
+import type { RegisterResponse } from '../../application/dto/RegisterDto';
 import { useAuthState } from './useAuthState';
 
 /**
@@ -61,6 +62,9 @@ export function useAuth() {
           break;
         case AuthErrorCode.OAuthAccountLinked:
           store.setError(t('auth.errors.oauthAccountLinked'));
+          break;
+        case AuthErrorCode.ProviderError:
+          store.setError(e.message);
           break;
         case AuthErrorCode.ValidationError:
           store.setError(e.message);
@@ -126,14 +130,22 @@ export function useAuth() {
     }
   }
 
-  async function register(email: string, password: string): Promise<void> {
+  async function register(email: string, password: string): Promise<RegisterResponse | undefined> {
     store.setLoading();
 
     try {
-      await container.registerUseCase.execute({ email, password });
-      store.setNeedsVerification(email);
+      const result = await container.registerUseCase.execute({ email, password });
+
+      if (result.nextStep === 'verify_email') {
+        store.setNeedsVerification(email);
+      } else {
+        store.setUnauthenticated();
+      }
+
+      return result;
     } catch (e) {
       handleError(e);
+      return undefined;
     }
   }
 

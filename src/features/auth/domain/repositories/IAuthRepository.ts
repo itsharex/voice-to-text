@@ -9,6 +9,13 @@ export interface LoginResult {
   session?: Session;
 }
 
+export type RegisterNextStep = 'verify_email' | 'password_setup';
+
+export interface RegisterResult {
+  needsVerification: boolean;
+  nextStep: RegisterNextStep;
+}
+
 /**
  * Интерфейс репозитория для auth операций
  * Абстрагирует работу с API от бизнес-логики
@@ -21,9 +28,9 @@ export interface IAuthRepository {
 
   /**
    * Регистрация нового пользователя
-   * Всегда требует последующую верификацию email
+   * Может требовать верификацию email или установку пароля
    */
-  register(email: string, password: string, deviceId: string): Promise<void>;
+  register(email: string, password: string, deviceId: string): Promise<RegisterResult>;
 
   /**
    * Подтверждение email 6-значным кодом

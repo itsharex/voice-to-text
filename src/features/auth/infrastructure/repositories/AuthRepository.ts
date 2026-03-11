@@ -1,4 +1,8 @@
-import type { IAuthRepository, LoginResult } from '../../domain/repositories/IAuthRepository';
+import type {
+  IAuthRepository,
+  LoginResult,
+  RegisterResult,
+} from '../../domain/repositories/IAuthRepository';
 import type { Session } from '../../domain/entities/Session';
 import type { User } from '../../domain/entities/User';
 import { createSession } from '../../domain/entities/Session';
@@ -30,12 +34,17 @@ export class AuthRepository implements IAuthRepository {
     };
   }
 
-  async register(email: string, password: string, deviceId: string): Promise<void> {
-    await this.apiClient.register({
+  async register(email: string, password: string, deviceId: string): Promise<RegisterResult> {
+    const response = await this.apiClient.register({
       email,
       password,
       device_id: deviceId,
     });
+
+    return {
+      needsVerification: response.needs_verification,
+      nextStep: response.next_step,
+    };
   }
 
   async verifyEmail(email: string, code: string, deviceId: string): Promise<Session> {

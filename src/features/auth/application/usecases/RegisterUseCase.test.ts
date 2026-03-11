@@ -36,7 +36,10 @@ describe('RegisterUseCase', () => {
   });
 
   it('успешно регистрирует пользователя', async () => {
-    vi.mocked(mockAuthRepository.register).mockResolvedValue();
+    vi.mocked(mockAuthRepository.register).mockResolvedValue({
+      needsVerification: true,
+      nextStep: 'verify_email',
+    });
 
     const result = await registerUseCase.execute({
       email: 'test@example.com',
@@ -44,11 +47,27 @@ describe('RegisterUseCase', () => {
     });
 
     expect(result.needsVerification).toBe(true);
+    expect(result.nextStep).toBe('verify_email');
     expect(mockAuthRepository.register).toHaveBeenCalledWith(
       'test@example.com',
       'password12345',
       'device-123'
     );
+  });
+
+  it('возвращает password_setup для oauth-only пользователя', async () => {
+    vi.mocked(mockAuthRepository.register).mockResolvedValue({
+      needsVerification: false,
+      nextStep: 'password_setup',
+    });
+
+    const result = await registerUseCase.execute({
+      email: 'oauth@example.com',
+      password: 'password12345',
+    });
+
+    expect(result.needsVerification).toBe(false);
+    expect(result.nextStep).toBe('password_setup');
   });
 
   it('выбрасывает ошибку для некорректного email', async () => {
@@ -85,7 +104,10 @@ describe('RegisterUseCase', () => {
     ).rejects.toThrow();
 
     // 12 символов - должен пройти
-    vi.mocked(mockAuthRepository.register).mockResolvedValue();
+    vi.mocked(mockAuthRepository.register).mockResolvedValue({
+      needsVerification: true,
+      nextStep: 'verify_email',
+    });
     await expect(
       registerUseCase.execute({
         email: 'test@example.com',

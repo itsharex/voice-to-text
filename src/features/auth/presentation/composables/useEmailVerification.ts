@@ -34,6 +34,9 @@ export function useEmailVerification() {
         case AuthErrorCode.NetworkError:
           store.setError(t('auth.errors.networkError'));
           break;
+        case AuthErrorCode.ProviderError:
+          store.setError(e.message);
+          break;
         default:
           store.setError(e.message);
       }

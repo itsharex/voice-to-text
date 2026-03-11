@@ -2,6 +2,18 @@
 import { ref, computed, onUnmounted } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { usePasswordReset } from '../composables/usePasswordReset';
+import type { PasswordResetStep } from '../composables/usePasswordReset';
+
+const props = withDefaults(
+  defineProps<{
+    initialEmail?: string;
+    initialStep?: PasswordResetStep;
+  }>(),
+  {
+    initialEmail: '',
+    initialStep: 'email',
+  }
+);
 
 const emit = defineEmits<{
   back: [];
@@ -16,6 +28,10 @@ const newPassword = ref('');
 const confirmPassword = ref('');
 const showPassword = ref(false);
 const formValid = ref(false);
+
+email.value = props.initialEmail;
+passwordReset.resetEmail.value = props.initialEmail;
+passwordReset.step.value = props.initialStep;
 
 const emailRules = computed(() => [
   (v: string) => !!v || t('auth.rules.emailRequired'),

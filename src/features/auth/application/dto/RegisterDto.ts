@@ -7,8 +7,9 @@ export interface RegisterRequest {
 }
 
 /**
- * Результат регистрации - всегда требуется верификация
+ * Результат регистрации
  */
 export interface RegisterResponse {
-  needsVerification: true;
+  needsVerification: boolean;
+  nextStep: 'verify_email' | 'password_setup';
 }

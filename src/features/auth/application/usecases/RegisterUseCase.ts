@@ -18,11 +18,14 @@ export class RegisterUseCase {
     validatePassword(request.password);
 
     const deviceId = this.tokenRepository.getDeviceId();
-    await this.authRepository.register(
+    const result = await this.authRepository.register(
       request.email,
       request.password,
       deviceId
     );
-    return { needsVerification: true };
+    return {
+      needsVerification: result.needsVerification,
+      nextStep: result.nextStep,
+    };
   }
 }

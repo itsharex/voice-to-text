@@ -12,6 +12,7 @@ const emit = defineEmits<{
   'switch-to-register': [];
   'switch-to-login': [];
   'forgot-password': [];
+  'start-password-setup': [email: string];
 }>();
 
 const { t } = useI18n();
@@ -52,7 +53,10 @@ async function submit() {
   isEmailLoading.value = true;
   try {
     if (isRegister.value) {
-      await auth.register(email.value, password.value);
+      const result = await auth.register(email.value, password.value);
+      if (result?.nextStep === 'password_setup') {
+        emit('start-password-setup', email.value);
+      }
     } else {
       await auth.login(email.value, password.value);
     }

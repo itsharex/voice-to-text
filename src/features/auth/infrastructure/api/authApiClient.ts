@@ -99,6 +99,8 @@ export class AuthApiClient {
         return new AuthError(AuthErrorCode.OAuthError, message);
       case 'OAUTH_ACCOUNT_ALREADY_LINKED':
         return new AuthError(AuthErrorCode.OAuthAccountLinked, message);
+      case 'PROVIDER_ERROR':
+        return new AuthError(AuthErrorCode.ProviderError, message);
       default:
         if (status === 401) {
           return new AuthError(AuthErrorCode.SessionExpired, message);
